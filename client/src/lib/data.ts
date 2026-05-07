@@ -1,13 +1,16 @@
 /**
- * Kinesiology Workout Builder — Biomechanical Database
- * Tier 1: Systemic / Multi-Joint ("The Big Rocks")
- * Tier 2: Regional / Single-Joint ("The Sand")
- * 
- * Each subcategory has exactly 2 exercises with equipment and angle toggles where applicable.
+ * Kinesiology Workout Builder — Exercise Database
+ *
+ * Pool sourced from the Jeff Nippard / Mike Israetel hypertrophy compendium.
+ * Movement-pattern groupings (squat, hinge, push, pull, etc.) are user-facing
+ * UX. The rating engine scores against the canonical 29-action joint taxonomy
+ * via the `jointActions` tags on each exercise. `compound`, `stretchEmphasis`,
+ * `stability`, and `sfr` tags drive the Hypertrophy Matrix selection criteria.
  */
 
 export type CategoryType = "systemic" | "regional";
 export type Difficulty = "hard" | "medium" | "easy";
+export type StimulusLevel = "very-high" | "high" | "medium" | "low";
 
 export interface EquipmentOption {
   id: string;
@@ -27,16 +30,75 @@ export interface WarmupInfo {
   instructions: string[];
 }
 
+/**
+ * Canonical joint actions used by the rating engine. These are the exact
+ * strings the rating prompt and coverage check expect. Use these literals
+ * when tagging an exercise so coverage analysis works.
+ */
+export const JOINT_ACTIONS = [
+  // Shoulder
+  "Shoulder Flexors",
+  "Shoulder Extensors",
+  "Shoulder Abductors",
+  "Shoulder Adductors",
+  "Shoulder Horizontal Abductors",
+  "Shoulder Horizontal Adductors",
+  "Shoulder Internal Rotators",
+  "Shoulder External Rotators",
+  // Scapula
+  "Scapular Retractors",
+  "Scapular Protractors",
+  "Scapular Elevators",
+  "Scapular Depressors",
+  "Scapular Upward Rotators",
+  "Scapular Downward Rotators",
+  // Elbow
+  "Elbow Flexors",
+  "Elbow Extensors",
+  // Spine / Core
+  "Spinal Flexors",
+  "Spinal Extensors",
+  "Spinal Rotators & Lateral Flexors",
+  // Hip
+  "Hip Flexors",
+  "Hip Extensors",
+  "Hip Abductors",
+  "Hip Adductors",
+  "Hip External Rotators",
+  "Hip Internal Rotators",
+  // Knee
+  "Knee Extensors",
+  "Knee Flexors",
+  // Ankle
+  "Ankle Plantarflexors",
+  "Ankle Dorsiflexors",
+] as const;
+
+export type JointAction = (typeof JOINT_ACTIONS)[number];
+
 export interface Exercise {
   id: string;
   name: string;
   difficulty: Difficulty;
   targetedMuscles: string[];
+  /** Joint actions produced by this exercise (drawn from JOINT_ACTIONS). */
+  jointActions: JointAction[];
+  /** Multi-joint big-rock if true; single-joint isolation if false. */
+  compound: boolean;
+  /** Loads the muscle in its lengthened position. */
+  stretchEmphasis: boolean;
+  /** Higher stability = safer to push to / near failure. */
+  stability: StimulusLevel;
+  /** Stimulus-to-Fatigue Ratio for the prime mover. */
+  sfr: StimulusLevel;
   description: string;
   mechanics: string;
   equipment?: EquipmentOption[];
   angles?: AngleOption[];
+  /** Placeholder warmup; replaced by the desk-job-aware warmup engine in a later phase. */
   warmup: WarmupInfo;
+  /** Coach reasoning from the Nippard / Israetel compendium. */
+  coachNotes?: string;
 }
 
 export interface Subcategory {
@@ -70,13 +132,29 @@ export interface Category {
   jointFunctions: JointFunction[];
 }
 
+const PLACEHOLDER_WARMUP: WarmupInfo = {
+  name: "General activation (replaced by daily warmup engine)",
+  sets: "1–2",
+  reps: "8–10",
+  instructions: [
+    "5 minutes of light cardio to raise core temperature.",
+    "Dynamic stretching for the working muscles.",
+    "1–2 ramp-up sets at lighter loads before working sets.",
+  ],
+};
+
 export const categories: Category[] = [
+  // ============================================================
+  // TIER 1 — SYSTEMIC / MULTI-JOINT
+  // ============================================================
   {
     id: "systemic",
     name: "Tier 1: Systemic / Multi-Joint",
     subtitle: "The Big Rocks",
-    description: "Large mass, high CNS fatigue. These compound movements recruit multiple joints and large muscle groups simultaneously, demanding heavy loads and longer recovery.",
+    description:
+      "Multi-joint compounds that recruit large muscle masses. High systemic and CNS fatigue, demand longer recovery, and form the base of weekly volume.",
     jointFunctions: [
+      // ---------- 1. SQUAT PATTERNS ----------
       {
         id: "squat-patterns",
         name: "Squat Patterns",
@@ -85,416 +163,1086 @@ export const categories: Category[] = [
           {
             id: "squat-quad-biased",
             name: "Quad-Biased",
-            description: "Upright torso, high forward knee travel. Maximizes quadriceps loading through deep knee flexion with minimal hip hinge.",
+            description:
+              "Upright torso and high forward knee travel maximize quadriceps loading through deep knee flexion.",
             exercises: [
               {
-                id: "front-squat",
-                name: "Front Squat",
+                id: "upright-squat",
+                name: "Upright Squat",
                 difficulty: "hard",
-                targetedMuscles: ["Quadriceps", "Upper Back", "Core"],
-                description: "Barbell positioned on front delts forces an upright torso, maximizing knee travel and quad recruitment.",
-                mechanics: "The anterior bar position shifts the center of gravity forward, requiring greater knee flexion and ankle dorsiflexion. This creates a longer moment arm at the knee joint, increasing quadriceps demand while reducing spinal erector load.",
+                targetedMuscles: ["Quadriceps", "Glutes", "Adductors", "Spinal Erectors"],
+                jointActions: ["Knee Extensors", "Hip Extensors", "Spinal Extensors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Upright-torso squat (high-bar, front, Smith, or heel-elevated) that biases the quadriceps through full knee flexion.",
+                mechanics:
+                  "An upright torso lengthens the moment arm at the knee and shortens it at the hip, shifting demand to the quads. Heel elevation lets the knees travel further forward for greater quad stretch.",
                 equipment: [
-                  { id: "barbell", name: "Barbell" },
-                  { id: "safety-squat-bar", name: "Safety Squat Bar" }
+                  { id: "high-bar-bb", name: "Barbell (High-Bar)" },
+                  { id: "front-bb", name: "Barbell (Front Squat)" },
+                  { id: "smith", name: "Smith Machine" },
+                  { id: "heel-elevated", name: "Heel-Elevated" },
                 ],
-                warmup: { name: "Bodyweight Squat Hold", sets: "2", reps: "10", instructions: ["Opens the hips and ankles for deep knee flexion.", "Activates the quadriceps through full ROM.", "Prepares the thoracic spine for the upright position."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard rates high-bar squats S-tier and front squats A-tier; Smith stability lets lifters push closer to failure. Israetel recommends heel elevation for deeper knee travel.",
               },
               {
-                id: "heel-elevated-squat",
-                name: "Heel-Elevated Goblet Squat",
-                difficulty: "easy",
-                targetedMuscles: ["Quadriceps", "VMO", "Glutes"],
-                description: "Heels elevated on a wedge or plate with a dumbbell/kettlebell held at chest height, allowing deep knee flexion with an upright torso.",
-                mechanics: "Heel elevation compensates for limited ankle dorsiflexion, allowing the knees to travel further forward. The goblet hold counterbalances the body, enabling a more vertical torso and greater quad stretch at depth.",
+                id: "hack-pendulum-squat",
+                name: "Hack / Pendulum Squat",
+                difficulty: "medium",
+                targetedMuscles: ["Quadriceps", "Glutes", "Adductors"],
+                jointActions: ["Knee Extensors", "Hip Extensors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Plate-loaded hack or pendulum machine squat. Built-in stability with full ROM and a natural arc.",
+                mechanics:
+                  "The fixed track removes balance demand and lets the lifter sit deeper while loading the quads with constant tension. Pendulum's arc closer mirrors a natural squat path.",
                 equipment: [
-                  { id: "dumbbell", name: "Dumbbell" },
-                  { id: "kettlebell", name: "Kettlebell" }
+                  { id: "hack", name: "Hack Squat Machine" },
+                  { id: "pendulum", name: "Pendulum Squat Machine" },
                 ],
-                warmup: { name: "Wall Sit", sets: "1", reps: "30 sec", instructions: ["Activates the quadriceps isometrically.", "Warms the knee joint for deep flexion.", "Prepares the VMO for loaded squatting."] }
-              }
-            ]
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard's single best quad exercise. Israetel: feet-low stance for quad bias.",
+              },
+              {
+                id: "belt-squat",
+                name: "Belt Squat",
+                difficulty: "medium",
+                targetedMuscles: ["Quadriceps", "Glutes", "Adductors"],
+                jointActions: ["Knee Extensors", "Hip Extensors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Hip-belt-loaded squat that removes axial spinal compression. Allows deep paused reps with tension on the quads.",
+                mechanics:
+                  "Load is hung from the hips rather than the spine, eliminating systemic recovery cost from axial loading. Stable platform allows long-set training near failure.",
+                equipment: [
+                  { id: "belt-machine", name: "Belt Squat Machine" },
+                  { id: "cable-belt", name: "Cable Belt Setup" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Israetel highlights belt squats for quads with low systemic fatigue.",
+              },
+              {
+                id: "leg-press",
+                name: "Leg Press",
+                difficulty: "easy",
+                targetedMuscles: ["Quadriceps", "Glutes", "Adductors"],
+                jointActions: ["Knee Extensors", "Hip Extensors"],
+                compound: true,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Plate- or selectorized-machine leg press. Highly stable and progressive, with foot position controlling bias.",
+                mechanics:
+                  "Backrest support eliminates balance demand and lets the lifter focus on knee extension. ROM is the primary limitation.",
+                equipment: [
+                  { id: "leg-press-45", name: "45° Leg Press" },
+                  { id: "plate-leg-press", name: "Plate-Loaded" },
+                  { id: "selectorized-leg-press", name: "Selectorized" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: A-tier; main limitation is ROM.",
+              },
+              {
+                id: "quad-split-squat",
+                name: "Quad-Biased Split Squat / Lunge",
+                difficulty: "medium",
+                targetedMuscles: ["Quadriceps", "Glutes", "Adductors"],
+                jointActions: ["Knee Extensors", "Hip Extensors", "Hip Abductors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Bulgarian split squat or short-step lunge with the front shin biased forward to load the quads unilaterally.",
+                mechanics:
+                  "Unilateral loading combines a strong quad stretch in the lengthened position with precise activation. Short stance amplifies knee flexion.",
+                equipment: [
+                  { id: "bulgarian", name: "Bulgarian Split Squat" },
+                  { id: "db-split", name: "Dumbbell Split Squat" },
+                  { id: "smith-split", name: "Smith Machine Split Squat" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: S-tier for quad-biased unilateral loading.",
+              },
+            ],
           },
           {
             id: "squat-glute-adductor",
             name: "Glute & Adductor-Biased",
-            description: "Forward torso lean, higher hip hinge. Wider stance and greater hip flexion shift emphasis to the posterior chain and inner thigh.",
+            description:
+              "Forward torso lean and a higher hip hinge shift loading toward the glutes and adductors.",
             exercises: [
               {
-                id: "low-bar-back-squat",
-                name: "Low-Bar Back Squat",
-                difficulty: "hard",
-                targetedMuscles: ["Glutes", "Adductors", "Hamstrings", "Quadriceps"],
-                description: "Bar positioned low on the rear delts with a wider stance, creating greater forward lean and hip hinge to bias the glutes and adductors.",
-                mechanics: "The low bar position moves the center of gravity posteriorly, increasing the hip moment arm. Combined with a wider stance, this recruits more glute and adductor mass while still loading the quads through knee extension.",
+                id: "long-stride-lunge",
+                name: "Long-Stride Lunge",
+                difficulty: "medium",
+                targetedMuscles: ["Glutes", "Adductors", "Quadriceps"],
+                jointActions: ["Hip Extensors", "Knee Extensors", "Hip Adductors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Walking or step-out lunge with a long stride and forward lean to bias the lower glutes.",
+                mechanics:
+                  "The long stride increases hip flexion and creates a deep glute stretch in the bottom position. Forward torso amplifies hip-extension demand.",
                 equipment: [
-                  { id: "barbell", name: "Barbell" }
+                  { id: "walking", name: "Walking Lunge" },
+                  { id: "db", name: "Dumbbell" },
+                  { id: "bb", name: "Barbell" },
+                  { id: "smith-lunge", name: "Smith Machine" },
                 ],
-                warmup: { name: "Banded Clamshell", sets: "2", reps: "12 each side", instructions: ["Activates the glute medius and external rotators.", "Warms the hip joint for the wide stance position.", "Prepares the adductors for the loaded stretch at depth."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard highlights walking lunges for the lower-glute stretch under load.",
               },
               {
-                id: "sumo-squat",
-                name: "Sumo Squat",
-                difficulty: "medium",
-                targetedMuscles: ["Adductors", "Glutes", "Quadriceps"],
-                description: "Extra-wide stance with toes pointed outward, emphasizing adductor and glute recruitment through hip abduction and external rotation.",
-                mechanics: "The wide stance increases adductor length at the bottom position, creating a stretch-mediated stimulus. Hip external rotation engages the deep external rotators and glute max fibers oriented for abduction.",
+                id: "ffe-lunge",
+                name: "Front-Foot-Elevated Lunge",
+                difficulty: "hard",
+                targetedMuscles: ["Glutes", "Adductors", "Quadriceps"],
+                jointActions: ["Hip Extensors", "Knee Extensors", "Hip Adductors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Lunge with the front foot on a 4–6 inch plate to deepen the glute stretch in the bottom position.",
+                mechanics:
+                  "Elevation increases hip flexion at the bottom, creating a maximal glute and adductor stretch under load.",
                 equipment: [
-                  { id: "dumbbell", name: "Dumbbell" },
-                  { id: "kettlebell", name: "Kettlebell" },
-                  { id: "barbell", name: "Barbell" }
+                  { id: "smith-ffe", name: "Smith Machine" },
+                  { id: "db-ffe", name: "Dumbbell" },
+                  { id: "bb-ffe", name: "Barbell" },
+                  { id: "cable-ffe", name: "Cable-Supported" },
                 ],
-                warmup: { name: "Sumo Stance Bodyweight Squat", sets: "1", reps: "12", instructions: ["Opens the hips in the wide stance pattern.", "Activates the adductors through the full ROM.", "Prepares the groin for loaded stretching at depth."] }
-              }
-            ]
-          }
-        ]
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Both coaches: deep glute stretch under high tension.",
+              },
+              {
+                id: "glute-split-squat",
+                name: "Glute-Biased Split Squat",
+                difficulty: "medium",
+                targetedMuscles: ["Glutes", "Adductors", "Quadriceps"],
+                jointActions: ["Hip Extensors", "Knee Extensors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Bulgarian split squat with a deep forward torso lean to shift loading to the glutes.",
+                mechanics:
+                  "Forward lean lengthens the hip moment arm and shortens the knee moment arm, biasing the glute and adductor groups while still loading unilaterally.",
+                equipment: [
+                  { id: "bulgarian-glute", name: "Bulgarian Split Squat" },
+                  { id: "db-glute-split", name: "Dumbbell Split Squat" },
+                  { id: "smith-glute-split", name: "Smith Machine" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard: forward-lean BSS for glute-focused unilateral work.",
+              },
+              {
+                id: "sit-back-squat",
+                name: "Sit-Back Squat",
+                difficulty: "medium",
+                targetedMuscles: ["Glutes", "Adductors", "Quadriceps", "Erectors"],
+                jointActions: ["Hip Extensors", "Knee Extensors", "Spinal Extensors"],
+                compound: true,
+                stretchEmphasis: false,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Low-bar or feet-forward Smith squat with a medium-wide stance and hips pushed back.",
+                mechanics:
+                  "The hip-dominant pattern lengthens the hip moment arm and shortens the knee one, shifting load to the posterior chain.",
+                equipment: [
+                  { id: "low-bar", name: "Barbell (Low-Bar)" },
+                  { id: "smith-feet-fwd", name: "Smith Machine (Feet Forward)" },
+                  { id: "box", name: "Box Squat" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel & Nippard: glute-biased squat patterning.",
+              },
+              {
+                id: "high-step-up",
+                name: "High Step-Up",
+                difficulty: "medium",
+                targetedMuscles: ["Glutes", "Quadriceps", "Adductors"],
+                jointActions: ["Hip Extensors", "Knee Extensors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "low",
+                sfr: "medium",
+                description:
+                  "Step-up onto a high box (knee-height or above). Targets the upper glutes through deep hip flexion.",
+                mechanics:
+                  "High box forces deep hip flexion at the start, pre-stretching the glute max. Less ideal for quad work because of stability and limited eccentric.",
+                equipment: [
+                  { id: "db-step", name: "Dumbbell" },
+                  { id: "bb-step", name: "Barbell" },
+                  { id: "smith-step", name: "Smith Machine" },
+                  { id: "bw-step", name: "Bodyweight" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard: useful upper-glute work but limited for quad hypertrophy.",
+              },
+            ],
+          },
+        ],
       },
+      // ---------- 2. HINGE PATTERNS ----------
       {
         id: "hinge-patterns",
         name: "Hinge Patterns",
-        muscles: ["Hamstrings", "Glutes", "Spinal Erectors"],
+        muscles: ["Hamstrings", "Glutes", "Erectors", "Adductors"],
         subcategories: [
           {
-            id: "hinge-hamstring-biased",
+            id: "hinge-hamstring",
             name: "Hamstring-Biased",
-            description: "Straighter legs, minimal knee bend. Maximizes hamstring lengthening through hip flexion with near-full knee extension.",
+            description:
+              "Straighter legs and minimal knee bend keep tension on the hamstrings through hip extension.",
             exercises: [
               {
-                id: "romanian-deadlift",
-                name: "Romanian Deadlift",
-                difficulty: "medium",
-                targetedMuscles: ["Hamstrings", "Glutes", "Spinal Erectors"],
-                description: "Hip hinge with minimal knee bend, lowering the weight along the legs while maintaining a flat back. Maximizes hamstring stretch under load.",
-                mechanics: "With knees nearly locked, the hamstrings are stretched maximally as the hips flex. The eccentric loading in the lengthened position creates high mechanical tension on the hamstring muscle fibers, particularly the biceps femoris long head.",
-                equipment: [
-                  { id: "barbell", name: "Barbell" },
-                  { id: "dumbbell", name: "Dumbbell" }
-                ],
-                warmup: { name: "Single-Leg RDL (Bodyweight)", sets: "1", reps: "8 each leg", instructions: ["Activates the hamstrings through the hinge pattern.", "Improves balance and proprioception.", "Prepares the posterior chain for loaded hip flexion."] }
-              },
-              {
-                id: "stiff-leg-deadlift",
-                name: "Stiff-Leg Deadlift",
+                id: "rdl",
+                name: "Stiff-Leg / Romanian Deadlift",
                 difficulty: "hard",
-                targetedMuscles: ["Hamstrings", "Glutes", "Lower Back"],
-                description: "Similar to RDL but with completely straight legs and the bar lowered from a deficit or to the floor, maximizing hamstring stretch.",
-                mechanics: "Zero knee bend creates the longest possible hamstring moment arm. The weight travels further from the hip joint, increasing spinal erector demand. This variation provides maximal eccentric hamstring loading in the most lengthened position.",
+                targetedMuscles: ["Hamstrings", "Glutes", "Adductors", "Erectors"],
+                jointActions: ["Hip Extensors", "Spinal Extensors", "Knee Flexors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Loaded hip hinge with minimal knee bend. The hamstrings load eccentrically through deep hip flexion.",
+                mechanics:
+                  "Pushing the hips back against the load creates a maximal hamstring stretch. Bar stays close to the legs to keep the moment arm efficient.",
                 equipment: [
-                  { id: "barbell", name: "Barbell" },
-                  { id: "dumbbell", name: "Dumbbell" }
+                  { id: "bb-rdl", name: "Barbell" },
+                  { id: "db-rdl", name: "Dumbbell" },
+                  { id: "smith-rdl", name: "Smith Machine" },
+                  { id: "cable-rdl", name: "Cable" },
                 ],
-                warmup: { name: "Toe Touch Progression", sets: "1", reps: "10", instructions: ["Progressively lengthens the hamstrings.", "Warms the posterior chain for the straight-leg position.", "Activates the spinal erectors for maintaining neutral spine."] }
-              }
-            ]
-          },
-          {
-            id: "hinge-glute-biased",
-            name: "Glute-Biased",
-            description: "Significant knee bend during the hinge. Greater knee flexion shortens the hamstrings, shifting emphasis to the glutes as the primary hip extensor.",
-            exercises: [
-              {
-                id: "conventional-deadlift",
-                name: "Conventional Deadlift",
-                difficulty: "hard",
-                targetedMuscles: ["Glutes", "Hamstrings", "Quadriceps", "Spinal Erectors", "Traps"],
-                description: "Full deadlift from the floor with moderate knee bend, recruiting the entire posterior chain with emphasis on glute drive at lockout.",
-                mechanics: "The starting position with bent knees places the glutes in a mechanically advantaged position for hip extension. As the lifter drives through the floor, the glutes are the primary mover through the mid-range, while hamstrings assist and quads extend the knee.",
-                equipment: [
-                  { id: "barbell", name: "Barbell" }
-                ],
-                warmup: { name: "Glute Bridge", sets: "2", reps: "12", instructions: ["Activates the glutes through hip extension.", "Warms the hip extensors for the pulling pattern.", "Prepares the lower back for the loaded hinge."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Israetel: deep hamstring stretch from sit-back hip hinge.",
               },
-              {
-                id: "hip-thrust",
-                name: "Hip Thrust",
-                difficulty: "medium",
-                targetedMuscles: ["Glutes (max)", "Hamstrings"],
-                description: "Back supported on a bench with barbell across the hips, driving through full hip extension with significant knee bend.",
-                mechanics: "The bent-knee position shortens the hamstrings, reducing their contribution and forcing the glutes to be the primary hip extensor. Peak glute activation occurs at full hip extension (lockout), making this a shortened-bias glute exercise.",
-                equipment: [
-                  { id: "barbell", name: "Barbell" },
-                  { id: "machine", name: "Hip Thrust Machine" }
-                ],
-                warmup: { name: "Banded Hip Thrust (Bodyweight)", sets: "1", reps: "15", instructions: ["Activates the glutes with a band for extra tension at lockout.", "Warms the hip extensors in the thrust pattern.", "Establishes the mind-muscle connection with the glutes."] }
-              }
-            ]
-          },
-          {
-            id: "hinge-lumbar-extension",
-            name: "Lumbar Extension",
-            description: "Spinal erector-focused movements. Targets the erector spinae through controlled spinal flexion and extension.",
-            exercises: [
               {
                 id: "good-morning",
                 name: "Good Morning",
                 difficulty: "hard",
-                targetedMuscles: ["Spinal Erectors", "Hamstrings", "Glutes"],
-                description: "Barbell on the back with a controlled forward lean, emphasizing the spinal erectors' role in maintaining and extending the spine.",
-                mechanics: "The bar's position on the upper back creates a long lever arm against spinal extension. The erector spinae must work eccentrically during the descent and concentrically to return to upright, making this a primary spinal erector strengthener.",
+                targetedMuscles: ["Hamstrings", "Glutes", "Erectors"],
+                jointActions: ["Hip Extensors", "Spinal Extensors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "low",
+                sfr: "medium",
+                description:
+                  "Bar across the upper back, hinge forward keeping a neutral spine. High-stimulus posterior chain hinge.",
+                mechanics:
+                  "Hinge produces hip extension through the hamstrings while the erectors resist spinal flexion isometrically.",
                 equipment: [
-                  { id: "barbell", name: "Barbell" }
+                  { id: "bb-gm", name: "Barbell" },
+                  { id: "ssb", name: "Safety Squat Bar" },
+                  { id: "smith-gm", name: "Smith Machine" },
                 ],
-                warmup: { name: "Cat-Cow Stretch", sets: "1", reps: "10 cycles", instructions: ["Mobilizes the spine through flexion and extension.", "Warms the spinal erectors for loaded movement.", "Increases blood flow to the lumbar region."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel: pair with RDLs as hamstring hinges.",
               },
               {
-                id: "back-extension",
-                name: "Back Extension (45° or GHD)",
+                id: "pull-through",
+                name: "Cable Pull-Through",
                 difficulty: "easy",
-                targetedMuscles: ["Spinal Erectors", "Glutes", "Hamstrings"],
-                description: "Performed on a back extension bench, hinging at the hips with controlled spinal extension against gravity.",
-                mechanics: "The fixed lower body position isolates the hip and spinal extensors. The 45-degree angle provides progressive resistance through the ROM, with peak loading at the bottom where the erectors are most lengthened.",
+                targetedMuscles: ["Glutes", "Hamstrings"],
+                jointActions: ["Hip Extensors"],
+                compound: true,
+                stretchEmphasis: false,
+                stability: "medium",
+                sfr: "medium",
+                description:
+                  "Standing hip hinge with cable resistance pulled between the legs. Beginner-friendly hinge pattern.",
+                mechanics:
+                  "Cable line keeps tension consistent through the hip-extension arc. Lower fatigue than barbell hinging.",
                 equipment: [
-                  { id: "machine", name: "Back Extension Bench" }
+                  { id: "cable-rope-pt", name: "Cable Rope" },
+                  { id: "band-pt", name: "Band" },
                 ],
-                angles: [
-                  { id: "45-degree", name: "45° Bench", description: "Standard back extension angle, moderate difficulty" },
-                  { id: "90-degree", name: "GHD (90°)", description: "Greater ROM and difficulty, full horizontal position" }
-                ],
-                warmup: { name: "Superman Hold", sets: "1", reps: "10 (3 sec hold)", instructions: ["Activates the spinal erectors isometrically.", "Warms the lower back for loaded extension.", "Prepares the glutes and hamstrings as synergists."] }
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: "upper-body-push",
-        name: "Upper Body Push",
-        muscles: ["Pectorals", "Anterior Deltoid", "Triceps"],
-        subcategories: [
-          {
-            id: "push-chest-biased",
-            name: "Chest-Biased",
-            description: "Horizontal push with elbows flared. Maximizes pectoral recruitment through shoulder horizontal adduction with a pressing motion.",
-            exercises: [
-              {
-                id: "bench-press",
-                name: "Bench Press",
-                difficulty: "hard",
-                targetedMuscles: ["Pectorals (sternal)", "Anterior Deltoid", "Triceps"],
-                description: "Flat or incline pressing with elbows flared at approximately 45-75°, maximizing pectoral stretch and contraction through horizontal adduction.",
-                mechanics: "The horizontal pressing angle with flared elbows creates a large moment arm for the pectorals. The stretch at the bottom and forceful horizontal adduction through the press maximally loads the sternal fibers of the pec major.",
-                equipment: [
-                  { id: "barbell", name: "Barbell" },
-                  { id: "dumbbell", name: "Dumbbell" }
-                ],
-                angles: [
-                  { id: "flat", name: "Flat (0°)", description: "Targets mid-pec fibers, standard horizontal press" },
-                  { id: "15-incline", name: "15° Incline", description: "Slight upper pec emphasis while maintaining overall chest focus" },
-                  { id: "30-incline", name: "30° Incline", description: "Greater upper pec (clavicular) recruitment" }
-                ],
-                warmup: { name: "Push-Up (Slow Tempo)", sets: "2", reps: "10", instructions: ["Activates the pectorals through the pressing pattern.", "Warms the shoulder joint for loaded horizontal adduction.", "Prepares the triceps and anterior delts as synergists."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: beginner-friendly hinge for glute focus.",
               },
-              {
-                id: "machine-chest-press",
-                name: "Machine Chest Press",
-                difficulty: "easy",
-                targetedMuscles: ["Pectorals", "Anterior Deltoid", "Triceps"],
-                description: "Seated machine press with handles at chest height, providing a fixed path that isolates the chest pressing pattern.",
-                mechanics: "The machine's fixed path eliminates stabilization demands, allowing full focus on pectoral contraction. The cam system can provide variable resistance matching the strength curve of the press.",
-                equipment: [
-                  { id: "machine", name: "Chest Press Machine" }
-                ],
-                angles: [
-                  { id: "flat", name: "Flat", description: "Horizontal pressing angle for mid-chest" },
-                  { id: "incline", name: "Incline", description: "Angled upward for upper chest emphasis" }
-                ],
-                warmup: { name: "Band Pull-Apart", sets: "1", reps: "15", instructions: ["Activates the rear delts and rotator cuff for shoulder stability.", "Balances the pressing muscles with pulling activation.", "Warms the shoulder joint for the pressing movement."] }
-              }
-            ]
+            ],
           },
           {
-            id: "push-chest-fly",
-            name: "Chest Fly",
-            description: "Shoulder abduction focused. Isolates the pectorals through horizontal adduction without significant elbow extension, removing triceps contribution.",
+            id: "hinge-glute",
+            name: "Glute-Biased",
+            description:
+              "Significant knee bend and hip-thrust position emphasize peak glute contraction.",
             exercises: [
               {
-                id: "dumbbell-fly",
-                name: "Dumbbell Fly",
+                id: "hip-thrust",
+                name: "Hip Thrust",
                 difficulty: "medium",
-                targetedMuscles: ["Pectorals (sternal & clavicular)", "Anterior Deltoid"],
-                description: "Arms extended with a slight elbow bend, lowering dumbbells in an arc to stretch the pecs, then squeezing back to the top.",
-                mechanics: "The fixed elbow angle removes triceps contribution, isolating shoulder horizontal adduction. The pectorals are loaded maximally in their lengthened position at the bottom of the arc, creating high stretch-mediated tension.",
+                targetedMuscles: ["Glutes", "Hamstrings"],
+                jointActions: ["Hip Extensors"],
+                compound: true,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Loaded hip thrust from the floor or a bench, generating peak glute contraction at lockout.",
+                mechanics:
+                  "The hip-extension moment arm is largest at full lockout, allowing high tension in the shortened glute position.",
                 equipment: [
-                  { id: "dumbbell", name: "Dumbbell" }
+                  { id: "machine-ht", name: "Glute Thrust Machine" },
+                  { id: "bb-ht", name: "Barbell" },
+                  { id: "db-ht", name: "Dumbbell" },
+                  { id: "smith-ht", name: "Smith Machine" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Israetel & Nippard: top middle-glute option, easy to overload.",
+              },
+              {
+                id: "glute-bridge",
+                name: "Glute Bridge",
+                difficulty: "easy",
+                targetedMuscles: ["Glutes", "Hamstrings"],
+                jointActions: ["Hip Extensors"],
+                compound: true,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "medium",
+                description:
+                  "Bridge from the floor — easier setup than a full hip thrust with reduced ROM.",
+                mechanics:
+                  "Same pattern as the hip thrust but starting from the floor reduces hip-flexion ROM.",
+                equipment: [
+                  { id: "bb-gb", name: "Barbell" },
+                  { id: "db-gb", name: "Dumbbell" },
+                  { id: "machine-gb", name: "Machine" },
+                  { id: "bw-gb", name: "Bodyweight" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: beginner-friendly hip-thrust alternative.",
+              },
+              {
+                id: "deadlift",
+                name: "Conventional / Sumo Deadlift",
+                difficulty: "hard",
+                targetedMuscles: ["Glutes", "Hamstrings", "Adductors", "Erectors"],
+                jointActions: [
+                  "Hip Extensors",
+                  "Spinal Extensors",
+                  "Knee Extensors",
+                  "Scapular Retractors",
+                ],
+                compound: true,
+                stretchEmphasis: false,
+                stability: "medium",
+                sfr: "low",
+                description:
+                  "Floor-pull deadlift. Builds glutes and hamstrings but carries a high systemic recovery cost.",
+                mechanics:
+                  "Whole-body extension lift. Sumo shifts more demand to adductors and quads; conventional emphasizes hamstrings and erectors.",
+                equipment: [
+                  { id: "bb-dl", name: "Barbell" },
+                  { id: "trap-dl", name: "Trap Bar" },
+                  { id: "db-dl", name: "Dumbbell" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard: useful but fatiguing — not a top pure-hypertrophy pick.",
+              },
+            ],
+          },
+          {
+            id: "hinge-lumbar",
+            name: "Lumbar Extension & Spinal Robustness",
+            description:
+              "Direct loading of the lumbar erectors and the posterior chain through controlled spinal motion.",
+            exercises: [
+              {
+                id: "back-extension",
+                name: "Back Extension (45°)",
+                difficulty: "easy",
+                targetedMuscles: ["Glutes", "Erectors", "Hamstrings"],
+                jointActions: ["Hip Extensors", "Spinal Extensors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "45° back-extension bench loaded with weight or dumbbells. Trains glutes and erectors through both lengthened and shortened positions.",
+                mechanics:
+                  "Pad supports the body, allowing controlled hip extension under load. Easy to progress with weight or reps.",
+                equipment: [
+                  { id: "bench-45", name: "45° Bench" },
+                  { id: "horizontal-bench", name: "Horizontal Bench" },
+                  { id: "ghd", name: "Glute-Ham Developer" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: S-tier for glutes; full-ROM lumbar extension.",
+              },
+              {
+                id: "jefferson-curl",
+                name: "Jefferson Curl",
+                difficulty: "medium",
+                targetedMuscles: ["Erectors", "Hamstrings"],
+                jointActions: ["Spinal Extensors", "Hip Extensors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "low",
+                sfr: "low",
+                description:
+                  "Light, controlled spinal-flexion roll-down. Used for lumbar mobility and graded loading of the spine.",
+                mechanics:
+                  "Sequential vertebral flexion under light load builds back tolerance through full spinal flexion ROM.",
+                equipment: [
+                  { id: "bb-jc", name: "Barbell" },
+                  { id: "db-jc", name: "Dumbbell" },
+                  { id: "kb-jc", name: "Kettlebell" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Israetel: very light, gradual loading for back resilience.",
+              },
+            ],
+          },
+        ],
+      },
+      // ---------- 3. UPPER BODY PUSH ----------
+      {
+        id: "upper-push",
+        name: "Upper Body Push",
+        muscles: ["Pectorals", "Front Delts", "Triceps", "Side Delts"],
+        subcategories: [
+          {
+            id: "push-chest",
+            name: "Chest-Biased (Horizontal Push)",
+            description:
+              "Horizontal pressing with elbows flared targets the pectorals through shoulder horizontal adduction.",
+            exercises: [
+              {
+                id: "chest-press",
+                name: "Chest Press",
+                difficulty: "medium",
+                targetedMuscles: ["Pectorals", "Front Delts", "Triceps"],
+                jointActions: [
+                  "Shoulder Horizontal Adductors",
+                  "Shoulder Flexors",
+                  "Elbow Extensors",
+                  "Scapular Protractors",
+                ],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Flat horizontal press — machine, dumbbell, barbell, Smith, or cambered-bar. Constant tension with deep stretch.",
+                mechanics:
+                  "Bar/handle path arcs from chest to lockout. Cambered bars and DBs allow deeper bottom range; machine provides smooth resistance and stability.",
+                equipment: [
+                  { id: "machine-cp", name: "Machine Chest Press" },
+                  { id: "db-bp", name: "Dumbbell" },
+                  { id: "bb-bp", name: "Barbell" },
+                  { id: "smith-bp", name: "Smith Machine" },
+                  { id: "cambered", name: "Cambered Bar" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard: machine chest press is his overall best chest builder.",
+              },
+              {
+                id: "incline-press",
+                name: "Incline Press",
+                difficulty: "medium",
+                targetedMuscles: ["Upper Pectorals", "Front Delts", "Triceps"],
+                jointActions: [
+                  "Shoulder Flexors",
+                  "Shoulder Horizontal Adductors",
+                  "Elbow Extensors",
+                  "Scapular Protractors",
+                ],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "15°–30° incline press. Biases the clavicular pec and front delt while still building the mid/lower chest.",
+                mechanics:
+                  "Incline shifts the line of pull more vertical, increasing shoulder flexion demand and clavicular pec involvement.",
+                equipment: [
+                  { id: "bb-inc", name: "Barbell" },
+                  { id: "db-inc", name: "Dumbbell" },
+                  { id: "smith-inc", name: "Smith Machine" },
+                  { id: "machine-inc", name: "Machine" },
                 ],
                 angles: [
-                  { id: "flat", name: "Flat", description: "Targets sternal pec fibers in the lengthened position" },
-                  { id: "15-incline", name: "15° Incline", description: "Slight upper pec bias in the fly pattern" },
-                  { id: "30-incline", name: "30° Incline", description: "Greater clavicular pec recruitment" }
+                  { id: "15", name: "15° Incline", description: "Slight upper-chest bias with strong mid-chest involvement." },
+                  { id: "30", name: "30° Incline", description: "Stronger clavicular pec bias." },
+                  { id: "45", name: "45° Incline", description: "Heavy front-delt bias; treat as a shoulder press." },
                 ],
-                warmup: { name: "Arm Circles (Large)", sets: "1", reps: "10 each direction", instructions: ["Mobilizes the shoulder through full circumduction.", "Warms the pectoral insertion points.", "Prepares the shoulder for the stretched fly position."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard: incline pressing for upper chest. Israetel: incline DB for max stretch.",
+              },
+              {
+                id: "deficit-pushup",
+                name: "Deficit Push-Up",
+                difficulty: "medium",
+                targetedMuscles: ["Pectorals", "Front Delts", "Triceps"],
+                jointActions: [
+                  "Shoulder Horizontal Adductors",
+                  "Elbow Extensors",
+                  "Scapular Protractors",
+                ],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Push-up with hands on handles or blocks, allowing the chest to drop below the hands.",
+                mechanics:
+                  "Elevated hands extend the bottom ROM, creating a deep pec stretch under bodyweight (or weighted) load.",
+                equipment: [
+                  { id: "handles", name: "Push-Up Handles" },
+                  { id: "db-handles", name: "Dumbbell Handles" },
+                  { id: "parallettes", name: "Parallettes" },
+                  { id: "blocks", name: "Yoga Blocks" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel: ultra-deep chest stretch.",
+              },
+              {
+                id: "chest-dip",
+                name: "Chest-Focused Dip",
+                difficulty: "medium",
+                targetedMuscles: ["Lower Pectorals", "Front Delts", "Triceps"],
+                jointActions: [
+                  "Shoulder Adductors",
+                  "Shoulder Horizontal Adductors",
+                  "Elbow Extensors",
+                ],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Parallel-bar or assisted-machine dip with a slight forward lean to bias the chest.",
+                mechanics:
+                  "Forward lean shifts the line of pull so the pec drives shoulder adduction and horizontal adduction simultaneously.",
+                equipment: [
+                  { id: "parallel-bars", name: "Parallel Bars" },
+                  { id: "assisted-dip", name: "Assisted Dip Machine" },
+                  { id: "plate-dip", name: "Plate-Loaded Dip" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: A-tier chest. Israetel: forward lean for chest.",
               },
               {
                 id: "cable-fly",
                 name: "Cable Fly",
                 difficulty: "easy",
-                targetedMuscles: ["Pectorals", "Anterior Deltoid"],
-                description: "Standing cable fly with constant tension throughout the full range of motion, providing peak contraction at the midline.",
-                mechanics: "Unlike dumbbells which lose tension at the top, cables maintain constant tension through the entire arc. This allows peak pectoral contraction when the hands meet at midline, targeting the shortened position of the muscle.",
+                targetedMuscles: ["Pectorals", "Front Delts"],
+                jointActions: ["Shoulder Horizontal Adductors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Single-joint shoulder horizontal adduction against a cable. Constant tension and a deep stretch in the lengthened position.",
+                mechanics:
+                  "Cable maintains tension throughout the arc, especially at end-range stretch where free weights would lose load.",
                 equipment: [
-                  { id: "cable", name: "Cable Machine" }
+                  { id: "seated-cable", name: "Seated Cable Fly" },
+                  { id: "standing-cable", name: "Standing Cable Fly" },
+                  { id: "crossover", name: "Cable Crossover" },
+                  { id: "press-around", name: "Cable Press-Around" },
                 ],
                 angles: [
-                  { id: "high-to-low", name: "High-to-Low", description: "Targets lower pec fibers, arms sweep downward" },
-                  { id: "horizontal", name: "Horizontal", description: "Mid-pec focus, arms at chest height" },
-                  { id: "low-to-high", name: "Low-to-High", description: "Upper pec emphasis, arms sweep upward" }
+                  { id: "high", name: "High-to-Low (decline)", description: "Lower-chest bias." },
+                  { id: "mid", name: "Mid (horizontal)", description: "Sternal mid-chest bias." },
+                  { id: "low", name: "Low-to-High (incline)", description: "Upper-chest bias." },
                 ],
-                warmup: { name: "Light Cable Crossover", sets: "1", reps: "12", instructions: ["Activates the pectorals with minimal load.", "Establishes the cable fly movement pattern.", "Warms the shoulder for the abducted position."] }
-              }
-            ]
-          },
-          {
-            id: "push-shoulder-tricep",
-            name: "Shoulder, Tricep & Front Delt-Biased",
-            description: "Vertical overhead push, high incline, or narrow grip with elbows tucked. Shifts emphasis from pectorals to deltoids and triceps through a more vertical pressing angle.",
-            exercises: [
-              {
-                id: "overhead-press",
-                name: "Overhead Press",
-                difficulty: "hard",
-                targetedMuscles: ["Anterior Deltoid", "Lateral Deltoid", "Triceps", "Upper Pec"],
-                description: "Pressing weight directly overhead from shoulder height, primarily loading the deltoids and triceps with minimal chest involvement.",
-                mechanics: "The vertical pressing angle eliminates the horizontal adduction component that recruits the pectorals. The deltoids become the primary shoulder flexors, while the triceps handle elbow extension against the overhead load.",
-                equipment: [
-                  { id: "barbell", name: "Barbell" },
-                  { id: "dumbbell", name: "Dumbbell" }
-                ],
-                warmup: { name: "Band Shoulder Press", sets: "1", reps: "12", instructions: ["Activates the deltoids through the overhead pattern.", "Warms the shoulder joint for vertical pressing.", "Prepares the rotator cuff for overhead loading."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard: seated cable fly S-tier; constant tension at deep stretch.",
               },
               {
-                id: "close-grip-bench",
-                name: "Close-Grip Bench Press",
-                difficulty: "medium",
-                targetedMuscles: ["Triceps", "Anterior Deltoid", "Upper Pec"],
-                description: "Bench press with narrow grip and elbows tucked close to the body, shifting emphasis from chest to triceps and front delts.",
-                mechanics: "The narrow grip and tucked elbows reduce the horizontal adduction moment, decreasing pectoral contribution. The increased elbow extension demand shifts primary loading to the triceps, while the anterior deltoid assists in shoulder flexion.",
+                id: "machine-fly",
+                name: "Machine Fly (Pec Deck)",
+                difficulty: "easy",
+                targetedMuscles: ["Pectorals"],
+                jointActions: ["Shoulder Horizontal Adductors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Pec-deck machine that fixes the arms in an arc and removes balance demand.",
+                mechanics:
+                  "Shoulder horizontal adduction along a machine-fixed path. Stable and easy to progress.",
                 equipment: [
-                  { id: "barbell", name: "Barbell" }
+                  { id: "pec-deck", name: "Pec Deck" },
+                  { id: "plate-fly", name: "Plate-Loaded Fly Machine" },
                 ],
-                warmup: { name: "Diamond Push-Up", sets: "1", reps: "8", instructions: ["Activates the triceps in the narrow pressing pattern.", "Warms the elbow joint for heavy extension.", "Prepares the anterior delts for the tucked position."] }
-              }
-            ]
-          }
-        ]
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: A-tier; stable, focused chest tension.",
+              },
+              {
+                id: "db-fly",
+                name: "Dumbbell Fly",
+                difficulty: "medium",
+                targetedMuscles: ["Pectorals"],
+                jointActions: ["Shoulder Horizontal Adductors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "low",
+                sfr: "medium",
+                description:
+                  "Free-weight horizontal adduction with dumbbells. Big stretch but loads drop off at lockout.",
+                mechanics:
+                  "Tension peaks at the bottom of the arc where the dumbbells are furthest from the shoulder; minimal load at the top.",
+                equipment: [
+                  { id: "flat-fly", name: "Flat Bench" },
+                  { id: "incline-fly", name: "Incline Bench" },
+                  { id: "janicki", name: "Janicki Setup" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: A-tier; Israetel: deep stretch + strong contraction.",
+              },
+            ],
+          },
+          {
+            id: "push-vertical",
+            name: "Vertical / Overhead Push",
+            description:
+              "Pure shoulder flexion / abduction. Front delts and triceps dominate; chest contributes minimally.",
+            exercises: [
+              {
+                id: "ohp",
+                name: "Overhead Press",
+                difficulty: "medium",
+                targetedMuscles: ["Front Delts", "Side Delts", "Triceps"],
+                jointActions: [
+                  "Shoulder Flexors",
+                  "Shoulder Abductors",
+                  "Elbow Extensors",
+                  "Scapular Upward Rotators",
+                ],
+                compound: true,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Vertical press from shoulder height to overhead. Machine, DB, BB, or Smith options.",
+                mechanics:
+                  "Shoulder flexion and abduction drive the bar up while the triceps lock out the elbows. Machine provides the most stability.",
+                equipment: [
+                  { id: "machine-ohp", name: "Machine Shoulder Press" },
+                  { id: "db-ohp", name: "Dumbbell" },
+                  { id: "bb-ohp", name: "Barbell" },
+                  { id: "smith-ohp", name: "Smith Machine" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard: machine shoulder press A+ for front delts.",
+              },
+              {
+                id: "close-grip-press",
+                name: "Close-Grip Press",
+                difficulty: "medium",
+                targetedMuscles: ["Triceps", "Front Delts", "Pectorals"],
+                jointActions: [
+                  "Elbow Extensors",
+                  "Shoulder Flexors",
+                  "Shoulder Horizontal Adductors",
+                ],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Narrow-grip bench press or JM press. Compound triceps work.",
+                mechanics:
+                  "Elbows tracking forward concentrate the load on elbow extension while the chest and shoulders assist.",
+                equipment: [
+                  { id: "cgbp", name: "Close-Grip Bench" },
+                  { id: "smith-jm", name: "Smith Machine JM Press" },
+                  { id: "bb-jm", name: "Barbell JM Press" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: A-tier compound triceps.",
+              },
+              {
+                id: "triceps-dip",
+                name: "Triceps Dip (Vertical Torso)",
+                difficulty: "medium",
+                targetedMuscles: ["Triceps", "Front Delts", "Lower Pectorals"],
+                jointActions: ["Elbow Extensors", "Shoulder Flexors", "Shoulder Adductors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Dip with vertical torso and narrow grip to isolate the triceps within a compound pattern.",
+                mechanics:
+                  "Vertical torso minimizes pec contribution; narrow grip puts elbow extension under heavy bodyweight load.",
+                equipment: [
+                  { id: "dip-machine", name: "Dip Machine" },
+                  { id: "parallel-bars-trip", name: "Parallel Bars" },
+                  { id: "assisted-dip-trip", name: "Assisted Dip" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel: vertical-torso narrow-grip dip for triceps.",
+              },
+            ],
+          },
+        ],
       },
+      // ---------- 4. UPPER BODY PULL ----------
       {
-        id: "upper-body-pull",
+        id: "upper-pull",
         name: "Upper Body Pull",
-        muscles: ["Lats", "Rhomboids", "Trapezius", "Biceps"],
+        muscles: ["Lats", "Rhomboids", "Mid Traps", "Biceps", "Rear Delts"],
         subcategories: [
           {
-            id: "pull-lat-biased",
+            id: "pull-lat",
             name: "Lat-Biased",
-            description: "Elbows tucked to sides, pulling to the hip. Maximizes lat recruitment through shoulder extension and adduction with elbows close to the torso.",
+            description:
+              "Elbows tucked toward the sides, pulling toward the hip. Trains shoulder adduction (lats) and elbow flexion.",
             exercises: [
               {
                 id: "lat-pulldown",
                 name: "Lat Pulldown",
                 difficulty: "easy",
-                targetedMuscles: ["Latissimus Dorsi", "Teres Major", "Biceps"],
-                description: "Pulling a bar or handle from overhead to chest level with elbows driving down and back toward the hips.",
-                mechanics: "Shoulder adduction and extension with elbows tucked creates the longest moment arm for the lats. The vertical pulling angle with elbows close to the body maximizes lat fiber recruitment while minimizing upper back involvement.",
+                targetedMuscles: ["Lats", "Teres Major", "Biceps"],
+                jointActions: [
+                  "Shoulder Adductors",
+                  "Elbow Flexors",
+                  "Scapular Downward Rotators",
+                ],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Cable pulldown to the upper chest. Easier to track than pull-ups for hypertrophy progression.",
+                mechanics:
+                  "Cables maintain tension at the top stretch; close/neutral grip with elbows pulling straight down biases the lats.",
                 equipment: [
-                  { id: "cable", name: "Cable Machine" }
+                  { id: "cable-wide", name: "Cable Wide-Grip" },
+                  { id: "cable-neutral", name: "Cable Neutral-Grip" },
+                  { id: "cable-single", name: "Single-Arm / Half-Kneeling" },
+                  { id: "machine-pd", name: "Machine Pulldown" },
                 ],
-                angles: [
-                  { id: "wide-grip", name: "Wide Grip", description: "Greater shoulder adduction, emphasizes lat width" },
-                  { id: "close-grip", name: "Close/Neutral Grip", description: "Greater shoulder extension, emphasizes lat thickness" }
-                ],
-                warmup: { name: "Straight-Arm Pulldown (Light)", sets: "1", reps: "12", instructions: ["Isolates the lats through shoulder extension.", "Warms the lat insertion without bicep fatigue.", "Establishes the mind-muscle connection with the lats."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: S-tier; preferred over pull-ups for tracking.",
               },
               {
-                id: "single-arm-row",
-                name: "Single-Arm Dumbbell Row",
-                difficulty: "medium",
-                targetedMuscles: ["Latissimus Dorsi", "Rhomboids", "Biceps"],
-                description: "One-arm rowing with elbow driving back past the hip, allowing full lat stretch and contraction unilaterally.",
-                mechanics: "The single-arm position allows greater ROM and lat stretch at the bottom. Pulling the elbow past the hip emphasizes shoulder extension, which is the primary function of the lat. The supported position reduces spinal erector fatigue.",
-                equipment: [
-                  { id: "dumbbell", name: "Dumbbell" },
-                  { id: "cable", name: "Cable Machine" }
+                id: "pullup",
+                name: "Pull-Up / Chin-Up",
+                difficulty: "hard",
+                targetedMuscles: ["Lats", "Teres Major", "Biceps", "Upper Back"],
+                jointActions: [
+                  "Shoulder Adductors",
+                  "Shoulder Extensors",
+                  "Elbow Flexors",
+                  "Scapular Downward Rotators",
                 ],
-                warmup: { name: "Band Lat Stretch", sets: "1", reps: "20 sec each side", instructions: ["Stretches the lat through overhead shoulder flexion.", "Warms the lat for the rowing pattern.", "Increases ROM for the stretched position at the bottom."] }
-              }
-            ]
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Bodyweight (or weighted) vertical pull. Full lat stretch at the bottom; chin-up adds elbow-flexor demand.",
+                mechanics:
+                  "Free-hanging position requires controlled scapular and shoulder mechanics; eccentric loads the lats deeply.",
+                equipment: [
+                  { id: "bw-pu", name: "Bodyweight" },
+                  { id: "weighted-pu", name: "Weighted" },
+                  { id: "assisted-pu", name: "Assisted Machine" },
+                  { id: "neutral-pu", name: "Neutral Grip" },
+                  { id: "underhand-pu", name: "Underhand (Chin-Up)" },
+                  { id: "wide-pu", name: "Wide Grip" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Israetel: unbeatable for lat development. Nippard: less smooth resistance than pulldown.",
+              },
+              {
+                id: "lat-prayer",
+                name: "Straight-Arm Pulldown / Lat Prayer",
+                difficulty: "easy",
+                targetedMuscles: ["Lats", "Teres Major"],
+                jointActions: ["Shoulder Extensors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Single-joint shoulder extension against a cable. Forward lean creates a deep lat stretch.",
+                mechanics:
+                  "Removing elbow flexion isolates the lats; the lengthened position is loaded heavily by the cable.",
+                equipment: [
+                  { id: "cable-rope-prayer", name: "Cable Rope" },
+                  { id: "cable-bar-prayer", name: "Cable Straight Bar" },
+                  { id: "band-prayer", name: "Band" },
+                  { id: "machine-pullover", name: "Machine Pullover" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Israetel: leaning forward maximizes lat stretch. Nippard: smooth cable progression.",
+              },
+              {
+                id: "pullover",
+                name: "Pullover",
+                difficulty: "medium",
+                targetedMuscles: ["Lats", "Teres Major", "Long Head Triceps"],
+                jointActions: ["Shoulder Extensors", "Shoulder Adductors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Arc pullover loading the lats in their deepest stretched position.",
+                mechanics:
+                  "Shoulder moves through extension while the lat is loaded at its longest length.",
+                equipment: [
+                  { id: "cable-pullover", name: "Cable Pullover" },
+                  { id: "db-pullover", name: "Dumbbell Pullover" },
+                  { id: "machine-po", name: "Machine Pullover" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: better as a lat exercise than a chest one.",
+              },
+            ],
           },
           {
             id: "pull-upper-back",
-            name: "Upper Back & Rhomboid-Biased",
-            description: "Elbows flared outwards. Wider grip and higher elbow position shifts emphasis to the rhomboids, mid-traps, and rear delts through scapular retraction.",
+            name: "Upper Back & Rhomboid",
+            description:
+              "Horizontal rows with elbows flared outward. Trains scapular retraction and shoulder extension.",
             exercises: [
               {
-                id: "face-pull",
-                name: "Face Pull",
+                id: "chest-supported-row",
+                name: "Chest-Supported Row",
                 difficulty: "easy",
-                targetedMuscles: ["Rear Deltoid", "Rhomboids", "Mid Trapezius", "External Rotators"],
-                description: "Cable pull to face level with elbows high and wide, emphasizing scapular retraction and external rotation.",
-                mechanics: "The high elbow position and external rotation component recruits the rhomboids, mid-traps, and rear delts simultaneously. This movement pattern trains scapular retraction and posterior shoulder health.",
-                equipment: [
-                  { id: "cable", name: "Cable (Rope Attachment)" }
+                targetedMuscles: ["Rhomboids", "Mid Traps", "Lats", "Rear Delts"],
+                jointActions: [
+                  "Shoulder Extensors",
+                  "Scapular Retractors",
+                  "Elbow Flexors",
                 ],
-                warmup: { name: "Band Pull-Apart (High)", sets: "1", reps: "15", instructions: ["Activates the rear delts and rhomboids.", "Warms the scapular retractors.", "Prepares the external rotators for the face pull pattern."] }
+                compound: true,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Row with the chest supported on a pad — T-bar, machine, or incline-bench DB row.",
+                mechanics:
+                  "Chest support eliminates spinal stability demand and torso swing, isolating the back through full ROM.",
+                equipment: [
+                  { id: "tbar", name: "T-Bar Chest-Supported" },
+                  { id: "machine-row", name: "Machine Row" },
+                  { id: "incline-db-row", name: "Incline Bench DB Row" },
+                  { id: "seal-row", name: "Seal Row" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: best all-around back exercise.",
               },
               {
-                id: "wide-grip-row",
-                name: "Wide-Grip Barbell Row",
-                difficulty: "hard",
-                targetedMuscles: ["Rhomboids", "Mid Trapezius", "Rear Deltoid", "Lats"],
-                description: "Barbell row with a wide overhand grip, pulling to the upper abdomen/lower chest with elbows flared outward.",
-                mechanics: "The wide grip and flared elbows shift the pulling vector to emphasize horizontal abduction and scapular retraction. This loads the rhomboids and mid-traps more than a close-grip row that emphasizes shoulder extension.",
+                id: "cable-row",
+                name: "Cable Row",
+                difficulty: "easy",
+                targetedMuscles: ["Rhomboids", "Mid Traps", "Lats", "Rear Delts"],
+                jointActions: [
+                  "Shoulder Extensors",
+                  "Scapular Retractors",
+                  "Elbow Flexors",
+                ],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Seated horizontal cable row with smooth resistance through full ROM.",
+                mechanics:
+                  "Cable maintains tension at the deep stretch where free-weight rows lose load.",
                 equipment: [
-                  { id: "barbell", name: "Barbell" }
+                  { id: "seated-cable-row", name: "Seated Cable Row" },
+                  { id: "wide-cable-row", name: "Wide-Grip Cable Row" },
+                  { id: "single-cable-row", name: "Single-Arm Cable Row" },
                 ],
-                angles: [
-                  { id: "horizontal", name: "Horizontal (Bent Over)", description: "Standard bent-over position, full upper back loading" },
-                  { id: "chest-supported", name: "Chest-Supported", description: "Removes spinal erector demand, isolates upper back" }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: S-tier horizontal row.",
+              },
+              {
+                id: "barbell-row",
+                name: "Barbell Row",
+                difficulty: "hard",
+                targetedMuscles: ["Lats", "Rhomboids", "Traps", "Erectors"],
+                jointActions: [
+                  "Shoulder Extensors",
+                  "Scapular Retractors",
+                  "Elbow Flexors",
+                  "Spinal Extensors",
                 ],
-                warmup: { name: "Scapular Retraction Hold", sets: "2", reps: "8 (3 sec hold)", instructions: ["Activates the rhomboids and mid-traps isometrically.", "Warms the scapular retractors for loaded rowing.", "Establishes proper scapular positioning for the wide row."] }
-              }
-            ]
+                compound: true,
+                stretchEmphasis: true,
+                stability: "low",
+                sfr: "medium",
+                description:
+                  "Bent-over barbell row. Heavy compound back work; deficit Pendlay version increases stretch.",
+                mechanics:
+                  "Hinged torso position requires lumbar isometric stability. Loading is high but recovery cost is significant.",
+                equipment: [
+                  { id: "bb-row", name: "Barbell Row" },
+                  { id: "deficit-pendlay", name: "Deficit Pendlay Row" },
+                  { id: "yates", name: "Yates Row" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Israetel: deficit barbell row for big stretch. Nippard: A-tier deficit Pendlay.",
+              },
+              {
+                id: "meadows-row",
+                name: "Meadows Row",
+                difficulty: "medium",
+                targetedMuscles: ["Lats", "Rhomboids", "Rear Delts"],
+                jointActions: [
+                  "Shoulder Extensors",
+                  "Scapular Retractors",
+                  "Elbow Flexors",
+                ],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Single-arm landmine row. Isolateral setup with a long stretch through the lat.",
+                mechanics:
+                  "Landmine arc allows a deep stretch and natural pull pattern with one arm at a time.",
+                equipment: [
+                  { id: "landmine", name: "Landmine" },
+                  { id: "tbar-meadows", name: "T-Bar Setup" },
+                  { id: "one-arm-bb", name: "One-Arm Barbell" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: S-tier; isolateral stretch.",
+              },
+              {
+                id: "inverted-row-face",
+                name: "Inverted Row to Face / Throat",
+                difficulty: "easy",
+                targetedMuscles: ["Rear Delts", "Rhomboids", "Mid Traps"],
+                jointActions: [
+                  "Shoulder Horizontal Abductors",
+                  "Scapular Retractors",
+                  "Elbow Flexors",
+                ],
+                compound: true,
+                stretchEmphasis: false,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Inverted row pulled toward the face/throat instead of the chest. Strong rear-delt and upper-back contraction.",
+                mechanics:
+                  "High pull line emphasizes shoulder horizontal abduction and scapular retraction over lat involvement.",
+                equipment: [
+                  { id: "smith-inv", name: "Smith Machine" },
+                  { id: "bb-rack-inv", name: "Barbell in Rack" },
+                  { id: "trx-inv", name: "TRX / Suspension" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Israetel: face/throat pull line for rear-delt-heavy row.",
+              },
+            ],
           },
           {
-            id: "pull-bicep-biased",
-            name: "Bicep-Biased",
-            description: "Underhand/supinated grip. Supination increases biceps contribution during pulling movements, making them a primary mover alongside the back muscles.",
+            id: "pull-bicep-row",
+            name: "Bicep-Biased Pull",
+            description:
+              "Underhand / supinated pulls shift more demand to the biceps while still loading the lats.",
             exercises: [
               {
-                id: "chin-up",
-                name: "Chin-Up",
-                difficulty: "hard",
-                targetedMuscles: ["Biceps", "Latissimus Dorsi", "Brachialis"],
-                description: "Pull-up with supinated (underhand) grip, maximizing biceps involvement while still heavily loading the lats.",
-                mechanics: "Supination places the biceps in their strongest position for elbow flexion. Combined with the shoulder extension of a vertical pull, the biceps are loaded through both their functions simultaneously, making them a primary mover rather than just a synergist.",
+                id: "supinated-pulldown",
+                name: "Supinated Pulldown",
+                difficulty: "easy",
+                targetedMuscles: ["Lats", "Biceps", "Teres Major"],
+                jointActions: ["Shoulder Adductors", "Elbow Flexors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Underhand-grip cable pulldown. Increases biceps contribution while preserving lat loading.",
+                mechanics:
+                  "Supination opens the elbow joint to greater flexion ROM and increases biceps recruitment.",
                 equipment: [
-                  { id: "bodyweight", name: "Pull-Up Bar" }
+                  { id: "cable-uh-pd", name: "Cable Underhand Pulldown" },
+                  { id: "machine-uh-pd", name: "Machine Underhand Pulldown" },
                 ],
-                warmup: { name: "Dead Hang + Scap Pull", sets: "1", reps: "5 (3 sec hang + pull)", instructions: ["Decompresses the spine and stretches the lats.", "Activates the scapular depressors.", "Prepares the biceps and grip for loaded pulling."] }
+                warmup: PLACEHOLDER_WARMUP,
               },
               {
                 id: "supinated-row",
-                name: "Supinated Barbell Row",
-                difficulty: "medium",
-                targetedMuscles: ["Biceps", "Lats", "Lower Trapezius"],
-                description: "Barbell row with underhand grip, pulling to the lower abdomen with elbows close to the body.",
-                mechanics: "The supinated grip positions the biceps for maximal contribution during the row. The close elbow position emphasizes shoulder extension (lats) while the supination ensures the biceps are fully engaged throughout the pull.",
-                equipment: [
-                  { id: "barbell", name: "Barbell" }
+                name: "Supinated Row",
+                difficulty: "easy",
+                targetedMuscles: ["Biceps", "Lats", "Rhomboids"],
+                jointActions: [
+                  "Shoulder Extensors",
+                  "Elbow Flexors",
+                  "Scapular Retractors",
                 ],
-                warmup: { name: "Supinated Band Row", sets: "1", reps: "12", instructions: ["Activates the biceps in the supinated pulling pattern.", "Warms the elbow flexors for heavy rowing.", "Prepares the lats for the close-grip pull."] }
-              }
-            ]
-          }
-        ]
-      }
-    ]
+                compound: true,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Underhand-grip horizontal row that loads elbow flexors while progressing the upper back.",
+                mechanics:
+                  "Supinated grip turns the row into a hybrid back / biceps lift with smooth progression.",
+                equipment: [
+                  { id: "cable-uh-row", name: "Underhand Cable Row" },
+                  { id: "bb-uh-row", name: "Underhand Barbell Row" },
+                  { id: "machine-uh-row", name: "Machine Row" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
+  // ============================================================
+  // TIER 2 — REGIONAL / SINGLE-JOINT
+  // ============================================================
   {
     id: "regional",
     name: "Tier 2: Regional / Single-Joint",
     subtitle: "The Sand",
-    description: "Small mass, low CNS fatigue. These isolation movements target individual muscle groups through single-joint actions, allowing higher volume and frequency with minimal systemic stress.",
+    description:
+      "Single-joint isolation work. Lower systemic fatigue and high stimulus-to-fatigue ratio. Fills coverage gaps and trains specific muscle heads.",
     jointFunctions: [
+      // ---------- 1. ARM ISOLATION ----------
       {
         id: "arm-isolation",
         name: "Arm Isolation",
@@ -502,581 +1250,1080 @@ export const categories: Category[] = [
         subcategories: [
           {
             id: "biceps-lengthened",
-            name: "Biceps - Lengthened/Stretch Bias",
-            description: "Elbows behind torso. Positions the biceps in a maximally stretched state, creating high tension in the lengthened position for stretch-mediated hypertrophy.",
+            name: "Biceps — Lengthened Bias",
+            description:
+              "Elbows positioned behind the torso to pre-stretch the biceps long head.",
             exercises: [
               {
-                id: "incline-dumbbell-curl",
-                name: "Incline Dumbbell Curl",
-                difficulty: "medium",
-                targetedMuscles: ["Biceps (long head)", "Brachialis"],
-                description: "Curling from an incline bench with arms hanging behind the torso, placing the biceps under maximum stretch at the bottom.",
-                mechanics: "The incline position extends the shoulder, placing the biceps long head in a fully lengthened position. This creates peak tension at the bottom of the curl where the muscle is most stretched, stimulating stretch-mediated hypertrophy.",
+                id: "bayesian-curl",
+                name: "Bayesian Curl",
+                difficulty: "easy",
+                targetedMuscles: ["Biceps Long Head", "Biceps Short Head"],
+                jointActions: ["Elbow Flexors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Cable curl with the arm pulled behind the torso. Peak tension in the deep stretch.",
+                mechanics:
+                  "Arm-behind-body pre-stretches the biceps long head while cable line keeps tension highest in the bottom.",
                 equipment: [
-                  { id: "dumbbell", name: "Dumbbell" }
+                  { id: "cable-single-bay", name: "Cable Single-Arm" },
+                  { id: "cable-bilateral-bay", name: "Cable Bilateral" },
+                  { id: "freemotion", name: "FreeMotion Cable" },
                 ],
-                angles: [
-                  { id: "45-incline", name: "45° Incline", description: "Moderate stretch, good balance of tension and ROM" },
-                  { id: "60-incline", name: "60° Incline", description: "Greater stretch on the biceps long head" }
-                ],
-                warmup: { name: "Arm Circle + Light Curl", sets: "1", reps: "10", instructions: ["Mobilizes the shoulder for the extended position.", "Warms the biceps tendon for the stretched curl.", "Increases blood flow to the elbow joint."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard's #1 biceps exercise.",
               },
               {
-                id: "bayesian-curl",
-                name: "Bayesian Cable Curl",
-                difficulty: "medium",
-                targetedMuscles: ["Biceps (long head)"],
-                description: "Standing cable curl with the arm positioned behind the body, maintaining constant tension in the stretched position.",
-                mechanics: "The cable positioned behind the body keeps the biceps under tension even at full extension. The shoulder extension places the long head in its most lengthened state, providing stretch-mediated stimulus throughout the entire ROM.",
+                id: "incline-curl",
+                name: "Incline Curl",
+                difficulty: "easy",
+                targetedMuscles: ["Biceps Long Head", "Brachialis"],
+                jointActions: ["Elbow Flexors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Lying back on an incline bench so the arms hang behind the torso. Maximal biceps long-head stretch.",
+                mechanics:
+                  "Bench tilt places the shoulder in extension, lengthening the biceps before the curl begins.",
                 equipment: [
-                  { id: "cable", name: "Cable (D-Handle)" }
+                  { id: "db-incline-curl", name: "Dumbbell" },
+                  { id: "cable-incline-curl", name: "Cable" },
                 ],
-                warmup: { name: "Behind-Body Arm Stretch", sets: "1", reps: "15 sec each arm", instructions: ["Stretches the biceps in the extended shoulder position.", "Prepares the long head for the behind-body angle.", "Warms the elbow joint for loaded flexion."] }
-              }
-            ]
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel & Nippard: A-tier deep stretch.",
+              },
+              {
+                id: "lying-curl",
+                name: "Lying / Flat-Bench Curl",
+                difficulty: "easy",
+                targetedMuscles: ["Biceps", "Brachialis"],
+                jointActions: ["Elbow Flexors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Curl performed lying flat (clown curl, low-cable lying curl, decline-bench curl). Constant stretch through the set.",
+                mechanics:
+                  "Lying position fixes the arms in shoulder extension throughout the set.",
+                equipment: [
+                  { id: "clown", name: "Dumbbell Clown Curl" },
+                  { id: "low-cable-lying", name: "Low-Cable Lying Curl" },
+                  { id: "decline-bench-curl", name: "Decline-Bench Curl" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel: clown / lying cable for hard biceps stretch.",
+              },
+            ],
           },
           {
             id: "biceps-shortened",
-            name: "Biceps - Shortened Bias",
-            description: "Elbows in front of torso. Positions the biceps for peak contraction in the shortened position, emphasizing the squeeze at the top.",
+            name: "Biceps — Shortened Bias",
+            description:
+              "Elbows in front of the torso. Strong contraction in the shortened biceps position.",
             exercises: [
               {
                 id: "preacher-curl",
                 name: "Preacher Curl",
                 difficulty: "easy",
-                targetedMuscles: ["Biceps (short head)", "Brachialis"],
-                description: "Curling with arms supported on an angled pad in front of the body, eliminating momentum and emphasizing the contracted position.",
-                mechanics: "The preacher pad positions the elbows in front of the torso (shoulder flexion), which shortens the biceps long head and shifts emphasis to the short head. The fixed position prevents cheating and maintains tension through the shortened range.",
+                targetedMuscles: ["Biceps Short Head", "Biceps Long Head"],
+                jointActions: ["Elbow Flexors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Preacher bench curl with elbows fixed forward. Hard stretch at the bottom, peak contraction at the top.",
+                mechanics:
+                  "Pad locks the elbows in shoulder flexion, eliminating cheating and creating a perfect biceps force curve.",
                 equipment: [
-                  { id: "barbell", name: "EZ Bar" },
-                  { id: "dumbbell", name: "Dumbbell" },
-                  { id: "machine", name: "Preacher Machine" }
+                  { id: "db-preacher", name: "Dumbbell" },
+                  { id: "machine-preacher", name: "Machine" },
+                  { id: "ez-preacher", name: "EZ-Bar" },
+                  { id: "cable-preacher", name: "Cable" },
                 ],
-                warmup: { name: "Light Preacher Curl", sets: "1", reps: "15", instructions: ["Warms the biceps in the shortened position.", "Prepares the elbow joint for the fixed-arm curl.", "Activates the brachialis as a synergist."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: S-tier biceps.",
               },
               {
-                id: "concentration-curl",
-                name: "Concentration Curl",
+                id: "cable-curl",
+                name: "Cable Curl",
                 difficulty: "easy",
-                targetedMuscles: ["Biceps (short head)", "Brachialis"],
-                description: "Seated curl with elbow braced against the inner thigh, isolating the biceps with peak contraction at the top.",
-                mechanics: "The braced elbow position with the shoulder flexed forward emphasizes the biceps short head. The isolation removes all momentum, forcing the biceps to contract fully at the top of the movement.",
+                targetedMuscles: ["Biceps", "Brachialis"],
+                jointActions: ["Elbow Flexors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Standing cable curl. Constant tension and easy load progression.",
+                mechanics:
+                  "Cable maintains constant biceps tension across the curl arc.",
                 equipment: [
-                  { id: "dumbbell", name: "Dumbbell" }
+                  { id: "standing-cable-curl", name: "Standing Cable Curl" },
+                  { id: "superman-curl", name: "Superman / FreeMotion" },
+                  { id: "ez-cable", name: "EZ-Bar Cable" },
                 ],
-                warmup: { name: "Wrist Rotations", sets: "1", reps: "10 each direction", instructions: ["Warms the forearm and biceps insertion.", "Prepares the elbow for isolated flexion.", "Increases blood flow to the biceps."] }
-              }
-            ]
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: A-tier; Israetel: Superman variant strong.",
+              },
+              {
+                id: "strict-curl",
+                name: "Strict Curl",
+                difficulty: "medium",
+                targetedMuscles: ["Biceps", "Brachialis"],
+                jointActions: ["Elbow Flexors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Standing barbell or dumbbell curl performed without hip momentum.",
+                mechanics:
+                  "Strict form forces the elbow flexors to do the work and standardizes loading for progressive overload.",
+                equipment: [
+                  { id: "bb-strict", name: "Barbell" },
+                  { id: "ez-strict", name: "EZ-Bar" },
+                  { id: "db-strict", name: "Dumbbell" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: A-tier; easy progression.",
+              },
+            ],
           },
           {
-            id: "brachialis-bias",
+            id: "brachialis",
             name: "Brachialis Bias",
-            description: "Neutral or pronated grip. Reduces biceps contribution by eliminating supination, shifting emphasis to the brachialis and brachioradialis.",
+            description:
+              "Neutral or pronated grip shifts emphasis from the biceps to the brachialis and brachioradialis.",
             exercises: [
               {
                 id: "hammer-curl",
                 name: "Hammer Curl",
                 difficulty: "easy",
                 targetedMuscles: ["Brachialis", "Brachioradialis", "Biceps"],
-                description: "Curling with a neutral (palms facing each other) grip, emphasizing the brachialis which lies underneath the biceps.",
-                mechanics: "The neutral grip reduces the biceps' mechanical advantage by eliminating the supination component. The brachialis, a pure elbow flexor unaffected by forearm position, becomes the primary mover.",
+                jointActions: ["Elbow Flexors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Neutral-grip curl. Targets brachialis and brachioradialis for arm thickness.",
+                mechanics:
+                  "Neutral grip aligns brachialis line of pull with the curl arc, shifting load away from the biceps.",
                 equipment: [
-                  { id: "dumbbell", name: "Dumbbell" },
-                  { id: "cable", name: "Cable (Rope)" }
+                  { id: "db-hammer", name: "Dumbbell" },
+                  { id: "rope-hammer", name: "Rope Cable" },
+                  { id: "machine-hammer", name: "Machine" },
+                  { id: "cross-body", name: "Cross-Body" },
                 ],
-                warmup: { name: "Wrist Curl + Extension", sets: "1", reps: "10 each", instructions: ["Warms the forearm flexors and extensors.", "Prepares the brachioradialis for neutral-grip work.", "Increases blood flow to the elbow joint."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: A-tier.",
+              },
+              {
+                id: "preacher-hammer",
+                name: "Preacher Hammer Curl",
+                difficulty: "easy",
+                targetedMuscles: ["Brachialis", "Brachioradialis", "Biceps"],
+                jointActions: ["Elbow Flexors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Preacher curl performed with a neutral grip. Combines stable preacher mechanics with brachialis bias.",
+                mechanics:
+                  "Pad-locked elbow plus neutral grip puts brachialis under loaded stretch with max tension.",
+                equipment: [
+                  { id: "db-preacher-h", name: "Dumbbell" },
+                  { id: "machine-preacher-h", name: "Machine" },
+                  { id: "cable-preacher-h", name: "Cable" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: S-tier brachialis pick.",
               },
               {
                 id: "reverse-curl",
                 name: "Reverse Curl",
-                difficulty: "medium",
-                targetedMuscles: ["Brachioradialis", "Brachialis", "Forearm Extensors"],
-                description: "Curling with a pronated (overhand) grip, maximally reducing biceps contribution and loading the brachioradialis.",
-                mechanics: "Pronation places the biceps in their weakest position, forcing the brachioradialis and brachialis to handle the majority of the load. This also significantly loads the wrist extensors isometrically.",
+                difficulty: "easy",
+                targetedMuscles: ["Brachialis", "Brachioradialis", "Forearms"],
+                jointActions: ["Elbow Flexors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "medium",
+                sfr: "medium",
+                description:
+                  "Pronated-grip curl. Heavy brachialis and forearm extensor demand.",
+                mechanics:
+                  "Pronation shortens the biceps' mechanical advantage, shifting load to brachialis and brachioradialis.",
                 equipment: [
-                  { id: "barbell", name: "EZ Bar" },
-                  { id: "dumbbell", name: "Dumbbell" }
+                  { id: "ez-reverse", name: "EZ-Bar" },
+                  { id: "bb-reverse", name: "Barbell" },
+                  { id: "cable-reverse", name: "Cable" },
+                  { id: "db-reverse", name: "Dumbbell" },
                 ],
-                warmup: { name: "Wrist Extension Stretch", sets: "1", reps: "15 sec each", instructions: ["Stretches the wrist extensors for the pronated position.", "Warms the brachioradialis for overhand curling.", "Prepares the forearm for the reverse grip load."] }
-              }
-            ]
+                warmup: PLACEHOLDER_WARMUP,
+              },
+            ],
           },
           {
             id: "triceps-long-head",
-            name: "Triceps - Long Head Bias",
-            description: "Greater degree of shoulder flexion, arms positioned overhead. The long head of the triceps crosses the shoulder joint, so overhead positions stretch it maximally.",
+            name: "Triceps — Long Head Bias",
+            description:
+              "Arms positioned overhead lengthen the triceps long head for a deep stretch.",
             exercises: [
               {
-                id: "overhead-tricep-extension",
-                name: "Overhead Tricep Extension",
-                difficulty: "medium",
-                targetedMuscles: ["Triceps (long head)"],
-                description: "Extending the elbow with arms overhead, placing the triceps long head in a maximally stretched position.",
-                mechanics: "The overhead position (shoulder flexion) stretches the long head of the triceps across the shoulder joint. This creates peak tension in the lengthened position, providing stretch-mediated hypertrophy stimulus specifically to the long head.",
+                id: "overhead-tri-ext",
+                name: "Overhead Triceps Extension",
+                difficulty: "easy",
+                targetedMuscles: ["Triceps Long Head", "Medial / Lateral Heads"],
+                jointActions: ["Elbow Extensors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Cable, EZ-bar, or DB extension with arms overhead. Deep stretch on the triceps long head.",
+                mechanics:
+                  "Shoulder flexion lengthens the long head before elbow extension, loading it in its longest position.",
                 equipment: [
-                  { id: "dumbbell", name: "Dumbbell" },
-                  { id: "cable", name: "Cable (Rope)" },
-                  { id: "barbell", name: "EZ Bar" }
+                  { id: "cable-bar-ohte", name: "Cable Bar" },
+                  { id: "cable-rope-ohte", name: "Cable Rope" },
+                  { id: "db-ohte", name: "Dumbbell" },
+                  { id: "ez-ohte", name: "EZ-Bar" },
+                  { id: "machine-ohte", name: "Machine" },
                 ],
-                warmup: { name: "Overhead Tricep Stretch", sets: "1", reps: "15 sec each arm", instructions: ["Stretches the triceps long head in the overhead position.", "Warms the shoulder for the flexed position.", "Prepares the elbow for loaded extension overhead."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: S+ for long head.",
               },
               {
-                id: "skull-crusher",
-                name: "Skull Crusher (Incline)",
-                difficulty: "medium",
-                targetedMuscles: ["Triceps (long head)", "Triceps (medial)"],
-                description: "Lying tricep extension on an incline bench, lowering the weight behind the head to stretch the long head.",
-                mechanics: "The incline position increases shoulder flexion at the bottom, stretching the long head more than a flat skull crusher. Lowering behind the head rather than to the forehead further increases the stretch component.",
+                id: "katana-ext",
+                name: "Katana Extension",
+                difficulty: "easy",
+                targetedMuscles: ["Triceps Long Head"],
+                jointActions: ["Elbow Extensors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Single-arm cable extension with the cable line crossing the body at a diagonal overhead angle.",
+                mechanics:
+                  "Diagonal cable path keeps the long head pre-stretched while the elbow extends.",
                 equipment: [
-                  { id: "barbell", name: "EZ Bar" },
-                  { id: "dumbbell", name: "Dumbbell" }
+                  { id: "cable-single-katana", name: "Cable Single-Arm" },
+                  { id: "cable-rope-katana", name: "Cable Rope" },
+                  { id: "cuff-katana", name: "Cuff Cable" },
                 ],
-                angles: [
-                  { id: "flat", name: "Flat Bench", description: "Standard position, moderate long head stretch" },
-                  { id: "incline", name: "Incline Bench", description: "Greater shoulder flexion, increased long head stretch" }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: A-tier long-head cable work.",
+              },
+              {
+                id: "french-press",
+                name: "French Press",
+                difficulty: "medium",
+                targetedMuscles: ["Triceps Long Head"],
+                jointActions: ["Elbow Extensors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "medium",
+                description:
+                  "Seated overhead extension with EZ-bar or dumbbell. Deep long-head loading.",
+                mechanics:
+                  "Free-weight version of overhead extension; loading drops at the top of the press.",
+                equipment: [
+                  { id: "db-fp", name: "Dumbbell" },
+                  { id: "ez-fp", name: "EZ-Bar" },
+                  { id: "cable-fp", name: "Cable" },
                 ],
-                warmup: { name: "Light Skull Crusher", sets: "1", reps: "12", instructions: ["Warms the elbow joint for the extension pattern.", "Activates the triceps through the full ROM.", "Prepares the long head for the stretched position."] }
-              }
-            ]
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: B-tier; Israetel: solid long-head option.",
+              },
+            ],
           },
           {
-            id: "triceps-lateral-medial",
-            name: "Triceps - Lateral/Medial Bias",
-            description: "Arms glued to sides. With the shoulder in neutral, the long head is shortened and less active, shifting emphasis to the lateral and medial heads.",
+            id: "triceps-short-head",
+            name: "Triceps — Lateral / Medial Bias",
+            description:
+              "Arms tucked at the sides emphasize the lateral and medial heads with stable loading.",
             exercises: [
               {
-                id: "cable-pushdown",
-                name: "Cable Pushdown",
+                id: "triceps-pressdown",
+                name: "Triceps Pressdown",
                 difficulty: "easy",
-                targetedMuscles: ["Triceps (lateral head)", "Triceps (medial head)"],
-                description: "Standing cable extension with elbows pinned to the sides, isolating the lateral and medial triceps heads.",
-                mechanics: "With arms at the sides (shoulder neutral/slightly extended), the long head is in a shortened position and contributes less force. The lateral and medial heads, which only cross the elbow joint, become the primary extensors.",
+                targetedMuscles: ["Lateral Head", "Medial Head", "Long Head"],
+                jointActions: ["Elbow Extensors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Cable pressdown with bar, V-bar, or rope. Easy progression and stable loading.",
+                mechanics:
+                  "Cable line keeps the elbow extensors under tension throughout the arc; bar variations bias the lateral head.",
                 equipment: [
-                  { id: "cable", name: "Cable (Straight Bar)" },
-                  { id: "cable-rope", name: "Cable (Rope)" },
-                  { id: "cable-vbar", name: "Cable (V-Bar)" }
+                  { id: "cable-bar-pd", name: "Straight Bar" },
+                  { id: "vbar-pd", name: "V-Bar" },
+                  { id: "rope-pd", name: "Rope" },
+                  { id: "machine-pd-tri", name: "Machine" },
                 ],
-                warmup: { name: "Light Pushdown", sets: "1", reps: "15", instructions: ["Warms the elbow joint for extension.", "Activates the lateral head with minimal load.", "Establishes the elbow-pinned position."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard: A-tier bar pressdown. Israetel: V-bar for stretch path.",
               },
               {
-                id: "tricep-kickback",
-                name: "Tricep Kickback",
-                difficulty: "easy",
-                targetedMuscles: ["Triceps (lateral head)", "Triceps (medial head)"],
-                description: "Bent-over elbow extension with the arm parallel to the floor, providing peak contraction at full extension.",
-                mechanics: "The shoulder extended position (arm behind body) maximally shortens the long head, reducing its contribution. The lateral and medial heads must produce the force for elbow extension, with peak loading at the lockout position.",
+                id: "skullcrusher",
+                name: "Skullcrusher",
+                difficulty: "medium",
+                targetedMuscles: ["Triceps Long Head", "Lateral / Medial Heads"],
+                jointActions: ["Elbow Extensors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "very-high",
+                description:
+                  "Lying triceps extension with EZ-bar or dumbbells. Brutal stretch in the bottom position.",
+                mechanics:
+                  "Allowing the bar to track behind the head deepens the long-head stretch while loading all three heads.",
                 equipment: [
-                  { id: "dumbbell", name: "Dumbbell" },
-                  { id: "cable", name: "Cable (D-Handle)" }
+                  { id: "bb-sk", name: "Barbell" },
+                  { id: "ez-sk", name: "EZ-Bar" },
+                  { id: "db-sk", name: "Dumbbell" },
+                  { id: "smith-sk", name: "Smith Machine" },
                 ],
-                warmup: { name: "Arm Swing (Back)", sets: "1", reps: "10 each arm", instructions: ["Warms the triceps through dynamic extension.", "Prepares the elbow for the kickback angle.", "Increases blood flow to the lateral head."] }
-              }
-            ]
-          }
-        ]
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: S-tier; Israetel: near-perfect force curve.",
+              },
+              {
+                id: "cable-kickback",
+                name: "Cable Kickback",
+                difficulty: "easy",
+                targetedMuscles: ["Lateral Head", "Medial Head"],
+                jointActions: ["Elbow Extensors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "medium",
+                description:
+                  "Cable kickback for peak triceps contraction at the shortened position.",
+                mechanics:
+                  "Cable maintains tension in the contracted top range better than dumbbell kickbacks.",
+                equipment: [
+                  { id: "cable-single-kick", name: "Cable Single-Arm" },
+                  { id: "cuff-kick", name: "Cable Cuff" },
+                  { id: "machine-kick", name: "Machine" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: A-tier; cable better than DB kickback.",
+              },
+            ],
+          },
+        ],
       },
+      // ---------- 2. SHOULDER ISOLATION ----------
       {
         id: "shoulder-isolation",
         name: "Shoulder Isolation",
-        muscles: ["Lateral Deltoid", "Rear Deltoid", "Front Deltoid"],
+        muscles: ["Lateral Delts", "Rear Delts", "Front Delts"],
         subcategories: [
           {
-            id: "lateral-delt-contracted",
-            name: "Lateral Delt - Contracted Bias",
-            description: "Free weights, hardest at top. Gravity-dependent resistance that peaks at the top of the movement where the deltoid is most contracted.",
+            id: "lateral-contracted",
+            name: "Lateral Delt — Contracted Bias",
+            description:
+              "Free-weight or machine raises with the load hardest at the top contraction.",
             exercises: [
               {
-                id: "dumbbell-lateral-raise",
+                id: "db-lateral",
                 name: "Dumbbell Lateral Raise",
                 difficulty: "easy",
-                targetedMuscles: ["Lateral Deltoid", "Supraspinatus"],
-                description: "Raising dumbbells to the side with a slight forward lean, peak difficulty at the top of the arc.",
-                mechanics: "Gravity creates maximum resistance when the arm is horizontal (90° abduction). The lateral deltoid is in its shortest position here, making this a contracted-bias exercise. Resistance is minimal at the bottom where the muscle is lengthened.",
+                targetedMuscles: ["Lateral Delts"],
+                jointActions: ["Shoulder Abductors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "medium",
+                sfr: "medium",
+                description:
+                  "Standing or seated DB lateral raise. Standard side-delt builder.",
+                mechanics:
+                  "Free-weight tension is maximal at the top of the abduction arc and drops at the bottom.",
                 equipment: [
-                  { id: "dumbbell", name: "Dumbbell" }
+                  { id: "standing-db-lat", name: "Standing DB" },
+                  { id: "seated-db-lat", name: "Seated DB" },
+                  { id: "lean-in", name: "Lean-In DB" },
+                  { id: "side-lying", name: "Side-Lying DB" },
                 ],
-                warmup: { name: "Band Pull-Apart", sets: "1", reps: "15", instructions: ["Activates the rear delts and rotator cuff.", "Warms the shoulder for abduction movements.", "Increases blood flow to the deltoid complex."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Israetel: seated strict eccentric. Nippard: lean-in and side-lying highly ranked.",
               },
               {
-                id: "machine-lateral-raise",
+                id: "super-rom-lateral",
+                name: "Super-ROM Lateral Raise",
+                difficulty: "easy",
+                targetedMuscles: ["Lateral Delts", "Front Delts"],
+                jointActions: ["Shoulder Abductors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "medium",
+                sfr: "medium",
+                description:
+                  "Lateral raise carried above shoulder height for fuller delt development.",
+                mechanics:
+                  "Going above parallel recruits more upper delt fibers; controlled eccentrics required.",
+                equipment: [
+                  { id: "db-srom", name: "Dumbbell" },
+                  { id: "cable-srom", name: "Cable" },
+                  { id: "machine-srom", name: "Machine" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel: broader delt development.",
+              },
+              {
+                id: "machine-lateral",
                 name: "Machine Lateral Raise",
                 difficulty: "easy",
-                targetedMuscles: ["Lateral Deltoid"],
-                description: "Seated machine that provides resistance through shoulder abduction with pads on the outer arms.",
-                mechanics: "The machine's cam system provides resistance matching the lateral deltoid's strength curve. Peak loading occurs at the top of the movement where the muscle is most contracted, similar to free-weight raises but with a more consistent resistance profile.",
+                targetedMuscles: ["Lateral Delts"],
+                jointActions: ["Shoulder Abductors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Selectorized or plate-loaded machine lateral raise. Stable side-delt isolation.",
+                mechanics:
+                  "Machine arm path eliminates balance demand and keeps tension on the side delt.",
                 equipment: [
-                  { id: "machine", name: "Lateral Raise Machine" }
+                  { id: "select-mlr", name: "Selectorized" },
+                  { id: "plate-mlr", name: "Plate-Loaded" },
+                  { id: "atlantis", name: "Atlantis Standing" },
                 ],
-                warmup: { name: "Light Machine Set", sets: "1", reps: "15", instructions: ["Warms the lateral deltoid at minimal resistance.", "Establishes proper pad position and ROM.", "Activates the supraspinatus for the abduction pattern."] }
-              }
-            ]
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: Atlantis A+; clean isolation.",
+              },
+            ],
           },
           {
-            id: "lateral-delt-stretch",
-            name: "Lateral Delt - Stretch Bias",
-            description: "Cables, constant tension at bottom. Cable angle provides maximum tension when the deltoid is in its lengthened position, emphasizing stretch-mediated growth.",
+            id: "lateral-stretch",
+            name: "Lateral Delt — Stretch Bias",
+            description:
+              "Cable raises with constant tension in the bottom stretch position.",
             exercises: [
               {
-                id: "cable-lateral-raise",
-                name: "Cable Lateral Raise (Behind Body)",
-                difficulty: "medium",
-                targetedMuscles: ["Lateral Deltoid"],
-                description: "Cable positioned behind the body, creating peak tension at the bottom of the raise where the deltoid is most stretched.",
-                mechanics: "The cable angle from behind creates maximum resistance when the arm is at the side (deltoid lengthened). This provides stretch-mediated stimulus that free weights cannot, as dumbbells have zero tension at the bottom.",
+                id: "cable-lateral",
+                name: "Cable Lateral Raise",
+                difficulty: "easy",
+                targetedMuscles: ["Lateral Delts"],
+                jointActions: ["Shoulder Abductors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Single-arm cable lateral raise with the pulley at hand height. Tension peaks early in the stretch.",
+                mechanics:
+                  "Hand-height pulley line biases peak tension to the lengthened range, opposite of DB raises.",
                 equipment: [
-                  { id: "cable", name: "Cable (D-Handle)" }
+                  { id: "cable-single-lat", name: "Single-Arm Cable" },
+                  { id: "cuffed-lat", name: "Cuffed Cable" },
+                  { id: "btb-cable-lat", name: "Behind-the-Back Cable" },
                 ],
-                warmup: { name: "Cross-Body Shoulder Stretch", sets: "1", reps: "15 sec each", instructions: ["Stretches the lateral deltoid across the body.", "Prepares the shoulder for the cable angle.", "Increases ROM for the stretched starting position."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard's #1 side-delt pick.",
               },
               {
-                id: "leaning-cable-raise",
-                name: "Leaning Cable Lateral Raise",
+                id: "cable-y-raise",
+                name: "Cable Y-Raise",
                 difficulty: "medium",
-                targetedMuscles: ["Lateral Deltoid (stretched position)"],
-                description: "Holding a pole and leaning away from the cable, increasing the stretch on the deltoid at the bottom of the movement.",
-                mechanics: "Leaning away shifts the resistance curve further toward the lengthened position. The deltoid is under significant tension even at full adduction, providing a powerful stretch-mediated stimulus that complements contracted-bias exercises.",
+                targetedMuscles: ["Lateral Delts", "Lower Traps"],
+                jointActions: ["Shoulder Abductors", "Scapular Upward Rotators"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Cable lateral raise carried up into a Y position. Side delts plus lower trap upward rotation.",
+                mechanics:
+                  "Y-line of pull combines abduction with scapular upward rotation, hitting the lower traps.",
                 equipment: [
-                  { id: "cable", name: "Cable (D-Handle)" }
+                  { id: "cable-handles-y", name: "Cable Handles" },
+                  { id: "cuffs-y", name: "Cable Cuffs" },
+                  { id: "dual-y", name: "Dual Cable" },
                 ],
-                warmup: { name: "Arm Swing (Lateral)", sets: "1", reps: "12 each arm", instructions: ["Dynamically warms the shoulder abductors.", "Increases ROM in the frontal plane.", "Prepares the deltoid for the leaning stretch position."] }
-              }
-            ]
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: S-tier.",
+              },
+              {
+                id: "btb-cable-lateral",
+                name: "Behind-the-Back Cuffed Cable Lateral",
+                difficulty: "medium",
+                targetedMuscles: ["Lateral Delts"],
+                jointActions: ["Shoulder Abductors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Cable lateral raise performed with the cable running behind the body. Maximizes side-delt stretch.",
+                mechanics:
+                  "Behind-the-back cable line places the side delt in its longest position before abduction.",
+                equipment: [
+                  { id: "btb-cuff", name: "Cable Cuff" },
+                  { id: "btb-single", name: "Single-Arm Cable" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: S-tier; emphasizes stretched side-delt.",
+              },
+            ],
           },
           {
-            id: "rear-delt-bias",
-            name: "Rear Delt Bias",
-            description: "Horizontal abduction, no scapular retraction. Isolates the posterior deltoid through shoulder horizontal abduction without engaging the rhomboids.",
+            id: "rear-delt",
+            name: "Rear Delt",
+            description:
+              "Horizontal abduction without scapular retraction isolates the rear delts.",
             exercises: [
               {
                 id: "reverse-pec-deck",
                 name: "Reverse Pec Deck",
                 difficulty: "easy",
-                targetedMuscles: ["Rear Deltoid", "Infraspinatus"],
-                description: "Seated machine fly in reverse, driving arms backward through horizontal abduction to isolate the rear delts.",
-                mechanics: "The fixed path of the machine allows focus on horizontal abduction without scapular retraction. Keeping the chest pressed against the pad prevents rhomboid engagement, isolating the posterior deltoid fibers.",
+                targetedMuscles: ["Rear Delts"],
+                jointActions: ["Shoulder Horizontal Abductors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Pec-deck machine reversed. Sideways one-arm version creates a deep rear-delt pre-stretch.",
+                mechanics:
+                  "Cross-body arm path stretches the rear delt before horizontal abduction begins.",
                 equipment: [
-                  { id: "machine", name: "Pec Deck (Reverse)" }
+                  { id: "pec-deck-r", name: "Pec Deck" },
+                  { id: "rear-machine", name: "Rear-Delt Machine" },
                 ],
-                warmup: { name: "Band Face Pull (Light)", sets: "1", reps: "12", instructions: ["Activates the rear delts with minimal load.", "Warms the posterior shoulder for horizontal abduction.", "Prepares the rotator cuff for the reverse fly pattern."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard's best rear-delt pick.",
               },
               {
-                id: "rear-delt-cable-fly",
-                name: "Rear Delt Cable Fly",
-                difficulty: "medium",
-                targetedMuscles: ["Rear Deltoid"],
-                description: "Standing cable fly with arms at shoulder height, pulling outward and back to isolate the rear delts.",
-                mechanics: "The cable provides constant tension through the full arc of horizontal abduction. By maintaining a slight elbow bend and focusing on leading with the elbows, the rear delt is isolated without significant rhomboid or trap contribution.",
+                id: "reverse-cable-crossover",
+                name: "Reverse Cable Crossover",
+                difficulty: "easy",
+                targetedMuscles: ["Rear Delts"],
+                jointActions: ["Shoulder Horizontal Abductors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Cable crossover reversed. Cross-body cable pull deeply stretches the rear delt.",
+                mechanics:
+                  "Cables maintain tension while the arms cross the midline, hitting the rear delt at full stretch.",
                 equipment: [
-                  { id: "cable", name: "Cable (No Attachment / D-Handle)" }
+                  { id: "cable-handles-rcc", name: "Cable Handles" },
+                  { id: "cable-cuffs-rcc", name: "Cable Cuffs" },
+                  { id: "cross-body-rcc", name: "Cross-Body Pull" },
                 ],
-                angles: [
-                  { id: "high-cable", name: "High Cable", description: "Pulling downward and back, emphasizes lower rear delt fibers" },
-                  { id: "mid-cable", name: "Mid Cable", description: "Horizontal pull, standard rear delt isolation" }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: S-tier rear-delt.",
+              },
+              {
+                id: "face-pull",
+                name: "Face Pull",
+                difficulty: "easy",
+                targetedMuscles: ["Rear Delts", "Mid / Lower Traps", "Rotator Cuff"],
+                jointActions: [
+                  "Shoulder External Rotators",
+                  "Shoulder Horizontal Abductors",
+                  "Scapular Retractors",
                 ],
-                warmup: { name: "Prone Y-T-W Raises", sets: "1", reps: "5 each position", instructions: ["Activates all posterior shoulder muscles.", "Warms the rear delt through multiple angles.", "Prepares the rotator cuff for the cable fly."] }
-              }
-            ]
+                compound: false,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Cable face pull with elbows high. Rear delt + external rotator + scapular retraction.",
+                mechanics:
+                  "High elbows direct work into the rear delt and external rotators while retracting the scapulae.",
+                equipment: [
+                  { id: "cable-rope-fp", name: "Cable Rope" },
+                  { id: "cable-bar-fp", name: "Cable Bar" },
+                  { id: "trx-fp", name: "TRX" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel: rear-delt + rotator cuff balanced work.",
+              },
+            ],
           },
           {
-            id: "front-delt-bias",
-            name: "Front Delt Bias",
-            description: "Shoulder flexion isolation. Targets the anterior deltoid through pure shoulder flexion without pressing (no triceps involvement).",
+            id: "front-delt-iso",
+            name: "Front Delt Isolation",
+            description:
+              "Direct shoulder flexion. Lower priority — most pressing already covers front delts.",
             exercises: [
               {
                 id: "front-raise",
                 name: "Front Raise",
                 difficulty: "easy",
-                targetedMuscles: ["Anterior Deltoid", "Upper Pec (clavicular)"],
-                description: "Raising weight directly in front of the body through shoulder flexion, isolating the front delt without triceps contribution.",
-                mechanics: "Pure shoulder flexion without elbow extension removes triceps involvement. The anterior deltoid is the primary shoulder flexor in this plane, with the clavicular pec assisting. Peak loading occurs at 90° of flexion.",
+                targetedMuscles: ["Front Delts"],
+                jointActions: ["Shoulder Flexors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "medium",
+                sfr: "low",
+                description:
+                  "Direct shoulder flexion isolation. Generally redundant if pressing volume is sufficient.",
+                mechanics:
+                  "Single-joint shoulder flexion. Most lifters already get enough front-delt work from pressing.",
                 equipment: [
-                  { id: "dumbbell", name: "Dumbbell" },
-                  { id: "cable", name: "Cable" },
-                  { id: "barbell", name: "Barbell/Plate" }
+                  { id: "db-fr", name: "Dumbbell" },
+                  { id: "cable-fr", name: "Cable" },
+                  { id: "plate-fr", name: "Plate" },
+                  { id: "machine-fr", name: "Machine" },
                 ],
-                warmup: { name: "Arm Swing (Front/Back)", sets: "1", reps: "10 each arm", instructions: ["Dynamically warms the anterior deltoid.", "Increases shoulder flexion ROM.", "Prepares the front delt for loaded raises."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard: D-tier. Include only if pressing volume is low.",
               },
-              {
-                id: "cable-front-raise",
-                name: "Cable Front Raise",
-                difficulty: "easy",
-                targetedMuscles: ["Anterior Deltoid"],
-                description: "Front raise using a low cable, providing constant tension throughout the full ROM including the bottom stretch.",
-                mechanics: "The cable from below maintains tension even at the starting position (arm at side), unlike dumbbells which have zero tension at the bottom. This provides a more complete stimulus through the entire range of shoulder flexion.",
-                equipment: [
-                  { id: "cable", name: "Cable (Straight Bar / Rope)" }
-                ],
-                warmup: { name: "Light Cable Front Raise", sets: "1", reps: "12", instructions: ["Warms the anterior deltoid with minimal load.", "Establishes the cable front raise pattern.", "Prepares the shoulder for loaded flexion."] }
-              }
-            ]
-          }
-        ]
+            ],
+          },
+        ],
       },
+      // ---------- 3. LEG ISOLATION ----------
       {
         id: "leg-isolation",
         name: "Leg Isolation",
         muscles: ["Hamstrings", "Quadriceps", "Calves"],
         subcategories: [
           {
-            id: "hamstrings-lengthened",
-            name: "Hamstrings - Lengthened Bias",
-            description: "Hips flexed/seated. The seated position flexes the hips, stretching the hamstrings across both joints for maximum lengthened tension.",
+            id: "hamstring-lengthened",
+            name: "Hamstrings — Lengthened Bias",
+            description:
+              "Hips flexed (seated) pre-stretches the hamstrings before knee flexion.",
             exercises: [
               {
                 id: "seated-leg-curl",
                 name: "Seated Leg Curl",
                 difficulty: "easy",
-                targetedMuscles: ["Hamstrings (biceps femoris)", "Semimembranosus"],
-                description: "Machine leg curl in the seated position, where hip flexion places the hamstrings in a lengthened state throughout the movement.",
-                mechanics: "The seated position (hips flexed ~90°) stretches the hamstrings across the hip joint while the knee flexion shortens them at the other end. This creates peak tension in the lengthened position, stimulating stretch-mediated hypertrophy.",
+                targetedMuscles: ["Hamstrings (esp. biceps femoris short head)"],
+                jointActions: ["Knee Flexors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Seated machine hamstring curl. The pre-stretched hip position amplifies the stimulus.",
+                mechanics:
+                  "Hip flexion pre-stretches the hamstrings; knee flexion then loads them in their longest position.",
                 equipment: [
-                  { id: "machine", name: "Seated Leg Curl Machine" }
+                  { id: "select-slc", name: "Selectorized" },
+                  { id: "plate-slc", name: "Plate-Loaded" },
                 ],
-                warmup: { name: "Seated Hamstring Stretch", sets: "1", reps: "20 sec each leg", instructions: ["Stretches the hamstrings in the seated position.", "Prepares the muscle for lengthened-bias loading.", "Increases blood flow to the hamstring bellies."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Nippard's #1 hamstring pick. Lean forward to amplify stretch.",
               },
-              {
-                id: "rdl-single-leg",
-                name: "Single-Leg Romanian Deadlift",
-                difficulty: "medium",
-                targetedMuscles: ["Hamstrings", "Glutes", "Core (anti-rotation)"],
-                description: "Unilateral hip hinge with straight leg, maximizing hamstring stretch under load with balance challenge.",
-                mechanics: "The single-leg position with near-full knee extension maximally lengthens the hamstrings. The unilateral nature also challenges hip stability and core anti-rotation, making it a functional lengthened-bias hamstring exercise.",
-                equipment: [
-                  { id: "dumbbell", name: "Dumbbell" },
-                  { id: "kettlebell", name: "Kettlebell" }
-                ],
-                warmup: { name: "Single-Leg Balance + Hinge", sets: "1", reps: "8 each leg", instructions: ["Improves balance for the single-leg position.", "Warms the hamstrings through the hinge pattern.", "Activates the core for anti-rotation stability."] }
-              }
-            ]
+            ],
           },
           {
-            id: "hamstrings-shortened",
-            name: "Hamstrings - Shortened Bias",
-            description: "Hips extended/prone or standing. With hips neutral or extended, the hamstrings are not pre-stretched, emphasizing the shortened/contracted position.",
+            id: "hamstring-shortened",
+            name: "Hamstrings — Shortened Bias",
+            description:
+              "Hips extended (prone or standing) trains the hamstrings in the shortened range.",
             exercises: [
               {
                 id: "prone-leg-curl",
-                name: "Prone (Lying) Leg Curl",
+                name: "Prone / Standing Leg Curl",
                 difficulty: "easy",
-                targetedMuscles: ["Hamstrings (short head biceps femoris)", "Semitendinosus"],
-                description: "Lying face-down on a leg curl machine, curling the weight with hips in a neutral/extended position.",
-                mechanics: "The prone position keeps the hips extended, which shortens the hamstrings across the hip joint. This means the muscle reaches full shortening earlier during knee flexion, emphasizing the contracted position and the short head of the biceps femoris.",
+                targetedMuscles: ["Hamstrings (knee flexor fibers)"],
+                jointActions: ["Knee Flexors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Lying or standing machine leg curl. Trains hamstrings without pre-stretch.",
+                mechanics:
+                  "Knee flexion under controlled eccentric. Required for complete hamstring development.",
                 equipment: [
-                  { id: "machine", name: "Prone Leg Curl Machine" }
+                  { id: "lying-lc", name: "Lying Leg Curl" },
+                  { id: "standing-lc", name: "Standing Leg Curl" },
+                  { id: "ankle-cuff-lc", name: "Cable Ankle Cuff" },
                 ],
-                warmup: { name: "Prone Hamstring Activation", sets: "1", reps: "12 (slow)", instructions: ["Activates the hamstrings in the prone position.", "Warms the knee joint for loaded flexion.", "Establishes the mind-muscle connection with the hamstrings."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel: needed for complete hamstring development.",
               },
-              {
-                id: "standing-leg-curl",
-                name: "Standing Leg Curl",
-                difficulty: "easy",
-                targetedMuscles: ["Hamstrings (unilateral)"],
-                description: "Single-leg curl performed standing, with the hip in neutral position for shortened-bias hamstring work.",
-                mechanics: "Standing with the hip neutral/slightly extended shortens the hamstrings at the hip, similar to prone curls. The unilateral nature allows focus on each leg independently, addressing imbalances.",
-                equipment: [
-                  { id: "machine", name: "Standing Leg Curl Machine" }
-                ],
-                warmup: { name: "Standing Knee Flexion (Bodyweight)", sets: "1", reps: "10 each leg", instructions: ["Activates the hamstrings unilaterally.", "Warms the knee joint for the standing curl.", "Prepares the balance for single-leg work."] }
-              }
-            ]
+            ],
           },
           {
-            id: "quads-rectus-femoris",
-            name: "Quadriceps - Rectus Femoris Bias",
-            description: "Hips extended/leaning back. The rectus femoris crosses the hip, so hip extension stretches it, increasing its contribution during knee extension.",
+            id: "quadriceps-iso",
+            name: "Quadriceps Isolation (Rectus Femoris)",
+            description:
+              "Hips extended (or extending) lets the rectus femoris stretch and contract through full ROM.",
             exercises: [
               {
                 id: "leg-extension",
                 name: "Leg Extension",
                 difficulty: "easy",
-                targetedMuscles: ["Quadriceps (all heads)", "Rectus Femoris"],
-                description: "Seated knee extension machine. Leaning back or using a reclined seat increases rectus femoris recruitment.",
-                mechanics: "The seated position with slight hip extension stretches the rectus femoris across the hip joint. As the only quad head crossing both joints, it receives greater stimulus when pre-stretched at the hip during knee extension.",
+                targetedMuscles: ["Quadriceps", "Rectus Femoris"],
+                jointActions: ["Knee Extensors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Seated machine leg extension. Trains all four quad heads with rectus femoris emphasis.",
+                mechanics:
+                  "Fixed hip lets the rectus femoris stretch and contract under tension; the vasti contribute throughout.",
                 equipment: [
-                  { id: "machine", name: "Leg Extension Machine" }
+                  { id: "select-le", name: "Selectorized" },
+                  { id: "plate-le", name: "Plate-Loaded" },
                 ],
-                warmup: { name: "Bodyweight Sissy Squat (Partial)", sets: "1", reps: "8", instructions: ["Stretches the rectus femoris through hip extension + knee flexion.", "Warms the quad tendon for loaded extension.", "Activates all four quadriceps heads."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: near-perfect quad iso.",
+              },
+              {
+                id: "reverse-nordic",
+                name: "Reverse Nordic Curl",
+                difficulty: "medium",
+                targetedMuscles: ["Quadriceps", "Rectus Femoris"],
+                jointActions: ["Knee Extensors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "low",
+                sfr: "high",
+                description:
+                  "Kneeling controlled descent leaning back. Bodyweight quad stretch alternative.",
+                mechanics:
+                  "Hip extension + knee flexion places the rectus femoris under massive stretch under bodyweight.",
+                equipment: [
+                  { id: "bw-rn", name: "Bodyweight" },
+                  { id: "band-rn", name: "Band-Assisted" },
+                  { id: "weighted-rn", name: "Weighted" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Both coaches: massive quad stretch.",
               },
               {
                 id: "sissy-squat",
                 name: "Sissy Squat",
                 difficulty: "hard",
-                targetedMuscles: ["Rectus Femoris", "Vastus Medialis"],
-                description: "Leaning back while bending the knees, keeping hips extended to maximally stretch the rectus femoris under load.",
-                mechanics: "The backward lean with extended hips creates simultaneous hip extension and knee flexion, maximally stretching the rectus femoris. This is one of the few exercises that loads the rectus femoris in its most lengthened position across both joints.",
+                targetedMuscles: ["Quadriceps", "Rectus Femoris"],
+                jointActions: ["Knee Extensors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "low",
+                sfr: "medium",
+                description:
+                  "Standing knee-flexion squat with a backward lean. Awkward but provides max quad stretch.",
+                mechanics:
+                  "Knees track far forward while the hips stay extended, isolating the quads through full lengthening.",
                 equipment: [
-                  { id: "bodyweight", name: "Bodyweight / Sissy Squat Bench" }
+                  { id: "bw-ss", name: "Bodyweight" },
+                  { id: "ss-bench", name: "Sissy Squat Bench" },
+                  { id: "trx-ss", name: "TRX-Assisted" },
                 ],
-                warmup: { name: "Couch Stretch", sets: "1", reps: "20 sec each leg", instructions: ["Stretches the rectus femoris and hip flexors.", "Prepares the quad for the extended-hip position.", "Increases knee flexion ROM for the sissy squat depth."] }
-              }
-            ]
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Nippard: best quad stretching movement (awkward setup).",
+              },
+            ],
           },
           {
             id: "calves",
             name: "Calves",
-            description: "Includes both straight leg (gastrocnemius focus) and bent knee (soleus focus). The two-joint gastrocnemius is stretched with straight legs; the single-joint soleus is isolated with bent knees.",
+            description:
+              "Straight-leg variants train the gastrocnemius; bent-knee variants emphasize the soleus.",
             exercises: [
               {
-                id: "standing-calf-raise",
-                name: "Standing Calf Raise",
+                id: "straight-calf",
+                name: "Straight-Leg Calf Raise",
                 difficulty: "easy",
-                targetedMuscles: ["Gastrocnemius (medial & lateral heads)"],
-                description: "Calf raise with straight legs, maximally loading the gastrocnemius which crosses both the knee and ankle joints.",
-                mechanics: "Straight knees stretch the gastrocnemius across the knee joint, placing it in a mechanically advantaged position for plantarflexion. The gastrocnemius produces more force than the soleus when the knee is extended.",
+                targetedMuscles: ["Gastrocnemius", "Soleus"],
+                jointActions: ["Ankle Plantarflexors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Standing calf raise with knees extended. Belt squat or dip belt versions remove spinal load.",
+                mechanics:
+                  "Straight knee keeps the gastrocnemius lengthened and primarily loaded.",
                 equipment: [
-                  { id: "machine", name: "Standing Calf Raise Machine" },
-                  { id: "smith-machine", name: "Smith Machine" }
+                  { id: "belt-calf", name: "Belt Squat" },
+                  { id: "standing-calf", name: "Standing Calf Machine" },
+                  { id: "dip-belt-calf", name: "Dip Belt Off Ledge" },
+                  { id: "lp-calf", name: "Leg Press Calves" },
                 ],
-                warmup: { name: "Ankle Circles + Calf Stretch", sets: "1", reps: "10 circles + 15 sec stretch each", instructions: ["Mobilizes the ankle through full circumduction.", "Stretches the gastrocnemius for loaded plantarflexion.", "Increases blood flow to the Achilles tendon."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel: deep loaded stretch with pause.",
               },
               {
-                id: "seated-calf-raise",
+                id: "seated-calf",
                 name: "Seated Calf Raise",
                 difficulty: "easy",
-                targetedMuscles: ["Soleus"],
-                description: "Calf raise with bent knees (seated), isolating the soleus by shortening the gastrocnemius across the knee.",
-                mechanics: "Bent knees shorten the gastrocnemius, reducing its force production capacity. The soleus, which only crosses the ankle joint, becomes the primary plantarflexor in this position. The soleus is a slow-twitch dominant muscle that responds well to higher reps.",
+                targetedMuscles: ["Soleus", "Gastrocnemius"],
+                jointActions: ["Ankle Plantarflexors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Seated machine or DB-on-knees calf raise. Bent knee emphasizes the soleus.",
+                mechanics:
+                  "Bent knee shortens the gastrocnemius, shifting more demand to the soleus.",
                 equipment: [
-                  { id: "machine", name: "Seated Calf Raise Machine" }
+                  { id: "machine-sc", name: "Seated Calf Machine" },
+                  { id: "db-on-knees", name: "Dumbbell on Knees" },
+                  { id: "smith-sc", name: "Smith Machine Seated" },
                 ],
-                warmup: { name: "Seated Ankle Dorsiflexion", sets: "1", reps: "12", instructions: ["Warms the soleus in the seated position.", "Increases ankle ROM for full calf raise depth.", "Prepares the Achilles tendon for loaded flexion."] }
-              }
-            ]
-          }
-        ]
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel: useful soleus emphasis.",
+              },
+            ],
+          },
+        ],
       },
+      // ---------- 4. CORE ISOLATION ----------
       {
         id: "core-isolation",
         name: "Core Isolation",
-        muscles: ["Rectus Abdominis", "Obliques", "Hip Flexors"],
+        muscles: ["Rectus Abdominis", "Obliques"],
         subcategories: [
           {
-            id: "upper-rectus-abdominis",
+            id: "upper-rectus",
             name: "Upper Rectus Abdominis",
-            description: "Spinal flexion. Targets the upper portion of the rectus abdominis through trunk curling/crunching movements that flex the thoracic spine.",
+            description:
+              "Loaded spinal flexion. Crunch-pattern work with full ROM and progressive load.",
             exercises: [
+              {
+                id: "abdominal-crunch-machine",
+                name: "Abdominal Crunch Machine",
+                difficulty: "easy",
+                targetedMuscles: ["Upper Rectus Abdominis", "Lower Rectus Abdominis"],
+                jointActions: ["Spinal Flexors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Selectorized or plate-loaded crunch machine. Full ROM, lengthened loading, easy progression.",
+                mechanics:
+                  "Machine arm path traces the spinal-flexion arc, loading the rectus through the entire range.",
+                equipment: [
+                  { id: "select-acm", name: "Selectorized" },
+                  { id: "plate-acm", name: "Plate-Loaded" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel: best ab option when designed well.",
+              },
               {
                 id: "cable-crunch",
                 name: "Cable Crunch",
-                difficulty: "medium",
-                targetedMuscles: ["Upper Rectus Abdominis", "Obliques (isometric)"],
-                description: "Kneeling cable crunch pulling the rope down while flexing the spine, providing constant tension through the full ROM.",
-                mechanics: "The cable provides resistance that matches the spinal flexion pattern. Unlike bodyweight crunches that lose tension at the top, the cable maintains load throughout, with peak tension when the abs are most contracted.",
+                difficulty: "easy",
+                targetedMuscles: ["Rectus Abdominis"],
+                jointActions: ["Spinal Flexors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "high",
+                description:
+                  "Kneeling cable crunch with rope or bar. Full spinal-flexion ROM with constant tension.",
+                mechanics:
+                  "Cable load resists spinal flexion through the full arc, especially when performed over a rounded surface.",
                 equipment: [
-                  { id: "cable", name: "Cable (Rope)" }
+                  { id: "rope-cc", name: "Cable Rope" },
+                  { id: "bar-cc", name: "Cable Bar" },
+                  { id: "round-cc", name: "Rounded Surface" },
                 ],
-                warmup: { name: "Bodyweight Crunch", sets: "1", reps: "15", instructions: ["Activates the rectus abdominis through spinal flexion.", "Warms the core for loaded crunching.", "Establishes the spinal flexion pattern."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel: accessible and loadable.",
               },
               {
-                id: "weighted-crunch",
-                name: "Weighted Crunch (Decline)",
-                difficulty: "easy",
-                targetedMuscles: ["Upper Rectus Abdominis"],
-                description: "Crunching on a decline bench while holding a weight plate or dumbbell, increasing resistance on the upper abs.",
-                mechanics: "The decline angle increases the range of motion and gravitational resistance. Holding weight at the chest or behind the head increases the moment arm against spinal flexion, progressively overloading the upper rectus abdominis.",
+                id: "inverted-bench-crunch",
+                name: "Inverted Bench Crunch",
+                difficulty: "medium",
+                targetedMuscles: ["Rectus Abdominis"],
+                jointActions: ["Spinal Flexors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Decline / inverted bench crunch with weight held at the chest.",
+                mechanics:
+                  "Inversion loads the rectus through a deeper start position; weight increases progression options.",
                 equipment: [
-                  { id: "dumbbell", name: "Dumbbell / Plate" }
+                  { id: "decline-ibc", name: "Decline Bench" },
+                  { id: "plate-ibc", name: "Weighted Plate / DB" },
                 ],
-                warmup: { name: "Dead Bug", sets: "1", reps: "10 each side", instructions: ["Activates the deep core stabilizers.", "Warms the rectus abdominis for loaded flexion.", "Prepares the hip flexors as synergists."] }
-              }
-            ]
+                warmup: PLACEHOLDER_WARMUP,
+              },
+            ],
           },
           {
-            id: "lower-rectus-hip-flexors",
+            id: "lower-rectus",
             name: "Lower Rectus / Hip Flexors",
-            description: "Pelvic tilt/leg raises. Targets the lower rectus abdominis through posterior pelvic tilt and the hip flexors through leg raising movements.",
+            description:
+              "Pelvic tilt and leg-raise patterns load the lower rectus and hip flexors.",
             exercises: [
               {
-                id: "hanging-leg-raise",
-                name: "Hanging Leg Raise",
-                difficulty: "hard",
-                targetedMuscles: ["Lower Rectus Abdominis", "Hip Flexors", "Obliques"],
-                description: "Hanging from a bar and raising the legs while curling the pelvis upward, loading the lower abs through pelvic tilt.",
-                mechanics: "The hanging position allows full spinal extension at the bottom (abs lengthened). Raising the legs engages the hip flexors, but the key is the posterior pelvic tilt at the top which loads the lower rectus abdominis. Without the pelvic curl, this is primarily a hip flexor exercise.",
+                id: "v-up",
+                name: "V-Up",
+                difficulty: "medium",
+                targetedMuscles: ["Rectus Abdominis", "Hip Flexors"],
+                jointActions: ["Spinal Flexors", "Hip Flexors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "low",
+                sfr: "medium",
+                description:
+                  "Bodyweight V-up combining spinal flexion with hip flexion.",
+                mechanics:
+                  "Simultaneous spinal and hip flexion loads the rectus and hip flexors together.",
                 equipment: [
-                  { id: "bodyweight", name: "Pull-Up Bar" }
+                  { id: "bw-vu", name: "Bodyweight" },
+                  { id: "weighted-vu", name: "Weighted" },
+                  { id: "bench-vu", name: "Bench Variation" },
                 ],
-                warmup: { name: "Dead Hang + Knee Tuck", sets: "1", reps: "8", instructions: ["Decompresses the spine and stretches the abs.", "Activates the hip flexors for the raising pattern.", "Warms the grip for the hanging position."] }
+                warmup: PLACEHOLDER_WARMUP,
               },
               {
-                id: "reverse-crunch",
-                name: "Reverse Crunch",
-                difficulty: "easy",
-                targetedMuscles: ["Lower Rectus Abdominis", "Transverse Abdominis"],
-                description: "Lying on a bench or floor, curling the pelvis toward the ribcage by lifting the hips off the surface.",
-                mechanics: "The reverse crunch isolates posterior pelvic tilt, which is the primary function of the lower rectus abdominis. By keeping the upper body fixed and moving the pelvis, the lower fibers are preferentially recruited.",
+                id: "ab-wheel",
+                name: "Ab Wheel Rollout",
+                difficulty: "hard",
+                targetedMuscles: ["Rectus Abdominis", "Serratus", "Lats", "Hip Flexors"],
+                jointActions: ["Spinal Flexors", "Hip Flexors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "low",
+                sfr: "high",
+                description:
+                  "Kneeling or standing ab wheel rollout. Phenomenal core tension through anti-extension.",
+                mechanics:
+                  "The rollout demands eccentric resistance to spinal extension; the rectus, lats, and hip flexors all contribute.",
                 equipment: [
-                  { id: "bodyweight", name: "Bench / Floor" }
+                  { id: "ab-wheel-eq", name: "Ab Wheel" },
+                  { id: "bb-rollout", name: "Barbell Rollout" },
+                  { id: "stability-ball", name: "Stability Ball" },
                 ],
-                warmup: { name: "Pelvic Tilt (Supine)", sets: "1", reps: "12", instructions: ["Activates the lower abs through pelvic tilt.", "Warms the lumbar spine for the reverse crunch.", "Establishes the pelvic curl movement pattern."] }
-              }
-            ]
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Israetel: phenomenal tension; harder to progress.",
+              },
+            ],
           },
           {
             id: "obliques",
-            name: "Obliques",
-            description: "Rotation & lateral flexion. Targets the internal and external obliques through trunk rotation, lateral flexion, and anti-rotation movements.",
+            name: "Obliques (Rotation & Lateral Flexion)",
+            description:
+              "Rotational and anti-rotational loading for the internal and external obliques.",
             exercises: [
               {
                 id: "cable-woodchop",
                 name: "Cable Woodchop",
-                difficulty: "medium",
-                targetedMuscles: ["Obliques (external & internal)", "Transverse Abdominis"],
-                description: "Rotational cable movement from high-to-low or low-to-high, loading the obliques through trunk rotation against resistance.",
-                mechanics: "The cable provides constant rotational resistance. The external oblique on the side rotating away and the internal oblique on the side rotating toward work together to produce trunk rotation. The transverse abdominis stabilizes the spine throughout.",
+                difficulty: "easy",
+                targetedMuscles: ["Internal Obliques", "External Obliques"],
+                jointActions: ["Spinal Rotators & Lateral Flexors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "medium",
+                sfr: "medium",
+                description:
+                  "Cable rotational chop from high to low or low to high. Loaded trunk rotation.",
+                mechanics:
+                  "Cable resists trunk rotation, loading the obliques through the full rotational arc.",
                 equipment: [
-                  { id: "cable", name: "Cable (D-Handle / Rope)" }
+                  { id: "cable-d-handle", name: "D-Handle" },
+                  { id: "cable-rope-cw", name: "Rope" },
                 ],
                 angles: [
-                  { id: "high-to-low", name: "High-to-Low", description: "Emphasizes the downward rotation pattern" },
-                  { id: "low-to-high", name: "Low-to-High", description: "Emphasizes the upward rotation pattern" },
-                  { id: "horizontal", name: "Horizontal (Pallof Press)", description: "Anti-rotation, isometric oblique loading" }
+                  { id: "high-low", name: "High-to-Low", description: "Downward rotation pattern." },
+                  { id: "low-high", name: "Low-to-High", description: "Upward rotation pattern." },
+                  { id: "horizontal-cw", name: "Horizontal", description: "Pure rotation." },
                 ],
-                warmup: { name: "Torso Rotation (Bodyweight)", sets: "1", reps: "10 each side", instructions: ["Mobilizes the thoracic spine for rotation.", "Warms the obliques through the rotational pattern.", "Prepares the core for loaded anti-rotation."] }
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Coach data limited for obliques; this is a standard rotational option.",
+              },
+              {
+                id: "pallof-press",
+                name: "Pallof Press",
+                difficulty: "easy",
+                targetedMuscles: ["Internal Obliques", "External Obliques", "Transverse Abdominis"],
+                jointActions: ["Spinal Rotators & Lateral Flexors"],
+                compound: false,
+                stretchEmphasis: false,
+                stability: "high",
+                sfr: "medium",
+                description:
+                  "Cable anti-rotation press. Isometric oblique loading.",
+                mechanics:
+                  "Holding the cable's rotational pull while pressing forward forces the obliques to resist rotation.",
+                equipment: [
+                  { id: "cable-pp", name: "Cable D-Handle" },
+                  { id: "band-pp", name: "Band" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Standard anti-rotation oblique pick.",
               },
               {
                 id: "side-bend",
                 name: "Weighted Side Bend",
                 difficulty: "easy",
-                targetedMuscles: ["Obliques (lateral flexion)", "Quadratus Lumborum"],
-                description: "Standing lateral flexion with a weight in one hand, targeting the obliques through side bending against resistance.",
-                mechanics: "Lateral flexion is a primary function of the obliques. Holding weight on one side creates a moment arm that the contralateral obliques must resist and then overcome to produce lateral flexion. The quadratus lumborum assists as a lateral flexor.",
+                targetedMuscles: ["Obliques", "Quadratus Lumborum"],
+                jointActions: ["Spinal Rotators & Lateral Flexors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "medium",
+                description:
+                  "Standing side bend with a dumbbell or cable. Loaded lateral flexion.",
+                mechanics:
+                  "Unilateral load creates a moment arm the contralateral obliques resist and overcome.",
                 equipment: [
-                  { id: "dumbbell", name: "Dumbbell" },
-                  { id: "cable", name: "Cable" }
+                  { id: "db-sb", name: "Dumbbell" },
+                  { id: "cable-sb", name: "Cable" },
                 ],
-                warmup: { name: "Standing Side Stretch", sets: "1", reps: "10 each side", instructions: ["Stretches the obliques through lateral flexion.", "Warms the quadratus lumborum.", "Prepares the spine for loaded side bending."] }
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
+                warmup: PLACEHOLDER_WARMUP,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 ];
+
+// ============================================================
+// PROGRAMMING HELPERS
+// ============================================================
 
 export function getProgrammingParameters(category: CategoryType): ProgrammingParameters {
   if (category === "systemic") {
     return {
       sets: "2–4 sets",
-      reps: "5–8 reps",
+      reps: "5–8 reps (heavy) or 8–12 (hypertrophy)",
       frequency: "2x per week",
       rest: "2–3 minutes",
-      intensity: "75–85% 1RM",
-      rationale: "Heavy loading with lower volume to account for high systemic fatigue and CNS demand. Longer rest periods allow full neuromuscular recovery between sets."
+      intensity: "Push hard — leave 1–2 reps in reserve on compounds",
+      rationale:
+        "Heavy multi-joint loading with longer rest and lower volume to manage CNS / systemic fatigue.",
     };
   }
   return {
     sets: "3–5 sets",
-    reps: "10–20 reps",
-    frequency: "3–4x per week",
+    reps: "8–15 reps (or 20–30 for metabolic)",
+    frequency: "2–3x per week",
     rest: "60–90 seconds",
-    intensity: "60–70% 1RM",
-    rationale: "Higher volume with moderate loads optimizes regional hypertrophy. Shorter rest periods maintain metabolic stress while low CNS fatigue allows greater training frequency."
+    intensity: "Push to or near failure — 0–1 reps in reserve on isolation",
+    rationale:
+      "Higher-volume isolation with shorter rest. Low joint cost lets you push harder and train more frequently.",
   };
 }
 
-export function getDefaultSets(category: CategoryType): number {
+export function getDefaultSets(_category?: CategoryType): number {
   return 3;
 }
 
@@ -1091,3 +2338,26 @@ export function getDefaultWeight(): number {
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
 }
+
+// ============================================================
+// HYPERTROPHY MATRIX TARGETS
+// ============================================================
+
+/** Target ratio of compound (Tier 1 multi-joint) volume to total. 80/20 by user spec. */
+export const COMPOUND_VOLUME_TARGET = 0.8;
+
+/** All major joint actions that must be hit weekly to avoid coverage penalties. */
+export const MAJOR_JOINT_ACTIONS: JointAction[] = [
+  "Knee Extensors",
+  "Knee Flexors",
+  "Hip Extensors",
+  "Shoulder Horizontal Adductors",
+  "Shoulder Adductors",
+  "Shoulder Extensors",
+  "Shoulder Abductors",
+  "Shoulder Horizontal Abductors",
+  "Elbow Flexors",
+  "Elbow Extensors",
+  "Spinal Flexors",
+  "Ankle Plantarflexors",
+];
