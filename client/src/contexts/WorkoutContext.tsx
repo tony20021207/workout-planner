@@ -65,6 +65,24 @@ interface AddExerciseParams {
   defaultWeight?: number;
 }
 
+/**
+ * Selected split (one of the presets or "custom") plus the day-by-day
+ * exercise assignments. Persisted independently so it can be cleared
+ * without losing the pool, and vice versa.
+ */
+export type SplitId = "fb3" | "ul4" | "ppl6" | "custom";
+
+export interface SplitState {
+  splitId: SplitId | null;
+  /** dayId -> ordered exerciseId[] from the routine. */
+  dayAssignments: Record<string, string[]>;
+}
+
+const DEFAULT_SPLIT: SplitState = {
+  splitId: null,
+  dayAssignments: {},
+};
+
 interface WorkoutContextType {
   routine: RoutineItem[];
   addToRoutine: (params: AddExerciseParams) => void;
@@ -76,10 +94,14 @@ interface WorkoutContextType {
   totalWeeklySets: number;
   effort: EffortCalibration;
   setEffort: (effort: EffortCalibration) => void;
+  split: SplitState;
+  setSplit: (state: SplitState) => void;
+  clearSplit: () => void;
 }
 
 const STORAGE_KEY = "kinesiology_routine";
 const EFFORT_STORAGE_KEY = "kinesiology_effort";
+const SPLIT_STORAGE_KEY = "kinesiology_split";
 
 function loadRoutineFromStorage(): RoutineItem[] {
   try {
@@ -122,11 +144,33 @@ function saveEffortToStorage(effort: EffortCalibration) {
   }
 }
 
+function loadSplitFromStorage(): SplitState {
+  try {
+    const stored = sessionStorage.getItem(SPLIT_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed?.dayAssignments) return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return DEFAULT_SPLIT;
+}
+
+function saveSplitToStorage(split: SplitState) {
+  try {
+    sessionStorage.setItem(SPLIT_STORAGE_KEY, JSON.stringify(split));
+  } catch {
+    // ignore
+  }
+}
+
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 
 export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [routine, setRoutine] = useState<RoutineItem[]>(() => loadRoutineFromStorage());
   const [effort, setEffortState] = useState<EffortCalibration>(() => loadEffortFromStorage());
+  const [split, setSplitState] = useState<SplitState>(() => loadSplitFromStorage());
 
   // Persist routine to sessionStorage on every change
   useEffect(() => {
@@ -138,8 +182,21 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     saveEffortToStorage(effort);
   }, [effort]);
 
+  // Persist split state on every change
+  useEffect(() => {
+    saveSplitToStorage(split);
+  }, [split]);
+
   const setEffort = useCallback((next: EffortCalibration) => {
     setEffortState(next);
+  }, []);
+
+  const setSplit = useCallback((next: SplitState) => {
+    setSplitState(next);
+  }, []);
+
+  const clearSplit = useCallback(() => {
+    setSplitState(DEFAULT_SPLIT);
   }, []);
 
   const addToRoutine = useCallback((params: AddExerciseParams) => {
@@ -210,6 +267,9 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         totalWeeklySets,
         effort,
         setEffort,
+        split,
+        setSplit,
+        clearSplit,
       }}
     >
       {children}

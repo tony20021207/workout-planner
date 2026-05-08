@@ -13,6 +13,7 @@ import CategorySelector from "@/components/CategorySelector";
 import JointFunctionSelector from "@/components/JointFunctionSelector";
 import ExerciseList from "@/components/ExerciseList";
 import RoutineTable from "@/components/RoutineTable";
+import SplitBuilder from "@/components/SplitBuilder";
 import WarmupSection from "@/components/WarmupSection";
 import { type CategoryType, type JointFunction } from "@/lib/data";
 import { useWorkout } from "@/contexts/WorkoutContext";
@@ -187,6 +188,20 @@ export default function Home() {
           <RoutineTable />
         </div>
       </section>
+
+      {/* Split Builder */}
+      {routine.length > 0 && (
+        <section id="split" className="container py-12">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-8 w-1 bg-lime rounded-full" />
+            <h2 className="font-heading text-3xl font-bold text-foreground">Weekly Split</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-8 ml-4">
+            Distribute the microcycle across the week. Pick a preset or build a custom split.
+          </p>
+          <SplitBuilder />
+        </section>
+      )}
 
       {/* Warmup Recommendations */}
       {routine.length > 0 && (
