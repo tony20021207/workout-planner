@@ -16,17 +16,22 @@ export interface SelectionBreakdown {
   stretch: BreakdownEntry;
   sfr: BreakdownEntry;
   angles: BreakdownEntry;
+  /** Compound-vs-isolation ratio (40/60 target). Pool-stage selection criterion. */
+  compoundIsolationRatio: BreakdownEntry;
 }
 
-export interface VolumeBreakdown {
-  reps: BreakdownEntry;
-  sessionCaps: BreakdownEntry;
-  frequency: BreakdownEntry;
-  /** New 12.5-pt criterion: compound-vs-isolation ratio + RIR-mismatch penalties from user's self-report. */
-  compoundIsolationIntensity: BreakdownEntry;
+export interface IntensityVolumeBreakdown {
+  /** RIR mismatch from user self-report. Max 15. */
+  rirCalibration: BreakdownEntry;
+  /** Implied weekly frequency given a default 3-4 day split. Max 10. */
+  impliedFrequency: BreakdownEntry;
+  /** Pool balance — exercises per major mover. Max 10. */
+  impliedVolume: BreakdownEntry;
 }
 
-export interface CoverageCheck {
+export interface CoverageBreakdown {
+  /** 0-25, anatomically weighted across 12 major + 15 minor joint actions. */
+  score: number;
   hit: string[];
   missing: string[];
 }
@@ -46,11 +51,12 @@ export interface OptimizedExercise {
 }
 
 export interface RatingResult {
+  /** Final score, 0-100. Sum of all 9 criteria. */
   score: number;
   verdict: string;
   selectionBreakdown: SelectionBreakdown;
-  volumeBreakdown: VolumeBreakdown;
-  coverage: CoverageCheck;
+  intensityVolumeBreakdown: IntensityVolumeBreakdown;
+  coverageBreakdown: CoverageBreakdown;
   /** Educational text on the user's RIR alignment with the targets. */
   intensityNote: string;
   /** Empty string if no pulldowns; otherwise the scap-depression cueing reminder. */

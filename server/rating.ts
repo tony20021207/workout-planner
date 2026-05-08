@@ -48,99 +48,154 @@ ANKLE
 ANATOMICAL VOLUME PRIORITY (rough order, larger muscles need more weekly volume):
 Quadriceps > Glutes > Latissimus Dorsi / Erectors > Hamstrings > Pectorals > Trapezius > Deltoids (all heads combined) > Triceps > Biceps > Brachialis > Forearms > Calves > Abdominals > Obliques. Use this when judging whether a major mover is under-served relative to its anatomical size.`;
 
-const HYPERTROPHY_MATRIX_PROMPT = `You are a kinesiology-driven hypertrophy expert evaluating a user's weekly microcycle using the Hypertrophy Matrix Rating System.
+const HYPERTROPHY_MATRIX_PROMPT = `You are a kinesiology-driven hypertrophy expert evaluating a user's weekly MICROCYCLE (the exercise pool they've picked for the week). They have NOT yet assigned exercises to days or set sets/reps/weight — that step happens later. So this rating focuses on what's assessable from the pool itself: selection quality, intensity calibration, and joint-action coverage.
 
 CORE PRINCIPLE — JOINT-ACTION DECOMPOSITION:
-Movement-pattern labels (squat, hinge, press, row) are UX shorthand for end users. Real analysis must operate at the level of joint actions. Before scoring anything, mentally decompose every exercise the user listed into the specific joint actions it produces using the canonical taxonomy below. A "Bench Press" is Shoulder Horizontal Adduction + Shoulder Flexion + Elbow Extension + Scapular Protraction. A "Romanian Deadlift" is Hip Extension + Spinal Extension (isometric) + Knee Flexion (mild) + Scapular Elevation (bar hold). All coverage analysis, redundancy detection, and gap-filling must reference this decomposition.
+Movement-pattern labels (squat, hinge, press, row) are UX shorthand. Real analysis operates at the joint-action level. Before scoring anything, mentally decompose every exercise into the specific joint actions it produces using the canonical taxonomy below. A "Bench Press" = Shoulder Horizontal Adduction + Shoulder Flexion + Elbow Extension + Scapular Protraction. A "Romanian Deadlift" = Hip Extension + Spinal Extension (isometric) + Knee Flexion (mild) + Scapular Elevation. All coverage analysis, redundancy detection, and gap-filling references this decomposition.
 
 INTENSITY POLICY — TRUST THE USER'S RIR:
-The user has self-reported their average RIR (reps in reserve) on the explicit premise that movement quality stays consistent — same form, same ROM, same tempo. Take their answer at face value. **Do not** try to infer RIR from rep ranges or weights. Use their stated RIR to apply the intensity penalties in section 2D below.
+The user has self-reported their average RIR (reps in reserve) on the explicit premise that movement quality stays consistent — same form, same ROM, same tempo. Take their answer at face value. Do NOT infer RIR from rep ranges or weights. Use their stated RIR for criterion 6 below.
 
 ${JOINT_FUNCTION_REFERENCE}
 
-THE HYPERTROPHY MATRIX RATING SYSTEM (100 pts):
+THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total):
 
-1. EXERCISE SELECTION (50 pts — 12.5 each):
-   A. Stability (12.5 pts): High points for stable exercises (machines, supported rows) that allow safe failure. Low points for unstable movements.
-   B. Deep Stretch Under Load (12.5 pts): Score the routine's average stretch tier. The data tags exercises as moderate / high / very-high stretch. Very-high picks (Bayesian Curl, Lat Prayer, Pullover, Sissy Squat, Reverse Nordic, Deficit Push-Up, RDL, EZ-Bar Overhead Triceps Extension, BTB Cuffed Cable Lateral, Jefferson Curl, Cable Fly) carry 1.5x the credit of a "high" pick; "moderate" carries 0.5x. Reward routines weighted toward high / very-high stretch.
-   C. Stimulus-to-Fatigue Ratio / SFR (12.5 pts): High points for exercises with massive local muscle disruption and minimal systemic / joint fatigue.
-   D. Biomechanical Angle Bias (12.5 pts): Verify angles target the intended muscles without redundancy. Reason at the joint-action level (pressing angles vary shoulder flexors vs horizontal adductors; pulldown grips vary lat fibers; arm-position curls vary biceps long head stretch).
+═══ SELECTION · 40 pts (5 criteria × 8 each) ═══
 
-2. INTENSITY & VOLUME (50 pts — 12.5 each):
-   A. Rep Ranges (12.5 pts): ~80% of working-set volume in 8-15 reps. Remaining ~20% can be heavy (5-8) or metabolic (20-30).
-   B. Session Caps (12.5 pts): Strictly deduct points for >6-8 sets per joint-action prime mover in one session (junk volume).
-   C. Weekly Frequency (12.5 pts): Each major joint action's prime movers should be trained 2-3x per week. Deduct heavily if a major action is hit only 1x.
-   D. Compound vs Isolation Balance + RIR Calibration (12.5 pts):
-      - Target ratio: ~40% compound (Tier 1 multi-joint) volume, ~60% isolation (Tier 2 single-joint) volume per Israetel-style hypertrophy programming.
-      - Deduct up to 5 pts for being more than 20 percentage points off the target ratio either way.
-      - RIR penalties (applied to this 12.5-pt criterion):
-        * Compound RIR target = 1-2. User answer "0 RIR" -> -2.5 pts ("excessive fatigue cost on heavy compounds"). User answer "3+ RIR" -> -5 pts ("under-stimulus on compounds — leaving most of the gain on the table").
-        * Isolation RIR target = 0. User answer "1-2 RIR" -> -2.5 pts ("isolations are cheap fatigue-wise — push closer to failure"). User answer "3+ RIR" -> -5 pts ("severely under-stimulating isolation work").
-      - Penalties stack but cannot drive this criterion below 0.
+1. STABILITY (8 pts): Reward stable exercises (machines, chest-supported, cable) that let the lifter push close to failure safely. Penalize over-reliance on highly unstable picks.
 
-3. WEEKLY VOLUME GUIDELINE: 10-20 working sets per joint action's prime mover per week (MEV to MAV).
+2. DEEP STRETCH UNDER LOAD (8 pts): Score the routine's average stretch tier. Tags are moderate / high / very-high. Apply weights:
+   - very-high = 1.5×
+   - high = 1.0×
+   - moderate = 0.5×
+   Reward routines heavily weighted toward high / very-high. Very-high picks include Bayesian Curl, Lat Prayer, Pullover, Sissy Squat, Reverse Nordic, Deficit Push-Up, RDL, EZ-Bar Overhead Triceps Extension, BTB Cuffed Cable Lateral, Jefferson Curl, Cable Fly. Tag-overrides on toggles can push other exercises (incline DB / BB bench, cambered bar, skullcrusher over-head, etc.) into very-high too.
 
-4. JOINT-ACTION COVERAGE (Pass/Fail Modifier):
-   Cross-reference against the 27-action taxonomy. **Anatomical-size weighting**: a missing or under-trained MAJOR mover (Knee Ext, Hip Ext, Lats, Hamstrings, Pecs, Shoulder Abductors, Elbow Flexors, Elbow Extensors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Shoulder Adductors, Shoulder Extensors) is much more costly than a missing minor stabilizer (Scapular Depressors / Elevators, Hip External Rotators, Spinal Rotators).
-   - Major action entirely missed: -10 to -20 from final score.
-   - Major action under-trained relative to its anatomical size: -3 to -8.
-   - Minor action missed: -1 to -3.
-   - Apply cumulatively before reporting the final score.
+3. STIMULUS-TO-FATIGUE RATIO / SFR (8 pts): Reward exercises with high local muscle disruption and low systemic / joint fatigue. Penalize over-reliance on conventional / sumo deadlifts and other CNS-heavy picks for hypertrophy.
 
-5. SCAPULAR-DEPRESSION CUEING NOTE:
-   When the routine includes pulldown movements (Lat Pulldown, Single-Arm Cable Pulldown, Pull-Up / Chin-Up, Lat Prayer, Pullover), include in the rating output a brief reminder: "Initiate the pull by depressing your scapulae (pull shoulder blades down before pulling the elbows down). This is what makes pulldowns a true scapular depressor exercise."
+4. BIOMECHANICAL ANGLE BIAS / VARIETY (8 pts): Verify angles cover the intended muscle proportions without redundancy. Reason at the joint-action level — pressing angles vary shoulder flexors vs horizontal adductors; pulldown grips vary lat fibers; arm-position curls vary biceps long-head stretch.
+
+5. COMPOUND vs ISOLATION RATIO (8 pts): Target ~40% compound (Tier 1 multi-joint) / ~60% isolation (Tier 2 single-joint), per Israetel-style hypertrophy. Penalty curve:
+   - within 10 percentage points of target on either side: full credit
+   - 10–20 pp off: −2 to −4
+   - more than 20 pp off: −4 to −8
+
+═══ INTENSITY & VOLUME · 35 pts ═══
+
+6. RIR CALIBRATION (15 pts): The user supplied two answers — compound RIR and isolation RIR. Targets per Nippard / Israetel: compound 1–2, isolation 0. Apply penalties:
+   - Compound at "1-2 RIR": 0 penalty
+   - Compound at "0 RIR": −3 ("hitting failure on compounds racks up fatigue cost")
+   - Compound at "3+ RIR": −7 ("undertraining the compounds — most of the stimulus is on the table")
+   - Isolation at "0 RIR": 0 penalty
+   - Isolation at "1-2 RIR": −3 ("isolations are cheap fatigue-wise — push harder")
+   - Isolation at "3+ RIR": −7 ("severely under-stimulating the isolations")
+   Penalties stack. Floor at 0 (criterion can't go negative).
+
+7. IMPLIED WEEKLY FREQUENCY (10 pts): Without a split picked yet, assume a typical 3–4 day weekly split. Score whether each major joint action's prime mover would be trainable 2–3×/wk given the count of relevant picks in the pool. Deduct if a major mover has only 1 exercise in the pool (implies 1×/wk frequency).
+
+8. IMPLIED VOLUME DISTRIBUTION (10 pts): A balanced pool has at least 2 exercises per major mover (so weekly working sets land in the 10–20 MEV-MAV range when a default split is applied). Score whether the pool covers each major mover with sufficient picks, and penalize clustering (e.g., 8 chest exercises but only 1 hamstring pick).
+
+═══ JOINT-ACTION COVERAGE · 25 pts ═══
+
+9. JOINT-ACTION COVERAGE (25 pts, anatomically weighted):
+   The pool gets credit for hitting each canonical joint action, weighted by anatomical importance / muscle mass. Awarding scheme:
+   - All 12 MAJOR movers covered = full 20 pts: Knee Extensors, Knee Flexors, Hip Extensors, Shoulder Horizontal Adductors, Shoulder Adductors, Shoulder Extensors, Shoulder Abductors, Shoulder Horizontal Abductors, Elbow Flexors, Elbow Extensors, Spinal Flexors, Ankle Plantarflexors. Each major mover ≈ 1.67 pts.
+   - All 15 MINOR/stabilizer movers covered = remaining 5 pts: Scapular Retractors / Protractors / Elevators / Depressors / Up-Rotators / Down-Rotators, Spinal Extensors, Spinal Rotators & LF, Hip Flexors / Abductors / Adductors / External Rotators / Internal Rotators, Shoulder External Rotators.
+   - Score each action +full / +half (under-trained = only 1 exercise) / +0 (missing).
+   - This is a POSITIVE-only criterion: you earn points for what's covered, nothing is subtracted afterward.
+
+SCAPULAR-DEPRESSION CUEING:
+If the pool contains pulldown movements (Lat Pulldown, Single-Arm Cable Pulldown, Pull-Up / Chin-Up, Lat Prayer, Pullover), include the cueing reminder in scapularDepressionNote: "Initiate the pull by depressing your scapulae (shoulder blades pull down first, then elbows pull down). This is what makes pulldowns a true scapular depressor exercise."
+Otherwise leave scapularDepressionNote as an empty string.
 
 OUTPUT REQUIREMENTS:
-- "coverage.hit" / "coverage.missing" arrays MUST use exact joint-action names from the taxonomy.
+- All criterion scores are 0 to their respective max (no negatives anywhere).
+- Final "score" = sum of all 9 criterion scores. Cap at 100.
+- coverage.hit / coverage.missing arrays MUST use exact joint-action names from the taxonomy.
 - Every exercise in "optimizedRoutine" must include "jointActions" drawn from the canonical list.
-- "optimizedRoutine" should be a complete weekly rewrite that fills coverage gaps, eliminates redundancy, respects 40/60 compound-isolation balance, and would score 100/100.
+- "optimizedRoutine" should be a complete weekly rewrite that fills coverage gaps, eliminates redundancy, respects the 40/60 compound-isolation target, and would score 100/100 against this rubric.
 
 YOU MUST RESPOND WITH STRICT JSON matching the provided schema.`;
+
+const breakdownEntry = {
+  type: "object",
+  additionalProperties: false,
+  required: ["score", "notes"],
+  properties: {
+    score: { type: "number" },
+    notes: { type: "string" },
+  },
+} as const;
 
 const ratingSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["score", "verdict", "selectionBreakdown", "volumeBreakdown", "coverage", "intensityNote", "scapularDepressionNote", "optimizedRoutine"],
+  required: [
+    "score",
+    "verdict",
+    "selectionBreakdown",
+    "intensityVolumeBreakdown",
+    "coverageBreakdown",
+    "intensityNote",
+    "scapularDepressionNote",
+    "optimizedRoutine",
+  ],
   properties: {
-    score: { type: "number", description: "Final score out of 100 after coverage modifier" },
-    verdict: { type: "string", description: "One-sentence verdict on the workout" },
+    score: { type: "number", description: "Final score out of 100, summed from all 9 criteria" },
+    verdict: { type: "string", description: "One-sentence verdict on the microcycle" },
     selectionBreakdown: {
       type: "object",
       additionalProperties: false,
-      required: ["stability", "stretch", "sfr", "angles"],
+      required: ["stability", "stretch", "sfr", "angles", "compoundIsolationRatio"],
       properties: {
-        stability: { type: "object", additionalProperties: false, required: ["score", "notes"], properties: { score: { type: "number" }, notes: { type: "string" } } },
-        stretch: { type: "object", additionalProperties: false, required: ["score", "notes"], properties: { score: { type: "number" }, notes: { type: "string" } } },
-        sfr: { type: "object", additionalProperties: false, required: ["score", "notes"], properties: { score: { type: "number" }, notes: { type: "string" } } },
-        angles: { type: "object", additionalProperties: false, required: ["score", "notes"], properties: { score: { type: "number" }, notes: { type: "string" } } },
-      },
-    },
-    volumeBreakdown: {
-      type: "object",
-      additionalProperties: false,
-      required: ["reps", "sessionCaps", "frequency", "compoundIsolationIntensity"],
-      properties: {
-        reps: { type: "object", additionalProperties: false, required: ["score", "notes"], properties: { score: { type: "number" }, notes: { type: "string" } } },
-        sessionCaps: { type: "object", additionalProperties: false, required: ["score", "notes"], properties: { score: { type: "number" }, notes: { type: "string" } } },
-        frequency: { type: "object", additionalProperties: false, required: ["score", "notes"], properties: { score: { type: "number" }, notes: { type: "string" } } },
-        compoundIsolationIntensity: {
-          type: "object",
-          additionalProperties: false,
-          required: ["score", "notes"],
+        stability: { ...breakdownEntry, properties: { score: { type: "number", description: "0-8" }, notes: breakdownEntry.properties.notes } },
+        stretch: { ...breakdownEntry, properties: { score: { type: "number", description: "0-8" }, notes: breakdownEntry.properties.notes } },
+        sfr: { ...breakdownEntry, properties: { score: { type: "number", description: "0-8" }, notes: breakdownEntry.properties.notes } },
+        angles: { ...breakdownEntry, properties: { score: { type: "number", description: "0-8" }, notes: breakdownEntry.properties.notes } },
+        compoundIsolationRatio: {
+          ...breakdownEntry,
           properties: {
-            score: { type: "number", description: "0-12.5 after compound/isolation ratio + RIR-mismatch penalties" },
-            notes: { type: "string", description: "Explain compound/isolation ratio + how user's RIR answers affected the score" },
+            score: { type: "number", description: "0-8 after deviation from 40/60 target" },
+            notes: { type: "string", description: "Report actual compound% / isolation% and the deviation from the 40/60 target" },
           },
         },
       },
     },
-    coverage: {
+    intensityVolumeBreakdown: {
       type: "object",
       additionalProperties: false,
-      required: ["hit", "missing"],
+      required: ["rirCalibration", "impliedFrequency", "impliedVolume"],
       properties: {
+        rirCalibration: {
+          ...breakdownEntry,
+          properties: {
+            score: { type: "number", description: "0-15 after RIR-mismatch penalties from user's self-report" },
+            notes: { type: "string", description: "Explain how the user's compound + isolation RIR answers affected the score" },
+          },
+        },
+        impliedFrequency: {
+          ...breakdownEntry,
+          properties: {
+            score: { type: "number", description: "0-10. Score 2-3x/wk hit-ability of major movers given a default 3-4 day split" },
+            notes: breakdownEntry.properties.notes,
+          },
+        },
+        impliedVolume: {
+          ...breakdownEntry,
+          properties: {
+            score: { type: "number", description: "0-10. Score balance of pool across major movers (no clustering, no major-mover under-coverage)" },
+            notes: breakdownEntry.properties.notes,
+          },
+        },
+      },
+    },
+    coverageBreakdown: {
+      type: "object",
+      additionalProperties: false,
+      required: ["score", "hit", "missing"],
+      properties: {
+        score: { type: "number", description: "0-25, anatomically weighted across major (20 pts) + minor (5 pts) joint actions" },
         hit: { type: "array", items: { type: "string" }, description: "Joint actions well covered (exact taxonomy names)" },
-        missing: { type: "array", items: { type: "string" }, description: "Joint actions missed or under-trained relative to anatomical size" },
+        missing: { type: "array", items: { type: "string" }, description: "Joint actions missed or under-trained" },
       },
     },
     intensityNote: {

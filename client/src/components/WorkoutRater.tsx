@@ -424,18 +424,18 @@ Tue - Pull
             {/* Breakdowns */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="p-4 bg-card rounded-sm border border-border space-y-3">
-                <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">Selection · 50</h4>
-                <BreakdownRow label="Stability" score={result.selectionBreakdown.stability.score} max={12.5} notes={result.selectionBreakdown.stability.notes} />
-                <BreakdownRow label="Deep Stretch" score={result.selectionBreakdown.stretch.score} max={12.5} notes={result.selectionBreakdown.stretch.notes} />
-                <BreakdownRow label="SFR" score={result.selectionBreakdown.sfr.score} max={12.5} notes={result.selectionBreakdown.sfr.notes} />
-                <BreakdownRow label="Angle Bias" score={result.selectionBreakdown.angles.score} max={12.5} notes={result.selectionBreakdown.angles.notes} />
+                <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">Selection · 40</h4>
+                <BreakdownRow label="Stability" score={result.selectionBreakdown.stability.score} max={8} notes={result.selectionBreakdown.stability.notes} />
+                <BreakdownRow label="Deep Stretch" score={result.selectionBreakdown.stretch.score} max={8} notes={result.selectionBreakdown.stretch.notes} />
+                <BreakdownRow label="SFR" score={result.selectionBreakdown.sfr.score} max={8} notes={result.selectionBreakdown.sfr.notes} />
+                <BreakdownRow label="Angle Bias" score={result.selectionBreakdown.angles.score} max={8} notes={result.selectionBreakdown.angles.notes} />
+                <BreakdownRow label="Compound / Isolation Ratio" score={result.selectionBreakdown.compoundIsolationRatio.score} max={8} notes={result.selectionBreakdown.compoundIsolationRatio.notes} />
               </div>
               <div className="p-4 bg-card rounded-sm border border-border space-y-3">
-                <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">Volume & Intensity · 50</h4>
-                <BreakdownRow label="Rep Ranges" score={result.volumeBreakdown.reps.score} max={12.5} notes={result.volumeBreakdown.reps.notes} />
-                <BreakdownRow label="Session Caps" score={result.volumeBreakdown.sessionCaps.score} max={12.5} notes={result.volumeBreakdown.sessionCaps.notes} />
-                <BreakdownRow label="Frequency" score={result.volumeBreakdown.frequency.score} max={12.5} notes={result.volumeBreakdown.frequency.notes} />
-                <BreakdownRow label="Compound/Isolation + RIR" score={result.volumeBreakdown.compoundIsolationIntensity.score} max={12.5} notes={result.volumeBreakdown.compoundIsolationIntensity.notes} />
+                <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">Intensity & Volume · 35</h4>
+                <BreakdownRow label="RIR Calibration" score={result.intensityVolumeBreakdown.rirCalibration.score} max={15} notes={result.intensityVolumeBreakdown.rirCalibration.notes} />
+                <BreakdownRow label="Implied Frequency" score={result.intensityVolumeBreakdown.impliedFrequency.score} max={10} notes={result.intensityVolumeBreakdown.impliedFrequency.notes} />
+                <BreakdownRow label="Implied Volume" score={result.intensityVolumeBreakdown.impliedVolume.score} max={10} notes={result.intensityVolumeBreakdown.impliedVolume.notes} />
               </div>
             </div>
 
@@ -463,9 +463,20 @@ Tue - Pull
 
             {/* Coverage — joint-action level */}
             <div className="p-4 bg-card rounded-sm border border-border">
-              <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider mb-1">Joint-Action Coverage</h4>
+              <div className="flex items-baseline justify-between mb-1">
+                <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">Joint-Action Coverage · 25</h4>
+                <span className="text-sm font-mono tabular-nums text-muted-foreground">
+                  {result.coverageBreakdown.score.toFixed(1)} / 25
+                </span>
+              </div>
+              <div className="h-1.5 bg-secondary rounded-full overflow-hidden mb-3">
+                <div
+                  className="h-full bg-lime transition-all"
+                  style={{ width: `${Math.max(0, Math.min(1, result.coverageBreakdown.score / 25)) * 100}%` }}
+                />
+              </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Scored against the 27-action kinesiology taxonomy, weighted by anatomical muscle size — bigger movers count more.
+                Anatomically weighted across the 27-action kinesiology taxonomy. 12 major movers up to 20 pts, 15 minor stabilizers up to 5 pts. You earn points for what's covered.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
@@ -473,9 +484,9 @@ Tue - Pull
                     <CheckCircle2 className="w-4 h-4" /> Hit Well
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {result.coverage.hit.length === 0 ? (
+                    {result.coverageBreakdown.hit.length === 0 ? (
                       <span className="text-muted-foreground italic">None highlighted</span>
-                    ) : result.coverage.hit.map((m, i) => (
+                    ) : result.coverageBreakdown.hit.map((m, i) => (
                       <span key={i} className="px-2 py-0.5 bg-lime/10 text-lime rounded-sm border border-lime/30">{m}</span>
                     ))}
                   </div>
@@ -485,9 +496,9 @@ Tue - Pull
                     <XCircle className="w-4 h-4" /> Missing / Under-trained
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {result.coverage.missing.length === 0 ? (
-                      <span className="text-muted-foreground italic">All major groups covered</span>
-                    ) : result.coverage.missing.map((m, i) => (
+                    {result.coverageBreakdown.missing.length === 0 ? (
+                      <span className="text-muted-foreground italic">All groups covered</span>
+                    ) : result.coverageBreakdown.missing.map((m, i) => (
                       <span key={i} className="px-2 py-0.5 bg-red-500/10 text-red-300 rounded-sm border border-red-500/30">{m}</span>
                     ))}
                   </div>
