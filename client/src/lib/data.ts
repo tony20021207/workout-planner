@@ -11,6 +11,14 @@
 export type CategoryType = "systemic" | "regional";
 export type Difficulty = "hard" | "medium" | "easy";
 export type StimulusLevel = "very-high" | "high" | "medium" | "low";
+/**
+ * Loaded-stretch tier. `moderate` = baseline lengthening under load (most
+ * lifts have at least this). `high` = a primary stretch-focused movement.
+ * `very-high` = exceptional stretch loading (Nippard / Israetel "best
+ * stretch" picks like Bayesian curl, lat prayer, sissy squat, deficit
+ * push-up, incline DB bench, etc.).
+ */
+export type StretchLevel = "moderate" | "high" | "very-high";
 
 /**
  * Optional tag overrides applied when a specific equipment / angle option
@@ -19,7 +27,7 @@ export type StimulusLevel = "very-high" | "high" | "medium" | "low";
  * while quietly modifying the rating-relevant attributes underneath.
  */
 export interface TagOverrides {
-  stretchEmphasis?: boolean;
+  stretchLevel?: StretchLevel;
   stability?: StimulusLevel;
   sfr?: StimulusLevel;
   /** Joint actions to ADD to the exercise's base list. */
@@ -102,8 +110,8 @@ export interface Exercise {
   jointActions: JointAction[];
   /** Multi-joint big-rock if true; single-joint isolation if false. */
   compound: boolean;
-  /** Loads the muscle in its lengthened position. */
-  stretchEmphasis: boolean;
+  /** How heavily the exercise loads the muscle in its lengthened position. */
+  stretchLevel: StretchLevel;
   /** Higher stability = safer to push to / near failure. */
   stability: StimulusLevel;
   /** Stimulus-to-Fatigue Ratio for the prime mover. */
@@ -190,7 +198,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Quadriceps", "Glutes", "Adductors", "Spinal Erectors"],
                 jointActions: ["Knee Extensors", "Hip Extensors", "Spinal Extensors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -231,7 +239,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Quadriceps", "Glutes", "Adductors"],
                 jointActions: ["Knee Extensors", "Hip Extensors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -286,7 +294,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Quadriceps", "Glutes", "Adductors"],
                 jointActions: ["Knee Extensors", "Hip Extensors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -323,7 +331,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Quadriceps", "Glutes", "Adductors"],
                 jointActions: ["Knee Extensors", "Hip Extensors"],
                 compound: true,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -378,7 +386,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Quadriceps", "Glutes", "Adductors"],
                 jointActions: ["Knee Extensors", "Hip Extensors", "Hip Abductors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -420,7 +428,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Glutes", "Adductors", "Quadriceps"],
                 jointActions: ["Hip Extensors", "Knee Extensors", "Hip Adductors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -444,7 +452,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Glutes", "Adductors", "Quadriceps"],
                 jointActions: ["Hip Extensors", "Knee Extensors", "Hip Adductors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -467,7 +475,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Glutes", "Adductors", "Quadriceps"],
                 jointActions: ["Hip Extensors", "Knee Extensors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -508,7 +516,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Glutes", "Adductors", "Quadriceps", "Erectors"],
                 jointActions: ["Hip Extensors", "Knee Extensors", "Spinal Extensors"],
                 compound: true,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -545,7 +553,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Glutes", "Quadriceps", "Adductors"],
                 jointActions: ["Hip Extensors", "Knee Extensors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "medium",
                 description:
@@ -590,7 +598,7 @@ export const categories: Category[] = [
                   "Scapular Elevators",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -614,7 +622,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Hamstrings", "Glutes", "Erectors"],
                 jointActions: ["Hip Extensors", "Spinal Extensors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "low",
                 sfr: "medium",
                 description:
@@ -636,7 +644,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Glutes", "Hamstrings"],
                 jointActions: ["Hip Extensors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -665,7 +673,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Glutes", "Hamstrings"],
                 jointActions: ["Hip Extensors"],
                 compound: true,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -708,7 +716,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Glutes", "Hamstrings"],
                 jointActions: ["Hip Extensors"],
                 compound: true,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -753,7 +761,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Glutes", "Hamstrings"],
                 jointActions: ["Hip Extensors"],
                 compound: true,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "medium",
                 description:
@@ -782,7 +790,7 @@ export const categories: Category[] = [
                   "Scapular Elevators",
                 ],
                 compound: true,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "medium",
                 sfr: "low",
                 description:
@@ -836,7 +844,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Glutes", "Erectors", "Hamstrings"],
                 jointActions: ["Hip Extensors", "Spinal Extensors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -858,7 +866,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Hamstrings", "Glutes", "Erectors"],
                 jointActions: ["Hip Extensors", "Spinal Extensors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "low",
                 sfr: "medium",
                 description:
@@ -881,7 +889,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Erectors", "Hamstrings"],
                 jointActions: ["Spinal Extensors", "Hip Extensors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "low",
                 sfr: "low",
                 description:
@@ -925,7 +933,7 @@ export const categories: Category[] = [
                   "Scapular Protractors",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -963,7 +971,7 @@ export const categories: Category[] = [
                   "Scapular Protractors",
                 ],
                 compound: true,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -973,7 +981,7 @@ export const categories: Category[] = [
                 equipment: [
                   { id: "bb-bp", name: "Standard Barbell" },
                   { id: "smith-bp", name: "Smith Machine" },
-                  { id: "cambered", name: "Cambered Bar (deeper stretch)", tagOverrides: { stretchEmphasis: true } },
+                  { id: "cambered", name: "Cambered Bar (deeper stretch)", tagOverrides: { stretchLevel: "high" } },
                 ],
                 angles: [
                   {
@@ -991,13 +999,13 @@ export const categories: Category[] = [
                     name: "30° Incline",
                     description:
                       "Clavicular pec bias and longer pressing arc — bar travels deeper than flat, giving real stretch under load.",
-                    tagOverrides: { stretchEmphasis: true },
+                    tagOverrides: { stretchLevel: "high" },
                   },
                   {
                     id: "45-bb",
                     name: "45° Incline",
                     description: "Heavy front-delt bias; treat as a shoulder press.",
-                    tagOverrides: { stretchEmphasis: true },
+                    tagOverrides: { stretchLevel: "high" },
                   },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
@@ -1015,7 +1023,7 @@ export const categories: Category[] = [
                   "Scapular Protractors",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1061,7 +1069,7 @@ export const categories: Category[] = [
                   "Scapular Protractors",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1088,7 +1096,7 @@ export const categories: Category[] = [
                   "Elbow Extensors",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1110,7 +1118,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Pectorals", "Front Delts"],
                 jointActions: ["Shoulder Horizontal Adductors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -1139,7 +1147,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Pectorals"],
                 jointActions: ["Shoulder Horizontal Adductors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -1180,7 +1188,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Pectorals"],
                 jointActions: ["Shoulder Horizontal Adductors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1215,7 +1223,7 @@ export const categories: Category[] = [
                   "Scapular Upward Rotators",
                 ],
                 compound: true,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -1241,7 +1249,7 @@ export const categories: Category[] = [
                   "Scapular Upward Rotators",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1267,7 +1275,7 @@ export const categories: Category[] = [
                   "Shoulder Horizontal Adductors",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1289,7 +1297,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Triceps", "Front Delts", "Lower Pectorals"],
                 jointActions: ["Elbow Extensors", "Shoulder Flexors", "Shoulder Adductors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1332,7 +1340,7 @@ export const categories: Category[] = [
                   "Scapular Depressors",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -1373,7 +1381,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Lats", "Teres Major"],
                 jointActions: ["Shoulder Adductors", "Scapular Depressors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -1394,7 +1402,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Lats", "Teres Major", "Biceps"],
                 jointActions: ["Shoulder Extensors", "Elbow Flexors", "Scapular Elevators"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1415,7 +1423,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Lats", "Teres Major"],
                 jointActions: ["Shoulder Extensors", "Scapular Depressors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -1439,7 +1447,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Lats", "Teres Major", "Long Head Triceps"],
                 jointActions: ["Shoulder Extensors", "Shoulder Adductors", "Scapular Depressors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1473,7 +1481,7 @@ export const categories: Category[] = [
                   "Elbow Flexors",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -1500,7 +1508,7 @@ export const categories: Category[] = [
                   "Elbow Flexors",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -1528,7 +1536,7 @@ export const categories: Category[] = [
                   "Scapular Elevators",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "low",
                 sfr: "medium",
                 description:
@@ -1556,7 +1564,7 @@ export const categories: Category[] = [
                   "Scapular Elevators",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1582,7 +1590,7 @@ export const categories: Category[] = [
                   "Elbow Flexors",
                 ],
                 compound: true,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1610,7 +1618,7 @@ export const categories: Category[] = [
                   "Scapular Elevators",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1635,7 +1643,7 @@ export const categories: Category[] = [
                   "Elbow Flexors",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1670,7 +1678,7 @@ export const categories: Category[] = [
                   "Scapular Depressors",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1695,7 +1703,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Lats", "Biceps", "Teres Major"],
                 jointActions: ["Shoulder Adductors", "Elbow Flexors"],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -1719,7 +1727,7 @@ export const categories: Category[] = [
                   "Scapular Retractors",
                 ],
                 compound: true,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -1768,7 +1776,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Biceps Long Head", "Biceps Short Head"],
                 jointActions: ["Elbow Flexors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -1790,7 +1798,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Biceps Long Head", "Brachialis"],
                 jointActions: ["Elbow Flexors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1816,7 +1824,7 @@ export const categories: Category[] = [
                     id: "75-incline",
                     name: "75° Bench",
                     description: "Closer to upright. Less stretch — closer to a standing curl. Stretch tag drops.",
-                    tagOverrides: { stretchEmphasis: false },
+                    tagOverrides: { stretchLevel: "moderate" },
                   },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
@@ -1829,7 +1837,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Biceps", "Brachialis"],
                 jointActions: ["Elbow Flexors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1859,7 +1867,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Biceps Short Head", "Biceps Long Head"],
                 jointActions: ["Elbow Flexors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -1882,7 +1890,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Biceps", "Brachialis"],
                 jointActions: ["Elbow Flexors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -1904,7 +1912,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Biceps", "Brachialis"],
                 jointActions: ["Elbow Flexors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1934,7 +1942,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Brachialis", "Brachioradialis", "Biceps"],
                 jointActions: ["Elbow Flexors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1957,7 +1965,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Brachialis", "Brachioradialis", "Biceps"],
                 jointActions: ["Elbow Flexors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -1979,7 +1987,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Brachialis", "Brachioradialis", "Forearms"],
                 jointActions: ["Elbow Flexors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "medium",
                 sfr: "medium",
                 description:
@@ -2009,7 +2017,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Triceps Long Head", "Medial / Lateral Heads"],
                 jointActions: ["Elbow Extensors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -2029,7 +2037,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Triceps Long Head"],
                 jointActions: ["Elbow Extensors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -2051,7 +2059,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Triceps Long Head"],
                 jointActions: ["Elbow Extensors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "medium",
                 description:
@@ -2081,7 +2089,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Lateral Head", "Medial Head", "Long Head"],
                 jointActions: ["Elbow Extensors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -2105,7 +2113,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Triceps Long Head", "Lateral / Medial Heads"],
                 jointActions: ["Elbow Extensors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "very-high",
                 description:
@@ -2140,7 +2148,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Lateral Head", "Medial Head"],
                 jointActions: ["Elbow Extensors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -2178,7 +2186,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Medial Delts"],
                 jointActions: ["Shoulder Abductors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "medium",
                 sfr: "medium",
                 description:
@@ -2202,7 +2210,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Medial Delts", "Front Delts"],
                 jointActions: ["Shoulder Abductors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "medium",
                 sfr: "medium",
                 description:
@@ -2224,7 +2232,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Medial Delts"],
                 jointActions: ["Shoulder Abductors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -2254,7 +2262,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Medial Delts"],
                 jointActions: ["Shoulder Abductors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -2276,7 +2284,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Medial Delts", "Lower Traps"],
                 jointActions: ["Shoulder Abductors", "Scapular Upward Rotators"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -2298,7 +2306,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Medial Delts"],
                 jointActions: ["Shoulder Abductors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -2327,7 +2335,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Rear Delts"],
                 jointActions: ["Shoulder Horizontal Abductors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -2348,7 +2356,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Rear Delts"],
                 jointActions: ["Shoulder Horizontal Abductors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -2374,7 +2382,7 @@ export const categories: Category[] = [
                   "Scapular Retractors",
                 ],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -2419,7 +2427,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Front Delts"],
                 jointActions: ["Shoulder Flexors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "medium",
                 sfr: "low",
                 description:
@@ -2459,7 +2467,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Hamstrings (esp. biceps femoris short head)"],
                 jointActions: ["Knee Flexors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -2501,7 +2509,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Hamstrings (knee flexor fibers)"],
                 jointActions: ["Knee Flexors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -2531,7 +2539,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Quadriceps", "Rectus Femoris"],
                 jointActions: ["Knee Extensors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -2569,7 +2577,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Quadriceps", "Rectus Femoris"],
                 jointActions: ["Knee Extensors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "low",
                 sfr: "high",
                 description:
@@ -2591,7 +2599,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Quadriceps", "Rectus Femoris"],
                 jointActions: ["Knee Extensors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "low",
                 sfr: "medium",
                 description:
@@ -2621,7 +2629,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Gastrocnemius", "Soleus"],
                 jointActions: ["Ankle Plantarflexors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -2661,7 +2669,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Soleus", "Gastrocnemius"],
                 jointActions: ["Ankle Plantarflexors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -2699,7 +2707,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Upper Rectus Abdominis", "Lower Rectus Abdominis"],
                 jointActions: ["Spinal Flexors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -2720,7 +2728,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Rectus Abdominis"],
                 jointActions: ["Spinal Flexors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -2742,7 +2750,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Rectus Abdominis"],
                 jointActions: ["Spinal Flexors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -2770,7 +2778,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Rectus Abdominis", "Hip Flexors"],
                 jointActions: ["Spinal Flexors", "Hip Flexors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "low",
                 sfr: "medium",
                 description:
@@ -2791,7 +2799,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Rectus Abdominis", "Serratus", "Lats", "Hip Flexors"],
                 jointActions: ["Spinal Flexors", "Hip Flexors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "low",
                 sfr: "high",
                 description:
@@ -2821,7 +2829,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Internal Obliques", "External Obliques"],
                 jointActions: ["Spinal Rotators & Lateral Flexors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "medium",
                 sfr: "medium",
                 description:
@@ -2848,7 +2856,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Internal Obliques", "External Obliques", "Transverse Abdominis"],
                 jointActions: ["Spinal Rotators & Lateral Flexors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchLevel: "moderate",
                 stability: "high",
                 sfr: "medium",
                 description:
@@ -2869,7 +2877,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Obliques", "Quadratus Lumborum"],
                 jointActions: ["Spinal Rotators & Lateral Flexors"],
                 compound: false,
-                stretchEmphasis: true,
+                stretchLevel: "high",
                 stability: "medium",
                 sfr: "medium",
                 description:
@@ -2961,7 +2969,7 @@ export const MAJOR_JOINT_ACTIONS: JointAction[] = [
 // ============================================================
 
 export interface ResolvedTags {
-  stretchEmphasis: boolean;
+  stretchLevel: StretchLevel;
   stability: StimulusLevel;
   sfr: StimulusLevel;
   jointActions: JointAction[];
@@ -2980,7 +2988,7 @@ export function resolveEffectiveTags(
   selectedEquipmentName?: string,
   selectedAngleName?: string,
 ): ResolvedTags {
-  let stretchEmphasis = exercise.stretchEmphasis;
+  let stretchLevel = exercise.stretchLevel;
   let stability = exercise.stability;
   let sfr = exercise.sfr;
   const jointActionSet = new Set<JointAction>(exercise.jointActions);
@@ -2988,7 +2996,7 @@ export function resolveEffectiveTags(
 
   const apply = (overrides: TagOverrides | undefined, label: string) => {
     if (!overrides) return;
-    if (overrides.stretchEmphasis !== undefined) stretchEmphasis = overrides.stretchEmphasis;
+    if (overrides.stretchLevel !== undefined) stretchLevel = overrides.stretchLevel;
     if (overrides.stability !== undefined) stability = overrides.stability;
     if (overrides.sfr !== undefined) sfr = overrides.sfr;
     overrides.addJointActions?.forEach((a) => jointActionSet.add(a));
@@ -3006,10 +3014,24 @@ export function resolveEffectiveTags(
   }
 
   return {
-    stretchEmphasis,
+    stretchLevel,
     stability,
     sfr,
     jointActions: Array.from(jointActionSet),
     appliedOverrides: applied,
   };
 }
+
+/** Convenience helper: was this exercise stretch-emphasized in the old
+ * binary sense? `high` and `very-high` count, `moderate` doesn't. */
+export function hasStretchEmphasis(level: StretchLevel): boolean {
+  return level === "high" || level === "very-high";
+}
+
+/** Numeric weight for stretch tiers — useful when the rating engine wants
+ * to score stretch contribution per-set (very-high counts more than high). */
+export const STRETCH_LEVEL_WEIGHT: Record<StretchLevel, number> = {
+  moderate: 0.5,
+  high: 1,
+  "very-high": 1.5,
+};
