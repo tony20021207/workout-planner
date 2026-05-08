@@ -20,11 +20,10 @@ import {
   Layers,
   Zap,
   Target,
-  ArrowRightLeft,
   RefreshCw,
   Settings,
-  GripVertical,
   X,
+  Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkout, type RoutineItem } from "@/contexts/WorkoutContext";
@@ -38,12 +37,9 @@ import {
   type SplitId,
   type SplitPreset,
 } from "@/lib/splitPresets";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { autoRecommendSets } from "@/lib/setRecommender";
 import { toast } from "sonner";
+import DayExerciseEditor from "./DayExerciseEditor";
 
 function PresetCard({
   preset,
@@ -158,56 +154,22 @@ function DayCard({
         </div>
       </div>
 
-      {/* Exercise list */}
-      <div className="flex-1 divide-y divide-border/50">
+      {/* Exercise list with inline sets/reps editor */}
+      <div className="flex-1">
         {items.length === 0 ? (
           <div className="p-4 text-center text-xs text-muted-foreground italic">
             No exercises assigned. Pool may not have a match for this day's tags ({day.tags.join(", ")}).
           </div>
         ) : (
           items.map((item, idx) => (
-            <div key={item.id} className="p-2.5 flex items-start gap-2 group">
-              <span className="text-[10px] font-mono text-muted-foreground tabular-nums mt-0.5 w-4 text-right">
-                {idx + 1}
-              </span>
-              <GripVertical className="w-3 h-3 text-muted-foreground/50 mt-1 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold text-foreground truncate">
-                  {item.exercise}
-                </div>
-                <div className="text-[10px] text-muted-foreground truncate">
-                  {item.targetedMuscles.join(", ")}
-                </div>
-              </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-7 h-7 p-0 opacity-50 group-hover:opacity-100 transition-opacity"
-                    title="Move to another day"
-                  >
-                    <ArrowRightLeft className="w-3 h-3" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48 p-1">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1">
-                    Move to
-                  </div>
-                  {allDays
-                    .filter((d) => d.id !== day.id)
-                    .map((d) => (
-                      <button
-                        key={d.id}
-                        onClick={() => onMoveExercise(item.id, day.id, d.id)}
-                        className="w-full text-left px-2 py-1.5 text-xs rounded hover:bg-secondary text-foreground"
-                      >
-                        {d.name}
-                      </button>
-                    ))}
-                </PopoverContent>
-              </Popover>
-            </div>
+            <DayExerciseEditor
+              key={item.id}
+              item={item}
+              index={idx}
+              dayId={day.id}
+              allDays={allDays}
+              onMoveExercise={onMoveExercise}
+            />
           ))
         )}
       </div>
@@ -216,7 +178,7 @@ function DayCard({
 }
 
 export default function SplitBuilder() {
-  const { routine, split, setSplit, clearSplit } = useWorkout();
+  const { routine, split, setSplit, clearSplit, updateRoutineItem } = useWorkout();
   const [open, setOpen] = useState(false);
 
   const activePreset: SplitPreset | null =
@@ -269,6 +231,17 @@ export default function SplitBuilder() {
     next[fromDayId] = (next[fromDayId] ?? []).filter((id) => id !== exerciseId);
     next[toDayId] = [...(next[toDayId] ?? []), exerciseId];
     setSplit({ ...split, dayAssignments: next });
+  };
+
+  const handleAutoFillAllSets = () => {
+    let changed = 0;
+    for (const item of routine) {
+      const recommended = autoRecommendSets(item);
+      // Always replace — auto-fill is destructive by design.
+      updateRoutineItem(item.id, { sets: recommended });
+      changed += 1;
+    }
+    toast.success(`Auto-filled sets & reps for ${changed} exercise${changed !== 1 ? "s" : ""}`);
   };
 
   if (routine.length === 0) {
@@ -324,17 +297,29 @@ export default function SplitBuilder() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {activePreset && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReallocate}
-              title="Re-run the auto-allocator"
-            >
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-              Re-allocate
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAutoFillAllSets}
+                title="Auto-recommend sets, reps, and rest for every exercise"
+                className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
+              >
+                <Wand2 className="w-3.5 h-3.5 mr-1.5" />
+                Auto-fill sets & reps
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReallocate}
+                title="Re-run the auto-allocator (re-distributes exercises across days)"
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                Re-allocate
+              </Button>
+            </>
           )}
           <Button
             variant="ghost"
