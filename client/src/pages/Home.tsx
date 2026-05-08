@@ -163,11 +163,11 @@ export default function Home() {
           <div className="flex items-center gap-3 mb-2">
             <div className="h-8 w-1 bg-lime rounded-full" />
             <h2 className="font-heading text-3xl font-bold text-foreground">
-              This Week's Exercises
+              Weekly Microcycle
             </h2>
           </div>
           <p className="text-sm text-muted-foreground mb-8 ml-4">
-            Overview of everything you've picked for the week. Rate it before splitting into days.
+            One full week of training as the smallest periodization unit. Pick the exercises, rate the selection, then split into days.
           </p>
           <RoutineTable />
         </div>

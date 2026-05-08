@@ -180,10 +180,10 @@ export default function RoutineTable() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h3 className="font-heading font-bold text-xl text-foreground">
-            This Week's Exercises
+            Weekly Microcycle
           </h3>
           <p className="text-sm text-muted-foreground">
-            {routine.length} exercise{routine.length !== 1 ? "s" : ""} picked.
+            {routine.length} exercise{routine.length !== 1 ? "s" : ""} picked for this week.
             Sets &amp; reps come after you choose a split.
           </p>
         </div>
