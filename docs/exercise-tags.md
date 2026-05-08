@@ -64,8 +64,8 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 | Long-Stride Lunge | Hip Ext, Knee Ext, Hip Add | C | ✓ | M | H | Nippard: lower-glute stretch under load |
 | Front-Foot-Elevated Lunge | Hip Ext, Knee Ext, Hip Add | C | ✓ | M | H | Both coaches: deep glute stretch under tension |
 | Glute-Biased Split Squat | Hip Ext, Knee Ext | C | ✓ | M | H | Forward-lean BSS for glute focus |
-| Sit-Back Squat | Hip Ext, Knee Ext, Sp Ext | C | ✗ | M | H | Israetel + Nippard: glute-biased squat pattern |
-| High Step-Up | Hip Ext, Knee Ext | C | ✓ | L | M | Nippard: useful upper-glute, weak for quads |
+| Sit-Back Squat | Hip Ext, Knee Ext, Sp Ext | C | ✗ | **H** | H | Israetel + Nippard: glute-biased squat pattern |
+| High Step-Up | Hip Ext, Knee Ext | C | ✓ | **M** | M | Nippard: useful upper-glute, weak for quads |
 
 ### Hinge Patterns
 
@@ -74,7 +74,7 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 |---|---|---|---|---|---|---|
 | Stiff-Leg / Romanian Deadlift | Hip Ext, Sp Ext, Knee Flex | C | ✓ | M | H | Israetel: deep hamstring stretch from sit-back |
 | Good Morning | Hip Ext, Sp Ext | C | ✓ | L | M | Israetel: high-stimulus posterior chain |
-| Cable Pull-Through | Hip Ext | C | ✗ | M | M | Nippard: beginner-friendly hinge |
+| Cable Pull-Through | Hip Ext | C | **✓** | **H** | **H** | Nippard: beginner-friendly hinge |
 
 #### Glute-Biased
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Coach Note |
@@ -87,6 +87,7 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Coach Note |
 |---|---|---|---|---|---|---|
 | Back Extension (45°) | Hip Ext, Sp Ext | C | ✓ | H | H | Nippard S-tier glutes; full-ROM lumbar extension |
+| Good Morning | Hip Ext, Sp Ext | C | ✓ | L | M | Israetel pairs with stiff-leg DLs; lumbar isometric work |
 | Jefferson Curl | Sp Ext, Hip Ext | C | ✓ | L | L | Israetel: very light, gradual back resilience |
 
 ### Upper Body Push
@@ -99,8 +100,8 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 | Deficit Push-Up | Sh HAdd, Elb Ext, Scap Prot | C | ✓ | M | H | Israetel: ultra-deep chest stretch |
 | Chest-Focused Dip | Sh Add, Sh HAdd, Elb Ext | C | ✓ | M | H | Nippard A-tier; Israetel: forward lean for chest |
 | Cable Fly | Sh HAdd | I | ✓ | H | VH | Nippard: seated cable fly S-tier |
-| Machine Fly (Pec Deck) | Sh HAdd | I | ✗ | H | H | Nippard A-tier; stable focused tension |
-| Dumbbell Fly | Sh HAdd | I | ✓ | L | M | Nippard A-tier; deep stretch + contraction |
+| Machine Fly (Pec Deck) | Sh HAdd | I | **✓** | H | H | Nippard A-tier; stable focused tension |
+| Dumbbell Fly | Sh HAdd | I | ✓ | **M** | **H** | Nippard A-tier; deep stretch + contraction |
 
 #### Vertical / Overhead Push
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Coach Note |
@@ -115,7 +116,8 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Coach Note |
 |---|---|---|---|---|---|---|
 | Lat Pulldown | Sh Add, Elb Flex, Scap DR | C | ✓ | H | VH | Nippard S-tier; preferred over pull-ups |
-| Pull-Up / Chin-Up | Sh Add, Sh Ext, Elb Flex, Scap DR | C | ✓ | M | H | Israetel: unbeatable for lats |
+| Single-Arm Cable Pulldown | Sh Add | **I** | ✓ | H | VH | Elbow tucked / minimal flexion = pure lat |
+| Dumbbell Row (Elbow-Tucked) | Sh Ext, Elb Flex | C | ✓ | M | H | Tucked elbow = lat focus |
 | Straight-Arm Pulldown / Lat Prayer | Sh Ext | I | ✓ | H | VH | Israetel: deep lat stretch via forward lean |
 | Pullover | Sh Ext, Sh Add | I | ✓ | M | H | Nippard: better as lat than chest |
 
@@ -123,14 +125,17 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Coach Note |
 |---|---|---|---|---|---|---|
 | Chest-Supported Row | Sh Ext, Scap Retr, Elb Flex | C | ✓ | H | VH | Nippard: best all-around back exercise |
-| Cable Row | Sh Ext, Scap Retr, Elb Flex | C | ✓ | H | VH | Nippard S-tier horizontal row |
+| Cable Row (Elbow-Flared) | **Sh HAbd**, Scap Retr, Elb Flex | C | ✓ | H | VH | Wide-elbow path = mid-back focus |
 | Barbell Row | Sh Ext, Scap Retr, Elb Flex, Sp Ext | C | ✓ | L | M | Israetel: deficit for stretch; Nippard A-tier deficit Pendlay |
 | Meadows Row | Sh Ext, Scap Retr, Elb Flex | C | ✓ | M | H | Nippard S-tier; isolateral stretch |
 | Inverted Row to Face / Throat | Sh HAbd, Scap Retr, Elb Flex | C | ✗ | M | H | Israetel: rear-delt-heavy row line |
+| Single-Arm DB Row (Elbow-Flared) | Sh HAbd, Scap Retr, Elb Flex | C | ✓ | M | H | Flared elbow = mid-back / rhomboid focus |
+| Cable Face Pull (Rhomboid) | Sh HAbd, Scap Retr, Elb Flex | C | ✓ | M | H | Mid-back biased counterpart to rear-delt face pull |
 
 #### Bicep-Biased Pull
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Coach Note |
 |---|---|---|---|---|---|---|
+| Pull-Up / Chin-Up | Sh Add, Sh Ext, Elb Flex, Scap DR | C | ✓ | M | H | Israetel: unbeatable for lats; supinated grip recruits elbow flexors |
 | Supinated Pulldown | Sh Add, Elb Flex | C | ✓ | H | H | — |
 | Supinated Row | Sh Ext, Elb Flex, Scap Retr | C | ✓ | H | H | — |
 
@@ -164,8 +169,8 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 #### Triceps — Long Head Bias
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Coach Note |
 |---|---|---|---|---|---|---|
-| Overhead Triceps Extension | Elb Ext | I | ✓ | H | VH | Nippard S+ for long head |
-| Katana Extension | Elb Ext | I | ✓ | H | H | Nippard A-tier long-head cable |
+| EZ-Bar Overhead Triceps Extension | Elb Ext | I | ✓ | H | VH | Nippard S+ for long head; cable variants live under Cable Katana |
+| Cable Katana Extension | Elb Ext | I | ✓ | H | H | Nippard A-tier long-head cable |
 | French Press | Elb Ext | I | ✓ | M | M | Nippard B-tier; Israetel: solid LH option |
 
 #### Triceps — Lateral / Medial Bias
@@ -173,18 +178,18 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 |---|---|---|---|---|---|---|
 | Triceps Pressdown | Elb Ext | I | ✗ | H | H | Nippard A-tier bar pressdown |
 | Skullcrusher | Elb Ext | I | ✓ | M | VH | Nippard S-tier; Israetel: near-perfect curve |
-| Cable Kickback | Elb Ext | I | ✗ | H | M | Nippard A-tier; cable better than DB |
+| Cable Kickback | Elb Ext | I | ✗ | H | **H** | Nippard A-tier; cable better than DB |
 
 ### Shoulder Isolation
 
-#### Lateral Delt — Contracted Bias
+#### Medial Delt — Contracted Bias
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Coach Note |
 |---|---|---|---|---|---|---|
 | Dumbbell Lateral Raise | Sh Abd | I | ✗ | M | M | Israetel: seated strict eccentric |
 | Super-ROM Lateral Raise | Sh Abd | I | ✗ | M | M | Israetel: broader delt development |
 | Machine Lateral Raise | Sh Abd | I | ✗ | H | H | Nippard: Atlantis A+ |
 
-#### Lateral Delt — Stretch Bias
+#### Medial Delt — Stretch Bias
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Coach Note |
 |---|---|---|---|---|---|---|
 | Cable Lateral Raise | Sh Abd | I | ✓ | H | VH | Nippard's #1 side-delt pick |

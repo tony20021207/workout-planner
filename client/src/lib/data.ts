@@ -364,7 +364,7 @@ export const categories: Category[] = [
                 jointActions: ["Hip Extensors", "Knee Extensors", "Spinal Extensors"],
                 compound: true,
                 stretchEmphasis: false,
-                stability: "medium",
+                stability: "high",
                 sfr: "high",
                 description:
                   "Low-bar or feet-forward Smith squat with a medium-wide stance and hips pushed back.",
@@ -386,7 +386,7 @@ export const categories: Category[] = [
                 jointActions: ["Hip Extensors", "Knee Extensors"],
                 compound: true,
                 stretchEmphasis: true,
-                stability: "low",
+                stability: "medium",
                 sfr: "medium",
                 description:
                   "Step-up onto a high box (knee-height or above). Targets the upper glutes through deep hip flexion.",
@@ -471,9 +471,9 @@ export const categories: Category[] = [
                 targetedMuscles: ["Glutes", "Hamstrings"],
                 jointActions: ["Hip Extensors"],
                 compound: true,
-                stretchEmphasis: false,
-                stability: "medium",
-                sfr: "medium",
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "high",
                 description:
                   "Standing hip hinge with cable resistance pulled between the legs. Beginner-friendly hinge pattern.",
                 mechanics:
@@ -597,6 +597,29 @@ export const categories: Category[] = [
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier for glutes; full-ROM lumbar extension.",
+              },
+              {
+                id: "good-morning-lumbar",
+                name: "Good Morning",
+                difficulty: "hard",
+                targetedMuscles: ["Hamstrings", "Glutes", "Erectors"],
+                jointActions: ["Hip Extensors", "Spinal Extensors"],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "low",
+                sfr: "medium",
+                description:
+                  "Bar across the upper back, hinge forward keeping a neutral spine. High-stimulus posterior chain hinge — also a primary lumbar-extension lift.",
+                mechanics:
+                  "Hinge produces hip extension through the hamstrings while the erectors resist spinal flexion isometrically.",
+                equipment: [
+                  { id: "bb-gm-l", name: "Barbell" },
+                  { id: "ssb-l", name: "Safety Squat Bar" },
+                  { id: "smith-gm-l", name: "Smith Machine" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Israetel pairs with stiff-leg deadlifts; lumbar erectors trained isometrically.",
               },
               {
                 id: "jefferson-curl",
@@ -790,7 +813,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Pectorals"],
                 jointActions: ["Shoulder Horizontal Adductors"],
                 compound: false,
-                stretchEmphasis: false,
+                stretchEmphasis: true,
                 stability: "high",
                 sfr: "high",
                 description:
@@ -812,8 +835,8 @@ export const categories: Category[] = [
                 jointActions: ["Shoulder Horizontal Adductors"],
                 compound: false,
                 stretchEmphasis: true,
-                stability: "low",
-                sfr: "medium",
+                stability: "medium",
+                sfr: "high",
                 description:
                   "Free-weight horizontal adduction with dumbbells. Big stretch but loads drop off at lockout.",
                 mechanics:
@@ -955,35 +978,46 @@ export const categories: Category[] = [
                 coachNotes: "Nippard: S-tier; preferred over pull-ups for tracking.",
               },
               {
-                id: "pullup",
-                name: "Pull-Up / Chin-Up",
-                difficulty: "hard",
-                targetedMuscles: ["Lats", "Teres Major", "Biceps", "Upper Back"],
-                jointActions: [
-                  "Shoulder Adductors",
-                  "Shoulder Extensors",
-                  "Elbow Flexors",
-                  "Scapular Downward Rotators",
+                id: "single-arm-cable-pulldown",
+                name: "Single-Arm Cable Pulldown",
+                difficulty: "easy",
+                targetedMuscles: ["Lats", "Teres Major"],
+                jointActions: ["Shoulder Adductors"],
+                compound: false,
+                stretchEmphasis: true,
+                stability: "high",
+                sfr: "very-high",
+                description:
+                  "Single-arm cable pulldown executed with minimal elbow flexion to isolate shoulder adduction. Hand-on-handle cable line keeps tension on the lat through the full stretched range.",
+                mechanics:
+                  "Reduced elbow involvement turns the pulldown into a near-isolation lat exercise; the cable maintains tension in the deep stretch.",
+                equipment: [
+                  { id: "cable-handle-sap", name: "Cable Single Handle" },
+                  { id: "cable-rope-sap", name: "Cable Rope (Single)" },
                 ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Elbow tucked / minimal flexion = pure lat work.",
+              },
+              {
+                id: "db-row-lat",
+                name: "Dumbbell Row (Elbow-Tucked)",
+                difficulty: "medium",
+                targetedMuscles: ["Lats", "Teres Major", "Biceps"],
+                jointActions: ["Shoulder Extensors", "Elbow Flexors"],
                 compound: true,
                 stretchEmphasis: true,
                 stability: "medium",
                 sfr: "high",
                 description:
-                  "Bodyweight (or weighted) vertical pull. Full lat stretch at the bottom; chin-up adds elbow-flexor demand.",
+                  "One-arm dumbbell row with the elbow drawn close to the torso. Elbow-tucked path biases the lats over the mid back.",
                 mechanics:
-                  "Free-hanging position requires controlled scapular and shoulder mechanics; eccentric loads the lats deeply.",
+                  "Less elbow-to-torso angle keeps the line of pull along the lat, emphasizing shoulder extension and adduction over horizontal abduction.",
                 equipment: [
-                  { id: "bw-pu", name: "Bodyweight" },
-                  { id: "weighted-pu", name: "Weighted" },
-                  { id: "assisted-pu", name: "Assisted Machine" },
-                  { id: "neutral-pu", name: "Neutral Grip" },
-                  { id: "underhand-pu", name: "Underhand (Chin-Up)" },
-                  { id: "wide-pu", name: "Wide Grip" },
+                  { id: "db-row-bench", name: "DB on Bench" },
+                  { id: "db-row-rack", name: "DB Standing (Rack-Supported)" },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
-                coachNotes:
-                  "Israetel: unbeatable for lat development. Nippard: less smooth resistance than pulldown.",
+                coachNotes: "Tucked elbow = lat focus.",
               },
               {
                 id: "lat-prayer",
@@ -1068,11 +1102,11 @@ export const categories: Category[] = [
               },
               {
                 id: "cable-row",
-                name: "Cable Row",
+                name: "Cable Row (Elbow-Flared)",
                 difficulty: "easy",
                 targetedMuscles: ["Rhomboids", "Mid Traps", "Lats", "Rear Delts"],
                 jointActions: [
-                  "Shoulder Extensors",
+                  "Shoulder Horizontal Abductors",
                   "Scapular Retractors",
                   "Elbow Flexors",
                 ],
@@ -1081,9 +1115,9 @@ export const categories: Category[] = [
                 stability: "high",
                 sfr: "very-high",
                 description:
-                  "Seated horizontal cable row with smooth resistance through full ROM.",
+                  "Seated horizontal cable row pulled with a greater elbow-to-torso angle (elbows flared outward) to bias the rhomboids and mid traps.",
                 mechanics:
-                  "Cable maintains tension at the deep stretch where free-weight rows lose load.",
+                  "Wide-elbow path turns the row into shoulder horizontal abduction + scapular retraction; cable maintains tension at the deep stretch.",
                 equipment: [
                   { id: "seated-cable-row", name: "Seated Cable Row" },
                   { id: "wide-cable-row", name: "Wide-Grip Cable Row" },
@@ -1173,6 +1207,56 @@ export const categories: Category[] = [
                 coachNotes:
                   "Israetel: face/throat pull line for rear-delt-heavy row.",
               },
+              {
+                id: "single-arm-db-row",
+                name: "Single-Arm Dumbbell Row (Elbow-Flared)",
+                difficulty: "medium",
+                targetedMuscles: ["Rhomboids", "Mid Traps", "Rear Delts"],
+                jointActions: [
+                  "Shoulder Horizontal Abductors",
+                  "Scapular Retractors",
+                  "Elbow Flexors",
+                ],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Bench-supported single-arm DB row with the elbow drawn outward (greater elbow-to-torso angle) to bias mid back and rhomboids.",
+                mechanics:
+                  "Elbow-flared path shifts the line of pull into horizontal abduction; bench support reduces lumbar demand.",
+                equipment: [
+                  { id: "db-bench-row", name: "DB on Bench" },
+                  { id: "db-rack-row", name: "DB Standing (Rack-Supported)" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Flared elbow = mid-back / rhomboid focus.",
+              },
+              {
+                id: "cable-face-pull-rhomboid",
+                name: "Cable Face Pull (Rhomboid)",
+                difficulty: "easy",
+                targetedMuscles: ["Rhomboids", "Mid / Lower Traps", "Rear Delts"],
+                jointActions: [
+                  "Shoulder Horizontal Abductors",
+                  "Scapular Retractors",
+                  "Elbow Flexors",
+                ],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Cable face pull executed with elbow flexion and a strong scapular retraction at the end range. Mid-back focused.",
+                mechanics:
+                  "Distinct from the rear-delt face pull (which keeps elbows high and minimizes scap retraction). This version drives the rhomboids and mid traps through full retraction.",
+                equipment: [
+                  { id: "cable-rope-fpr", name: "Cable Rope" },
+                  { id: "cable-bar-fpr", name: "Cable Bar" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes: "Companion to the rear-delt face pull, but mid-back biased.",
+              },
             ],
           },
           {
@@ -1181,6 +1265,36 @@ export const categories: Category[] = [
             description:
               "Underhand / supinated pulls shift more demand to the biceps while still loading the lats.",
             exercises: [
+              {
+                id: "pullup",
+                name: "Pull-Up / Chin-Up",
+                difficulty: "hard",
+                targetedMuscles: ["Lats", "Teres Major", "Biceps", "Upper Back"],
+                jointActions: [
+                  "Shoulder Adductors",
+                  "Shoulder Extensors",
+                  "Elbow Flexors",
+                  "Scapular Downward Rotators",
+                ],
+                compound: true,
+                stretchEmphasis: true,
+                stability: "medium",
+                sfr: "high",
+                description:
+                  "Bodyweight (or weighted) vertical pull. Underhand / chin-up grip increases biceps contribution while still loading the lats.",
+                mechanics:
+                  "Free-hanging position requires controlled scapular and shoulder mechanics; supinated grip recruits the elbow flexors heavily through the pull.",
+                equipment: [
+                  { id: "bw-pu", name: "Bodyweight" },
+                  { id: "weighted-pu", name: "Weighted" },
+                  { id: "assisted-pu", name: "Assisted Machine" },
+                  { id: "underhand-pu", name: "Underhand (Chin-Up)" },
+                  { id: "neutral-pu", name: "Neutral Grip" },
+                ],
+                warmup: PLACEHOLDER_WARMUP,
+                coachNotes:
+                  "Israetel: unbeatable for lats. Nippard: less smooth resistance than pulldown but strong elbow-flexor recruitment.",
+              },
               {
                 id: "supinated-pulldown",
                 name: "Supinated Pulldown",
@@ -1479,7 +1593,7 @@ export const categories: Category[] = [
             exercises: [
               {
                 id: "overhead-tri-ext",
-                name: "Overhead Triceps Extension",
+                name: "EZ-Bar Overhead Triceps Extension",
                 difficulty: "easy",
                 targetedMuscles: ["Triceps Long Head", "Medial / Lateral Heads"],
                 jointActions: ["Elbow Extensors"],
@@ -1488,22 +1602,18 @@ export const categories: Category[] = [
                 stability: "high",
                 sfr: "very-high",
                 description:
-                  "Cable, EZ-bar, or DB extension with arms overhead. Deep stretch on the triceps long head.",
+                  "EZ-bar overhead triceps extension. Deep stretch on the triceps long head with comfortable wrist alignment.",
                 mechanics:
-                  "Shoulder flexion lengthens the long head before elbow extension, loading it in its longest position.",
+                  "Shoulder flexion lengthens the long head before elbow extension, loading it in its longest position; EZ angles reduce wrist strain vs straight bar.",
                 equipment: [
-                  { id: "cable-bar-ohte", name: "Cable Bar" },
-                  { id: "cable-rope-ohte", name: "Cable Rope" },
-                  { id: "db-ohte", name: "Dumbbell" },
                   { id: "ez-ohte", name: "EZ-Bar" },
-                  { id: "machine-ohte", name: "Machine" },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
-                coachNotes: "Nippard: S+ for long head.",
+                coachNotes: "Nippard: S+ for long head. Cable variants live under Cable Katana.",
               },
               {
                 id: "katana-ext",
-                name: "Katana Extension",
+                name: "Cable Katana Extension",
                 difficulty: "easy",
                 targetedMuscles: ["Triceps Long Head"],
                 jointActions: ["Elbow Extensors"],
@@ -1609,7 +1719,7 @@ export const categories: Category[] = [
                 compound: false,
                 stretchEmphasis: false,
                 stability: "high",
-                sfr: "medium",
+                sfr: "high",
                 description:
                   "Cable kickback for peak triceps contraction at the shortened position.",
                 mechanics:
@@ -1630,19 +1740,19 @@ export const categories: Category[] = [
       {
         id: "shoulder-isolation",
         name: "Shoulder Isolation",
-        muscles: ["Lateral Delts", "Rear Delts", "Front Delts"],
+        muscles: ["Medial Delts", "Rear Delts", "Front Delts"],
         subcategories: [
           {
             id: "lateral-contracted",
-            name: "Lateral Delt — Contracted Bias",
+            name: "Medial Delt — Contracted Bias",
             description:
-              "Free-weight or machine raises with the load hardest at the top contraction.",
+              "Free-weight or machine raises with the load hardest at the top contraction. Targets the medial (middle) head of the deltoid via shoulder abduction.",
             exercises: [
               {
                 id: "db-lateral",
                 name: "Dumbbell Lateral Raise",
                 difficulty: "easy",
-                targetedMuscles: ["Lateral Delts"],
+                targetedMuscles: ["Medial Delts"],
                 jointActions: ["Shoulder Abductors"],
                 compound: false,
                 stretchEmphasis: false,
@@ -1666,7 +1776,7 @@ export const categories: Category[] = [
                 id: "super-rom-lateral",
                 name: "Super-ROM Lateral Raise",
                 difficulty: "easy",
-                targetedMuscles: ["Lateral Delts", "Front Delts"],
+                targetedMuscles: ["Medial Delts", "Front Delts"],
                 jointActions: ["Shoulder Abductors"],
                 compound: false,
                 stretchEmphasis: false,
@@ -1688,7 +1798,7 @@ export const categories: Category[] = [
                 id: "machine-lateral",
                 name: "Machine Lateral Raise",
                 difficulty: "easy",
-                targetedMuscles: ["Lateral Delts"],
+                targetedMuscles: ["Medial Delts"],
                 jointActions: ["Shoulder Abductors"],
                 compound: false,
                 stretchEmphasis: false,
@@ -1710,15 +1820,15 @@ export const categories: Category[] = [
           },
           {
             id: "lateral-stretch",
-            name: "Lateral Delt — Stretch Bias",
+            name: "Medial Delt — Stretch Bias",
             description:
-              "Cable raises with constant tension in the bottom stretch position.",
+              "Cable raises with constant tension in the bottom stretch position. Targets the medial (middle) head of the deltoid in the lengthened range.",
             exercises: [
               {
                 id: "cable-lateral",
                 name: "Cable Lateral Raise",
                 difficulty: "easy",
-                targetedMuscles: ["Lateral Delts"],
+                targetedMuscles: ["Medial Delts"],
                 jointActions: ["Shoulder Abductors"],
                 compound: false,
                 stretchEmphasis: true,
@@ -1740,7 +1850,7 @@ export const categories: Category[] = [
                 id: "cable-y-raise",
                 name: "Cable Y-Raise",
                 difficulty: "medium",
-                targetedMuscles: ["Lateral Delts", "Lower Traps"],
+                targetedMuscles: ["Medial Delts", "Lower Traps"],
                 jointActions: ["Shoulder Abductors", "Scapular Upward Rotators"],
                 compound: false,
                 stretchEmphasis: true,
@@ -1762,7 +1872,7 @@ export const categories: Category[] = [
                 id: "btb-cable-lateral",
                 name: "Behind-the-Back Cuffed Cable Lateral",
                 difficulty: "medium",
-                targetedMuscles: ["Lateral Delts"],
+                targetedMuscles: ["Medial Delts"],
                 jointActions: ["Shoulder Abductors"],
                 compound: false,
                 stretchEmphasis: true,
@@ -2343,8 +2453,8 @@ export function generateId(): string {
 // HYPERTROPHY MATRIX TARGETS
 // ============================================================
 
-/** Target ratio of compound (Tier 1 multi-joint) volume to total. 80/20 by user spec. */
-export const COMPOUND_VOLUME_TARGET = 0.8;
+/** Target ratio of compound (Tier 1 multi-joint) volume to total. 40/60 by user spec. */
+export const COMPOUND_VOLUME_TARGET = 0.4;
 
 /** All major joint actions that must be hit weekly to avoid coverage penalties. */
 export const MAJOR_JOINT_ACTIONS: JointAction[] = [
