@@ -74,10 +74,11 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total):
 
 4. BIOMECHANICAL ANGLE BIAS / VARIETY (8 pts): Verify angles cover the intended muscle proportions without redundancy. Reason at the joint-action level — pressing angles vary shoulder flexors vs horizontal adductors; pulldown grips vary lat fibers; arm-position curls vary biceps long-head stretch.
 
-5. COMPOUND vs ISOLATION RATIO (8 pts): With realistic per-session counts of 3–5 exercises, the achievable compound shares are 25% (1/4), 33% (1/3 or 2/6), 40% (2/5), 50% (2/4), etc. Award FULL CREDIT for any compound share in the 20%–50% band — that covers 1+2, 1+3, 1+4, 2+3, 2+4, 2+5 patterns and all of Israetel's "compound-light isolation-heavy" hypertrophy programming. Apply penalties only outside the band:
-   - 15–20% compound or 50–60% compound: −2 to −3 (slightly off)
-   - 10–15% compound or 60–70% compound: −4 to −5 (notably off)
-   - <10% compound (almost no compounds) or >70% compound (CNS-heavy): −5 to −8
+5. COMPOUND vs ISOLATION RATIO (8 pts): With realistic per-session counts of 3–5 exercises, the achievable compound shares are 25% (1/4), 33% (1/3 or 2/6), 40% (2/5), etc. Award FULL CREDIT for any compound share in the 20%–45% band. 50%+ ratios (3C+3I out of 6, 2C+2I out of 4) get a small penalty because they start being too CNS-heavy for a hypertrophy-biased session. Penalty curve:
+   - 45–55% compound: −1 to −2 (slightly compound-heavy)
+   - 15–20% or 55–65% compound: −2 to −3
+   - 10–15% or 65–75% compound: −4 to −5
+   - <10% compound (almost no compounds) or >75% compound (very CNS-heavy): −5 to −8
 
 ═══ INTENSITY & VOLUME · 35 pts ═══
 
@@ -279,7 +280,7 @@ SELECTION · 33 pts (5 criteria × 6.6):
   2. Deep Stretch (6.6): Average stretchLevel weighted (very-high 1.5×, high 1×, moderate 0.5×).
   3. SFR (6.6): Stimulus-to-fatigue ratio. Penalize over-reliance on CNS-heavy lifts.
   4. Angle Bias / Variety (6.6): Angles cover muscle proportions without redundancy.
-  5. Compound vs Isolation Ratio (6.6): WEEKLY ratio in the 20-50% band = full credit (same band as pool stage).
+  5. Compound vs Isolation Ratio (6.6): WEEKLY ratio in the 20-45% band = full credit. 45-55% = small penalty (-1 to -2, "slightly CNS-heavy"). Outside that, scale up the penalty as in the pool prompt.
 
 INTENSITY & VOLUME · 29 pts:
   6. RIR Calibration (12.4): Compound 1-2 / Isolation 0 targets. Penalties:

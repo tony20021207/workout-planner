@@ -277,12 +277,12 @@ function orderDayItems(items: RoutineItem[]): RoutineItem[] {
 
 /**
  * Acceptable per-day compound share. With 3-5 exercises per session,
- * 25% / 33% / 40% / 50% are all natural ratios depending on the day's
- * size. The rating gives full credit for anything in this band and the
- * UI flags days inside it green.
+ * 25% / 33% / 40% are all natural hypertrophy ratios. 50%+ (e.g. 3C+3I,
+ * 2C+2I) starts being too CNS-heavy for a hypertrophy-biased session,
+ * so the band caps at 45% — anything 45-55% gets a small penalty.
  */
 export const COMPOUND_PCT_GOOD_MIN = 0.2;
-export const COMPOUND_PCT_GOOD_MAX = 0.5;
+export const COMPOUND_PCT_GOOD_MAX = 0.45;
 
 export function isCompoundRatioOnTarget(pct: number): boolean {
   return pct >= COMPOUND_PCT_GOOD_MIN && pct <= COMPOUND_PCT_GOOD_MAX;

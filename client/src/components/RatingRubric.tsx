@@ -84,15 +84,16 @@ const POOL_RUBRIC: { bucket: string; total: number; criteria: CriterionDoc[] }[]
         num: 5,
         name: "Compound vs Isolation Ratio",
         max: 8,
-        measures: "Whether your pool's compound/isolation balance lands in a healthy hypertrophy band. Real per-session counts of 3–5 exercises produce ratios like 25% (1/4), 33% (1/3), 40% (2/5), or 50% (2/4) — all of these are valid.",
+        measures: "Whether your pool's compound/isolation balance lands in a healthy hypertrophy band. Real per-session counts of 3–5 exercises produce ratios like 25% (1/4), 33% (1/3), 40% (2/5). 50%+ patterns (3C+3I, 2C+2I) start being too CNS-heavy for hypertrophy.",
         calc:
-          "Full credit for any compound share in the 20–50% band. Outside that:\n" +
-          "  • 15–20% or 50–60%: −2 to −3\n" +
-          "  • 10–15% or 60–70%: −4 to −5\n" +
-          "  • <10% (almost no compound) or >70% (CNS-heavy): −5 to −8",
-        poor: "80% compound (over-stresses CNS) or routine with no compounds at all.",
-        medium: "Just outside the band — 17% or 55% compound.",
-        good: "Anywhere in the 20–50% compound band: 25%, 33%, 40%, 50% all earn full credit.",
+          "Full credit for any compound share in the 20–45% band. Outside that:\n" +
+          "  • 45–55% compound: −1 to −2 (slightly CNS-heavy)\n" +
+          "  • 15–20% or 55–65%: −2 to −3\n" +
+          "  • 10–15% or 65–75%: −4 to −5\n" +
+          "  • <10% (almost no compound) or >75% (very CNS-heavy): −5 to −8",
+        poor: "80% compound (way over-stresses CNS) or routine with no compounds at all.",
+        medium: "Just over the 45% line — 50% compound (3C+3I or 2C+2I).",
+        good: "Anywhere in the 20–45% compound band: 25%, 33%, 40% all earn full credit.",
       },
     ],
   },
