@@ -35,6 +35,7 @@ import {
   serializeRoutineToText,
   optimizedToRoutineItem,
 } from "@/lib/rating";
+import { RatingRubric } from "./RatingRubric";
 
 type SourceMode = "routine" | "text" | "image";
 
@@ -51,18 +52,61 @@ function ScoreBadge({ score }: { score: number }) {
   );
 }
 
+type ScoreTier = "poor" | "medium" | "good";
+
+function tierOf(score: number, max: number): ScoreTier {
+  const pct = score / max;
+  if (pct < 0.5) return "poor";
+  if (pct < 0.8) return "medium";
+  return "good";
+}
+
 function BreakdownRow({ label, score, max, notes }: { label: string; score: number; max: number; notes: string }) {
   const pct = Math.max(0, Math.min(1, score / max));
+  const tier = tierOf(score, max);
+
+  const tierStyle: Record<ScoreTier, { bar: string; note: string; icon: typeof AlertTriangle; iconClass: string; label: string }> = {
+    poor: {
+      bar: "bg-red-400",
+      note: "text-red-200/90 bg-red-500/5 border-red-500/30",
+      icon: AlertTriangle,
+      iconClass: "text-red-400",
+      label: "Needs work",
+    },
+    medium: {
+      bar: "bg-yellow-400",
+      note: "text-yellow-100/90 bg-yellow-500/5 border-yellow-500/30",
+      icon: Sparkles,
+      iconClass: "text-yellow-400",
+      label: "On track",
+    },
+    good: {
+      bar: "bg-lime",
+      note: "text-lime/90 bg-lime/5 border-lime/30",
+      icon: CheckCircle2,
+      iconClass: "text-lime",
+      label: "Strong",
+    },
+  };
+  const t = tierStyle[tier];
+  const TierIcon = t.icon;
+
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <div className="flex items-baseline justify-between text-xs">
         <span className="font-semibold text-foreground">{label}</span>
         <span className="text-muted-foreground tabular-nums">{score.toFixed(1)} / {max}</span>
       </div>
       <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-        <div className="h-full bg-lime transition-all" style={{ width: `${pct * 100}%` }} />
+        <div className={`h-full ${t.bar} transition-all`} style={{ width: `${pct * 100}%` }} />
       </div>
-      <p className="text-xs text-muted-foreground leading-relaxed">{notes}</p>
+      <div className={`text-[11px] leading-relaxed border rounded-sm p-2 flex items-start gap-1.5 ${t.note}`}>
+        <TierIcon className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${t.iconClass}`} />
+        <div>
+          <span className="font-semibold uppercase tracking-wider text-[9px] block mb-0.5 opacity-80">{t.label}</span>
+          {notes}
+        </div>
+      </div>
     </div>
   );
 }
@@ -282,21 +326,24 @@ export default function WorkoutRater() {
           <div>
             <h3 className="font-heading text-xl font-bold text-foreground">Hypertrophy Matrix Rating</h3>
             <p className="text-xs text-muted-foreground">
-              Weekly split, scored out of 100. Powered by AI.
+              Microcycle scored out of 100. Powered by AI.
             </p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setOpen(false);
-            reset();
-          }}
-          className="text-muted-foreground hover:text-foreground w-8 h-8 p-0"
-        >
-          <X className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <RatingRubric />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setOpen(false);
+              reset();
+            }}
+            className="text-muted-foreground hover:text-foreground w-8 h-8 p-0"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Input mode tabs */}

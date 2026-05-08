@@ -107,6 +107,13 @@ SCAPULAR-DEPRESSION CUEING:
 If the pool contains pulldown movements (Lat Pulldown, Single-Arm Cable Pulldown, Pull-Up / Chin-Up, Lat Prayer, Pullover), include the cueing reminder in scapularDepressionNote: "Initiate the pull by depressing your scapulae (shoulder blades pull down first, then elbows pull down). This is what makes pulldowns a true scapular depressor exercise."
 Otherwise leave scapularDepressionNote as an empty string.
 
+COMMENT TONE BY SCORE TIER:
+For every criterion's "notes" field, match the tone to where the score lands relative to its max:
+- POOR (< 50% of max): give specific, constructive coaching. Explain WHAT'S missing and WHY it matters, then give one HOW-to-improve action. Direct, no fluff. Example tone: "You're under-using machines on big lifts — that limits how close you can push to failure safely. Swap your free-weight bench for a machine chest press, or anchor at least one heavy compound on a Smith / cable."
+- MEDIUM (50–79% of max): encouragement. Affirm what's working, then point to the small tweak that would push the score higher. Example tone: "Solid base — most majors are covered. Add one direct hamstring pick (seated leg curl) and you'll close the last gap."
+- GOOD (≥ 80% of max): praise. Call out what's strong specifically. Example tone: "Stretch-tier weighting is dialed — Bayesian, RDL, and incline DB Bench at 30° all carrying very-high credit. This is what hypertrophy programming looks like."
+Keep notes to 1–2 sentences. Skip generic "good job" — be specific about the routine.
+
 OUTPUT REQUIREMENTS:
 - All criterion scores are 0 to their respective max (no negatives anywhere).
 - Final "score" = sum of all 9 criterion scores. Cap at 100.
