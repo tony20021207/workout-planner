@@ -3,7 +3,7 @@
  */
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Minus, Dumbbell, Clock, RotateCcw, Flame, ChevronDown, Target, Ruler } from "lucide-react";
+import { Plus, Minus, Dumbbell, Clock, RotateCcw, Flame, ChevronDown, Target, Ruler, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   type CategoryType,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/data";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { toast } from "sonner";
+import { getEquipmentNote } from "@/lib/equipmentNotes";
 
 interface ExerciseListProps {
   category: CategoryType;
@@ -177,11 +178,22 @@ function ExerciseCard({ exercise, category, jointFunctionName }: { exercise: Exe
                             ? "bg-lime/20 border-lime text-lime"
                             : "bg-secondary border-border text-muted-foreground hover:border-lime/40"
                         }`}
+                        title={getEquipmentNote(eq)}
                       >
                         {eq.name}
                       </button>
                     ))}
                   </div>
+                  {(() => {
+                    const active = exercise.equipment.find((e) => e.name === selectedEquipment);
+                    if (!active) return null;
+                    return (
+                      <p className="mt-1.5 text-[11px] text-muted-foreground italic flex items-start gap-1.5 leading-snug">
+                        <Info className="w-3 h-3 shrink-0 mt-0.5" />
+                        <span>{getEquipmentNote(active)}</span>
+                      </p>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -207,6 +219,16 @@ function ExerciseCard({ exercise, category, jointFunctionName }: { exercise: Exe
                       </button>
                     ))}
                   </div>
+                  {(() => {
+                    const active = exercise.angles.find((a) => a.name === selectedAngle);
+                    if (!active) return null;
+                    return (
+                      <p className="mt-1.5 text-[11px] text-muted-foreground italic flex items-start gap-1.5 leading-snug">
+                        <Info className="w-3 h-3 shrink-0 mt-0.5" />
+                        <span>{active.description}</span>
+                      </p>
+                    );
+                  })()}
                 </div>
               )}
 
