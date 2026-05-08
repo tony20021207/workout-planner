@@ -408,6 +408,7 @@ export const categories: Category[] = [
                     id: "ffe-quad",
                     name: "Front-Foot Elevated",
                     description: "Front foot on a 4–6 inch plate. Even deeper quad stretch in the bottom.",
+                    tagOverrides: { stretchLevel: "very-high" },
                   },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
@@ -494,6 +495,7 @@ export const categories: Category[] = [
                     description: "Front foot far from back foot. Deepens glute stretch via hip flexion.",
                     tagOverrides: {
                       addJointActions: ["Hip Adductors"],
+                      stretchLevel: "very-high",
                     },
                   },
                   {
@@ -502,6 +504,7 @@ export const categories: Category[] = [
                     description: "Front foot on a plate or step adds glute stretch at the bottom.",
                     tagOverrides: {
                       addJointActions: ["Hip Adductors"],
+                      stretchLevel: "very-high",
                     },
                   },
                 ],
@@ -557,18 +560,23 @@ export const categories: Category[] = [
                 stability: "medium",
                 sfr: "medium",
                 description:
-                  "Step-up onto a high box (knee-height or above). Targets the upper glutes through deep hip flexion.",
+                  "Single-leg step-up onto a high box (knee-height or above). Targets the upper glutes through deep hip flexion. Cable-loaded version delivers constant tension at the deep stretch.",
                 mechanics:
-                  "High box forces deep hip flexion at the start, pre-stretching the glute max. Less ideal for quad work because of stability and limited eccentric.",
+                  "High box forces deep hip flexion at the start, pre-stretching the glute max. Cable resistance from the front maintains tension at the bottom where free-weight versions deload.",
                 equipment: [
                   { id: "db-step", name: "Dumbbell" },
                   { id: "bb-step", name: "Barbell" },
                   { id: "smith-step", name: "Smith Machine" },
                   { id: "bw-step", name: "Bodyweight" },
+                  {
+                    id: "cable-step",
+                    name: "Cable (Single-Leg)",
+                    tagOverrides: { stretchLevel: "very-high" },
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
-                  "Nippard: useful upper-glute work but limited for quad hypertrophy.",
+                  "Nippard: useful upper-glute work. Cable single-leg version maximizes loaded stretch on the front-leg glute.",
               },
             ],
           },
@@ -598,7 +606,7 @@ export const categories: Category[] = [
                   "Scapular Elevators",
                 ],
                 compound: true,
-                stretchLevel: "high",
+                stretchLevel: "very-high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -889,7 +897,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Erectors", "Hamstrings"],
                 jointActions: ["Spinal Extensors", "Hip Extensors"],
                 compound: true,
-                stretchLevel: "high",
+                stretchLevel: "very-high",
                 stability: "low",
                 sfr: "low",
                 description:
@@ -981,7 +989,7 @@ export const categories: Category[] = [
                 equipment: [
                   { id: "bb-bp", name: "Standard Barbell" },
                   { id: "smith-bp", name: "Smith Machine" },
-                  { id: "cambered", name: "Cambered Bar (deeper stretch)", tagOverrides: { stretchLevel: "high" } },
+                  { id: "cambered", name: "Cambered Bar (deeper stretch)", tagOverrides: { stretchLevel: "very-high" } },
                 ],
                 angles: [
                   {
@@ -993,19 +1001,20 @@ export const categories: Category[] = [
                     id: "15-bb",
                     name: "15° Incline",
                     description: "Slight upper-chest bias; ROM still capped by bar contact.",
+                    tagOverrides: { stretchLevel: "high" },
                   },
                   {
                     id: "30-bb",
                     name: "30° Incline",
                     description:
                       "Clavicular pec bias and longer pressing arc — bar travels deeper than flat, giving real stretch under load.",
-                    tagOverrides: { stretchLevel: "high" },
+                    tagOverrides: { stretchLevel: "very-high" },
                   },
                   {
                     id: "45-bb",
                     name: "45° Incline",
                     description: "Heavy front-delt bias; treat as a shoulder press.",
-                    tagOverrides: { stretchLevel: "high" },
+                    tagOverrides: { stretchLevel: "very-high" },
                   },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
@@ -1048,11 +1057,13 @@ export const categories: Category[] = [
                     id: "30-db",
                     name: "30° Incline",
                     description: "Strong clavicular pec bias. Israetel: max stretch incline DB.",
+                    tagOverrides: { stretchLevel: "very-high" },
                   },
                   {
                     id: "45-db",
                     name: "45° Incline",
                     description: "Heavy front-delt bias; treat as a shoulder press.",
+                    tagOverrides: { stretchLevel: "very-high" },
                   },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
@@ -1069,7 +1080,7 @@ export const categories: Category[] = [
                   "Scapular Protractors",
                 ],
                 compound: true,
-                stretchLevel: "high",
+                stretchLevel: "very-high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1118,7 +1129,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Pectorals", "Front Delts"],
                 jointActions: ["Shoulder Horizontal Adductors"],
                 compound: false,
-                stretchLevel: "high",
+                stretchLevel: "very-high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -1132,9 +1143,21 @@ export const categories: Category[] = [
                   { id: "press-around", name: "Cable Press-Around" },
                 ],
                 angles: [
-                  { id: "high", name: "High-to-Low (decline)", description: "Lower-chest bias." },
-                  { id: "mid", name: "Mid (horizontal)", description: "Sternal mid-chest bias." },
-                  { id: "low", name: "Low-to-High (incline)", description: "Upper-chest bias." },
+                  {
+                    id: "horizontal-cf",
+                    name: "Seated (Horizontal)",
+                    description: "Pulleys at chest height, arms moving in a horizontal arc. Sternal / mid-chest bias.",
+                  },
+                  {
+                    id: "upper-to-bot-cf",
+                    name: "Upper-to-Bottom",
+                    description: "Pulleys high, arms sweeping down across the body. Lower-chest bias.",
+                  },
+                  {
+                    id: "bot-to-up-cf",
+                    name: "Bottom-to-Up",
+                    description: "Pulleys low, arms sweeping up across the body. Upper-chest / clavicular pec bias.",
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
@@ -1197,8 +1220,8 @@ export const categories: Category[] = [
                   "Tension peaks at the bottom of the arc where the dumbbells are furthest from the shoulder; minimal load at the top.",
                 equipment: [
                   { id: "flat-fly", name: "Flat Bench" },
-                  { id: "incline-fly", name: "Incline Bench" },
-                  { id: "janicki", name: "Janicki Setup" },
+                  { id: "incline-fly", name: "Incline Bench", tagOverrides: { stretchLevel: "very-high" } },
+                  { id: "janicki", name: "Janicki Setup", tagOverrides: { stretchLevel: "very-high" } },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier; Israetel: deep stretch + strong contraction.",
@@ -1423,7 +1446,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Lats", "Teres Major"],
                 jointActions: ["Shoulder Extensors", "Scapular Depressors"],
                 compound: false,
-                stretchLevel: "high",
+                stretchLevel: "very-high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -1447,7 +1470,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Lats", "Teres Major", "Long Head Triceps"],
                 jointActions: ["Shoulder Extensors", "Shoulder Adductors", "Scapular Depressors"],
                 compound: false,
-                stretchLevel: "high",
+                stretchLevel: "very-high",
                 stability: "medium",
                 sfr: "high",
                 description:
@@ -1776,7 +1799,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Biceps Long Head", "Biceps Short Head"],
                 jointActions: ["Elbow Flexors"],
                 compound: false,
-                stretchLevel: "high",
+                stretchLevel: "very-high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -2017,7 +2040,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Triceps Long Head", "Medial / Lateral Heads"],
                 jointActions: ["Elbow Extensors"],
                 compound: false,
-                stretchLevel: "high",
+                stretchLevel: "very-high",
                 stability: "high",
                 sfr: "very-high",
                 description:
@@ -2136,6 +2159,7 @@ export const categories: Category[] = [
                     id: "over-head",
                     name: "Over-Head Path",
                     description: "Bar continues past the forehead toward the bench, adding shoulder flexion. Deep long-head stretch — equivalent to a JM press path.",
+                    tagOverrides: { stretchLevel: "very-high" },
                   },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
@@ -2306,7 +2330,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Medial Delts"],
                 jointActions: ["Shoulder Abductors"],
                 compound: false,
-                stretchLevel: "high",
+                stretchLevel: "very-high",
                 stability: "high",
                 sfr: "high",
                 description:
@@ -2488,6 +2512,7 @@ export const categories: Category[] = [
                     id: "lean-forward-slc",
                     name: "Lean-Forward Torso",
                     description: "Chest propped forward over the thighs to maximize hip flexion. Nippard's preferred variant — deepest hamstring stretch loadable on a machine.",
+                    tagOverrides: { stretchLevel: "very-high" },
                   },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
@@ -2577,7 +2602,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Quadriceps", "Rectus Femoris"],
                 jointActions: ["Knee Extensors"],
                 compound: false,
-                stretchLevel: "high",
+                stretchLevel: "very-high",
                 stability: "low",
                 sfr: "high",
                 description:
@@ -2599,7 +2624,7 @@ export const categories: Category[] = [
                 targetedMuscles: ["Quadriceps", "Rectus Femoris"],
                 jointActions: ["Knee Extensors"],
                 compound: false,
-                stretchLevel: "high",
+                stretchLevel: "very-high",
                 stability: "low",
                 sfr: "medium",
                 description:

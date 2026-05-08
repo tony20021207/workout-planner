@@ -6,7 +6,7 @@ Flat snapshot of every exercise in `client/src/lib/data.ts` with the tags the ra
 |-----|---------|
 | `jointActions` | Coverage check & rating against the canonical 29-action taxonomy |
 | `compound` | Compound-vs-Isolation criterion (target: **40% compound / 60% isolation**) |
-| `stretchEmphasis` | Deep-Stretch-Under-Load criterion |
+| `stretchLevel` | Deep-Stretch-Under-Load criterion. 3-tier: `moderate` (baseline lengthening) / `high` (primary stretch focus) / `very-high` (consensus "best stretch" picks) |
 | `stability` | Stability criterion (`very-high` → `low`) |
 | `sfr` | Stimulus-to-Fatigue Ratio criterion (`very-high` → `low`) |
 | `coachNotes` | Free-text reasoning from the Nippard / Israetel compendium |
@@ -64,8 +64,12 @@ The user just sees a toggle. The rating engine resolves the effective tags via `
 
 Stability/SFR levels: `VH` very-high · `H` high · `M` medium · `L` low
 Compound: `C` (multi-joint) · `I` (isolation)
-Stretch emphasis: ✓ if loaded in the lengthened position
+Stretch column: `mod` moderate · `high` · **`VH`** very-high
 "Equipment" column lists the toggle options on that entry.
+
+**Very-high stretch base picks** (11): Bayesian Curl, Lat Prayer, Pullover, Sissy Squat, Reverse Nordic Curl, Deficit Push-Up, Stiff-Leg/Romanian Deadlift, EZ-Bar Overhead Triceps Extension, BTB Cuffed Cable Lateral, Jefferson Curl, Cable Fly.
+
+**Very-high via toggle override**: Cambered Bar BB Bench (any incline), BB Bench at 30°/45° incline, DB Bench at 30°/45° incline, Incline DB Fly, Janicki DB Fly, Skullcrusher Over-Head Path, Seated Leg Curl Lean-Forward, Bulgarian Split Squat (Quad) FFE, Bulgarian Split Squat (Glute) Long Stride / FFE, Cable Single-Leg Step-Up.
 
 ---
 
@@ -96,7 +100,7 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 #### Hamstring-Biased
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
 |---|---|---|---|---|---|---|---|
-| Stiff-Leg / Romanian Deadlift | Hip Ext, Sp Ext, Knee Flex, **Scap Elev** | C | ✓ | M | H | BB, DB, Smith, Cable | Israetel: deep hamstring stretch; barbell hold trains traps isometrically |
+| Stiff-Leg / Romanian Deadlift | Hip Ext, Sp Ext, Knee Flex, **Scap Elev** | C | **VH** | M | H | BB, DB, Smith, Cable | Israetel: deep hamstring stretch; barbell hold trains traps isometrically |
 | Good Morning | Hip Ext, Sp Ext | C | ✓ | L | M | BB, SSB, Smith | Israetel: high-stimulus posterior chain |
 | Cable Pull-Through | Hip Ext | C | ✓ | H | H | Cable Rope, Band | Beginner-friendly hinge |
 
