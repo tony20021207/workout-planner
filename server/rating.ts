@@ -254,6 +254,188 @@ const inputSchema = z.object({
     .optional(),
 });
 
+// ============================================================
+// POST-SPLIT RATING — runs after split + sets/reps are configured
+// ============================================================
+
+const POST_SPLIT_PROMPT = `You are a kinesiology-driven hypertrophy expert evaluating a user's FINALIZED weekly training plan. The user has picked a split, distributed exercises across days, and assigned sets/reps/weight to every exercise. Your rating considers the full daily picture.
+
+CORE PRINCIPLE — JOINT-ACTION DECOMPOSITION (same as pool stage):
+Decompose every exercise into the joint actions it produces using the canonical taxonomy below.
+
+INTENSITY POLICY — TRUST THE USER'S RIR:
+Take the user's compound + isolation RIR self-report at face value (assume movement quality stays consistent — same form, ROM, tempo).
+
+${JOINT_FUNCTION_REFERENCE}
+
+THE HYPERTROPHY MATRIX — POST-SPLIT RATING (100 pts total):
+
+The 9 pool-stage criteria are compressed proportionally to 82 pts. Three new add-ons worth 6 pts each (18 total) score the daily detail that wasn't visible at the pool stage. Final score sums all 12 criteria.
+
+═══ COMPRESSED POOL-STAGE CRITERIA · 82 pts ═══
+
+SELECTION · 33 pts (5 criteria × 6.6):
+  1. Stability (6.6): Reward stable picks (machines, chest-supported, cables) that allow safe near-failure work.
+  2. Deep Stretch (6.6): Average stretchLevel weighted (very-high 1.5×, high 1×, moderate 0.5×).
+  3. SFR (6.6): Stimulus-to-fatigue ratio. Penalize over-reliance on CNS-heavy lifts.
+  4. Angle Bias / Variety (6.6): Angles cover muscle proportions without redundancy.
+  5. Compound vs Isolation Ratio (6.6): WEEKLY ratio in the 20-50% band = full credit (same band as pool stage).
+
+INTENSITY & VOLUME · 29 pts:
+  6. RIR Calibration (12.4): Compound 1-2 / Isolation 0 targets. Penalties:
+     • Compound at 0 RIR: -2.5  • Compound at 3+ RIR: -5.8
+     • Isolation at 1-2 RIR: -2.5  • Isolation at 3+ RIR: -5.8
+     Penalties stack. Floor at 0.
+  7. Frequency (8.3): Major joint-action prime movers should be hit 2-3×/wk across the actual days. Score the real distribution.
+  8. Volume Distribution (8.3): Whether the actual exercise count per major mover lands in the 2-4 exercises range. Penalize clustering (one day full of chest, no hamstring work elsewhere).
+
+JOINT-ACTION COVERAGE · 20 pts:
+  9. Joint-Action Coverage (20): Anatomically weighted across the 27-action taxonomy. 12 major movers up to ~16 pts, 15 minors up to ~4 pts. Positive-only — earn points for what's covered.
+
+═══ POST-SPLIT ADD-ONS · 18 pts (3 × 6 each) ═══
+
+10. SESSION CAPS (6 pts):
+    Junk-volume check. Each joint-action prime mover should get no more than 6-8 working sets in a single session. Score:
+    - All sessions ≤6 sets per mover: full credit (6 pts)
+    - Occasional 7-8 set sessions: -1 to -2
+    - Multiple sessions hitting 9-12 sets per mover: -3 to -5
+    - Any session hitting 13+ sets per single mover: -5 to -6 (severe junk volume)
+
+11. REP RANGE DISTRIBUTION (6 pts):
+    ~80% of working-set volume should fall in the 8-15 rep range with the remaining 20% in heavy (5-8) or metabolic (20-30). Score:
+    - 80%+ in 8-15 with sensible heavy/metabolic mix: full credit (6 pts)
+    - 60-80% in target range: -1 to -2
+    - All sets at 5 reps (powerlifting bias) or all at 25+ (no heavy stimulus): -3 to -5
+
+12. TOTAL WEEKLY VOLUME vs MEV-MAV (6 pts):
+    Per major mover, weekly working sets should land in the 10-20 MEV-MAV range. Score:
+    - All majors at 10-20 sets/wk: full credit (6 pts)
+    - Some majors near target, others off: -1 to -3
+    - Major movers under 10 sets/wk (under-MEV) or over 25 sets/wk (over-MRV): -4 to -6
+
+═══ COMMENT TONE BY SCORE TIER ═══
+
+For every criterion's "notes" field, match the tone to the score's tier:
+- POOR (<50% of max): specific constructive coaching — what's missing and how to fix.
+- MEDIUM (50-79%): encouragement + one small tweak suggestion.
+- GOOD (≥80%): specific praise calling out what's strong.
+Keep notes to 1-2 sentences. Be specific about the routine.
+
+SCAPULAR-DEPRESSION CUEING:
+If pulldown movements present (Lat Pulldown, Single-Arm Cable Pulldown, Pull-Up / Chin-Up, Lat Prayer, Pullover), populate scapularDepressionNote with the cueing reminder. Otherwise empty string.
+
+OUTPUT REQUIREMENTS:
+- Final "score" = sum of all 12 criterion scores (capped at 100).
+- coverage.hit / coverage.missing arrays MUST use exact taxonomy names.
+- "optimizedDailyPlan" should re-write the entire week's split + sets/reps to score 100/100.
+
+YOU MUST RESPOND WITH STRICT JSON matching the provided schema.`;
+
+const postSplitRatingSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "score",
+    "verdict",
+    "selectionBreakdown",
+    "intensityVolumeBreakdown",
+    "coverageBreakdown",
+    "postSplitAddOns",
+    "intensityNote",
+    "scapularDepressionNote",
+    "optimizedDailyPlan",
+  ],
+  properties: {
+    score: { type: "number", description: "Final score 0-100, summed from all 12 criteria" },
+    verdict: { type: "string", description: "One-sentence verdict on the finalized week" },
+    selectionBreakdown: {
+      type: "object",
+      additionalProperties: false,
+      required: ["stability", "stretch", "sfr", "angles", "compoundIsolationRatio"],
+      properties: {
+        stability: breakdownEntry,
+        stretch: breakdownEntry,
+        sfr: breakdownEntry,
+        angles: breakdownEntry,
+        compoundIsolationRatio: breakdownEntry,
+      },
+    },
+    intensityVolumeBreakdown: {
+      type: "object",
+      additionalProperties: false,
+      required: ["rirCalibration", "frequency", "volumeDistribution"],
+      properties: {
+        rirCalibration: breakdownEntry,
+        frequency: breakdownEntry,
+        volumeDistribution: breakdownEntry,
+      },
+    },
+    coverageBreakdown: {
+      type: "object",
+      additionalProperties: false,
+      required: ["score", "hit", "missing"],
+      properties: {
+        score: { type: "number" },
+        hit: { type: "array", items: { type: "string" } },
+        missing: { type: "array", items: { type: "string" } },
+      },
+    },
+    postSplitAddOns: {
+      type: "object",
+      additionalProperties: false,
+      required: ["sessionCaps", "repRangeDistribution", "totalVolume"],
+      properties: {
+        sessionCaps: breakdownEntry,
+        repRangeDistribution: breakdownEntry,
+        totalVolume: breakdownEntry,
+      },
+    },
+    intensityNote: { type: "string" },
+    scapularDepressionNote: { type: "string" },
+    optimizedDailyPlan: {
+      type: "array",
+      description: "Day-by-day rewrite of the plan that would score 100/100.",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["dayName", "exercises"],
+        properties: {
+          dayName: { type: "string" },
+          exercises: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["exercise", "sets", "repRange", "rir", "category", "rationale"],
+              properties: {
+                exercise: { type: "string" },
+                equipment: { type: "string" },
+                angle: { type: "string" },
+                sets: { type: "number" },
+                repRange: { type: "string" },
+                rir: { type: "string" },
+                category: { type: "string", enum: ["systemic", "regional"] },
+                rationale: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+const postSplitInputSchema = z.object({
+  /** Plain-text serialization of the routine + split + per-day sets/reps. */
+  text: z.string(),
+  effort: z
+    .object({
+      compoundRIR: z.enum(["0", "1-2", "3+"]),
+      isolationRIR: z.enum(["0", "1-2", "3+"]),
+    })
+    .optional(),
+});
+
 export const ratingRouter = router({
   rateWorkout: publicProcedure
     .input(inputSchema)
@@ -304,6 +486,42 @@ export const ratingRouter = router({
         return JSON.parse(text);
       } catch {
         throw new Error("Failed to parse rating response: " + text.slice(0, 200));
+      }
+    }),
+
+  rateFinalizedWeek: publicProcedure
+    .input(postSplitInputSchema)
+    .mutation(async ({ input }) => {
+      const effort = input.effort ?? { compoundRIR: "1-2" as const, isolationRIR: "0" as const };
+      const effortBlock = `\n\nUSER'S SELF-REPORTED EFFORT (assume movement quality is held constant):\n- Compound / multi-joint working sets: ${effort.compoundRIR} RIR (target 1-2)\n- Isolation / single-joint working sets: ${effort.isolationRIR} RIR (target 0)\n\nApply the RIR penalties from criterion 6 using these values. Do not infer RIR from the load or rep ranges — trust the user's stated answer.`;
+
+      const intro =
+        "Evaluate the following FINALIZED weekly training plan (split + day-by-day exercise assignments + sets/reps/weight) using the Hypertrophy Matrix Post-Split Rating System.";
+
+      const result = await invokeLLM({
+        messages: [
+          { role: "system", content: POST_SPLIT_PROMPT },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: `${intro}\n\n${input.text}${effortBlock}` },
+            ],
+          },
+        ],
+        outputSchema: {
+          name: "post_split_rating",
+          schema: postSplitRatingSchema,
+          strict: true,
+        },
+      });
+
+      const raw = result.choices[0]?.message?.content;
+      const text = typeof raw === "string" ? raw : Array.isArray(raw) ? raw.map(p => (p.type === "text" ? p.text : "")).join("") : "";
+
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error("Failed to parse post-split rating response: " + text.slice(0, 200));
       }
     }),
 });

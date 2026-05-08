@@ -40,6 +40,7 @@ import {
 import { autoRecommendSets } from "@/lib/setRecommender";
 import { toast } from "sonner";
 import DayExerciseEditor from "./DayExerciseEditor";
+import PostSplitRater from "./PostSplitRater";
 
 function PresetCard({
   preset,
@@ -352,6 +353,11 @@ export default function SplitBuilder() {
           onSelect={() => handlePickPreset("custom")}
         />
       </div>
+
+      {/* Post-split rater — only renders once a split is picked + assigned */}
+      {activePreset && (
+        <PostSplitRater />
+      )}
 
       {/* Day grid */}
       <AnimatePresence>

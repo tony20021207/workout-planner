@@ -64,6 +64,87 @@ export interface RatingResult {
   optimizedRoutine: OptimizedExercise[];
 }
 
+// ============================================================
+// POST-SPLIT RATING TYPES
+// ============================================================
+
+export interface PostSplitIntensityVolumeBreakdown {
+  rirCalibration: BreakdownEntry;
+  frequency: BreakdownEntry;
+  volumeDistribution: BreakdownEntry;
+}
+
+export interface PostSplitAddOns {
+  sessionCaps: BreakdownEntry;
+  repRangeDistribution: BreakdownEntry;
+  totalVolume: BreakdownEntry;
+}
+
+export interface OptimizedDailyExercise {
+  exercise: string;
+  equipment?: string;
+  angle?: string;
+  sets: number;
+  repRange: string;
+  rir: string;
+  category: CategoryType;
+  rationale: string;
+}
+
+export interface OptimizedDay {
+  dayName: string;
+  exercises: OptimizedDailyExercise[];
+}
+
+export interface PostSplitRatingResult {
+  score: number;
+  verdict: string;
+  selectionBreakdown: SelectionBreakdown;
+  intensityVolumeBreakdown: PostSplitIntensityVolumeBreakdown;
+  coverageBreakdown: CoverageBreakdown;
+  postSplitAddOns: PostSplitAddOns;
+  intensityNote: string;
+  scapularDepressionNote: string;
+  optimizedDailyPlan: OptimizedDay[];
+}
+
+/**
+ * Serialize a finalized week (split + dayAssignments + per-day sets/reps)
+ * into a plaintext block the post-split rating prompt can read.
+ */
+export function serializeFinalizedWeekToText(
+  routine: import("@/contexts/WorkoutContext").RoutineItem[],
+  splitName: string,
+  dayAssignments: Record<string, string[]>,
+  daysMeta: { id: string; name: string; scheduleHint?: string }[],
+): string {
+  const itemsById = new Map(routine.map((r) => [r.id, r]));
+  const lines: string[] = [];
+  lines.push(`Split: ${splitName}`);
+  lines.push(`Total exercises: ${routine.length}`);
+  lines.push("");
+
+  for (const day of daysMeta) {
+    const ids = dayAssignments[day.id] ?? [];
+    const items = ids.map((id) => itemsById.get(id)).filter(Boolean) as import("@/contexts/WorkoutContext").RoutineItem[];
+    lines.push(`=== ${day.name}${day.scheduleHint ? ` (${day.scheduleHint})` : ""} — ${items.length} exercise${items.length === 1 ? "" : "s"} ===`);
+    if (items.length === 0) {
+      lines.push("  (no exercises assigned)");
+    } else {
+      items.forEach((item, idx) => {
+        const name = [item.exercise, item.equipment ? `(${item.equipment})` : "", item.angle ? `[${item.angle}]` : ""].filter(Boolean).join(" ");
+        lines.push(`  ${idx + 1}. ${name}`);
+        lines.push(`     Tier: ${item.category === "systemic" ? "Tier 1 compound" : "Tier 2 isolation"}`);
+        lines.push(`     Targets: ${item.targetedMuscles.join(", ")}`);
+        const setSummary = item.sets.map((s, i) => `S${i + 1} ${s.reps}r@${s.weight}lb`).join(" ");
+        lines.push(`     Sets (${item.sets.length}): ${setSummary}`);
+      });
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
 /**
  * Convert the user's current routine into a plaintext description for the LLM.
  */
