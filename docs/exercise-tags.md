@@ -15,9 +15,13 @@ Flat snapshot of every exercise in `client/src/lib/data.ts` with the tags the ra
 
 - Same underlying muscle engagement → variants live as an **equipment toggle** on a single entry (e.g. RDL has BB / DB / Smith / Cable; all train Hip Extensors + Spinal Extensors + Knee Flexors identically).
 - Different muscle engagement (different stability or stretch profile) → **separate entries**. The 3 split exercises:
-  - **Chest Press** → Machine Chest Press / Barbell Bench Press / Dumbbell Bench Press
+  - **Chest Press** → Machine Chest Press / Barbell Bench Press / Dumbbell Bench Press (each with flat / 15° / 30° / 45° angle toggle)
   - **Overhead Press** → Machine Shoulder Press / Free-Weight Overhead Press
   - **Hip Thrust** → Machine Hip Thrust / Free-Weight Hip Thrust
+
+**Tag overrides on toggles:** Equipment / angle options can carry an optional `tagOverrides` block that quietly modifies the rating-relevant tags when that option is selected. Example: BB Bench Press at 30° incline gets `stretchEmphasis: true` because the longer pressing arc loads the pec near full stretch even though flat BB doesn't. Toes-spread stance on bilateral squats adds `Hip Abductors` and `Hip External Rotators` to the joint actions. The user just sees a toggle; the rating engine resolves the effective tags via `resolveEffectiveTags(exercise, equipment, angle)`.
+
+**Taxonomy update:** Shoulder Internal Rotators and Ankle Dorsiflexors removed from the canonical list (incidentally trained / minimal muscle). Down to **27 joint actions** from 29.
 
 **Joint-action abbreviations:**
 
@@ -58,13 +62,13 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 ### Squat Patterns
 
 #### Quad-Biased
-| Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
-|---|---|---|---|---|---|---|---|
-| Upright Squat | Knee Ext, Hip Ext, Sp Ext | C | ✓ | M | H | BB Back, Front, Smith, Heel-Elevated | Nippard high-bar S-tier |
-| Hack / Pendulum Squat | Knee Ext, Hip Ext | C | ✓ | H | VH | Hack Machine, Pendulum | Nippard's #1 quad |
-| Belt Squat | Knee Ext, Hip Ext | C | ✓ | H | H | Belt Machine, Cable | Israetel: low systemic fatigue |
-| Leg Press | Knee Ext, Hip Ext | C | ✗ | H | H | 45°, Plate-Loaded, Selectorized | Nippard A-tier |
-| Quad-Biased Split Squat / Lunge | Knee Ext, Hip Ext, Hip Abd | C | ✓ | M | H | Bulgarian, DB, Smith | Nippard S-tier unilateral |
+| Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Angles | Coach Note |
+|---|---|---|---|---|---|---|---|---|
+| Upright Squat | Knee Ext, Hip Ext, Sp Ext | C | ✓ | M | H | BB Back, Front, Smith, Heel-Elevated | Parallel, **Toes-Spread** (+Hip Abd, +Hip ER) | Nippard high-bar S-tier |
+| Hack / Pendulum Squat | Knee Ext, Hip Ext | C | ✓ | H | VH | Hack Machine, Pendulum | Parallel, Toes-Spread (+Hip Abd, +Hip ER) | Nippard's #1 quad |
+| Belt Squat | Knee Ext, Hip Ext | C | ✓ | H | H | Belt Machine, Cable | Parallel, Toes-Spread (+Hip Abd, +Hip ER) | Israetel: low systemic fatigue |
+| Leg Press | Knee Ext, Hip Ext | C | ✗ | H | H | 45°, Plate-Loaded, Selectorized | Parallel, Toes-Spread (+Hip Abd, +Hip ER) | Nippard A-tier |
+| Quad-Biased Split Squat / Lunge | Knee Ext, Hip Ext, Hip Abd | C | ✓ | M | H | Bulgarian, DB, Smith | — | Nippard S-tier unilateral |
 
 #### Glute & Adductor-Biased
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
@@ -80,7 +84,7 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 #### Hamstring-Biased
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
 |---|---|---|---|---|---|---|---|
-| Stiff-Leg / Romanian Deadlift | Hip Ext, Sp Ext, Knee Flex | C | ✓ | M | H | BB, DB, Smith, Cable | Israetel: deep hamstring stretch |
+| Stiff-Leg / Romanian Deadlift | Hip Ext, Sp Ext, Knee Flex, **Scap Elev** | C | ✓ | M | H | BB, DB, Smith, Cable | Israetel: deep hamstring stretch; barbell hold trains traps isometrically |
 | Good Morning | Hip Ext, Sp Ext | C | ✓ | L | M | BB, SSB, Smith | Israetel: high-stimulus posterior chain |
 | Cable Pull-Through | Hip Ext | C | ✓ | H | H | Cable Rope, Band | Beginner-friendly hinge |
 
@@ -90,7 +94,7 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 | **Machine Hip Thrust** | Hip Ext | C | ✗ | H | VH | Machine | Nippard: top middle-glute option |
 | **Free-Weight Hip Thrust** | Hip Ext | C | ✗ | M | H | BB, DB, Smith | Israetel: hard shortened-position glute |
 | Glute Bridge | Hip Ext | C | ✗ | H | M | BB, DB, Machine, BW | Beginner-friendly hip-thrust alt |
-| Conventional / Sumo Deadlift | Hip Ext, Sp Ext, Knee Ext, Scap Retr | C | ✗ | M | L | BB, Trap Bar, DB | Useful but fatiguing |
+| Conventional / Sumo Deadlift | Hip Ext, Sp Ext, Knee Ext, Scap Retr, **Scap Elev** | C | ✗ | M | L | BB, Trap Bar, DB | Useful but fatiguing |
 
 #### Lumbar Extension & Spinal Robustness
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
@@ -102,17 +106,16 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 ### Upper Body Push
 
 #### Chest-Biased (Horizontal Push)
-| Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
-|---|---|---|---|---|---|---|---|
-| **Machine Chest Press** | Sh HAdd, Sh Flex, Elb Ext, Scap Prot | C | ✓ | H | VH | Selectorized, Plate-Loaded | Nippard's #1 chest |
-| **Barbell Bench Press** | Sh HAdd, Sh Flex, Elb Ext, Scap Prot | C | ✗ | M | H | Standard BB, Smith, Cambered | Heavy load potential |
-| **Dumbbell Bench Press** | Sh HAdd, Sh Flex, Elb Ext, Scap Prot | C | ✓ | M | H | DB only | Israetel: deeper bottom stretch |
-| Incline Press | Sh Flex, Sh HAdd, Elb Ext, Scap Prot | C | ✓ | M | H | BB, DB, Smith, Machine | Israetel: incline DB max stretch |
-| Deficit Push-Up | Sh HAdd, Elb Ext, Scap Prot | C | ✓ | M | H | Handles, DB Handles, Parallettes, Blocks | Israetel: ultra-deep stretch |
-| Chest-Focused Dip | Sh Add, Sh HAdd, Elb Ext | C | ✓ | M | H | Parallel Bars, Assisted, Plate-Loaded | Israetel: forward lean |
-| Cable Fly | Sh HAdd | I | ✓ | H | VH | Seated, Standing, Crossover, Press-Around | Nippard S-tier |
-| Machine Fly (Pec Deck) | Sh HAdd | I | ✓ | H | H | Pec Deck, Plate-Loaded | Nippard A-tier |
-| Dumbbell Fly | Sh HAdd | I | ✓ | M | H | Flat, Incline, Janicki | A-tier; deep stretch |
+| Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Angles | Coach Note |
+|---|---|---|---|---|---|---|---|---|
+| **Machine Chest Press** | Sh HAdd, Sh Flex, Elb Ext, Scap Prot | C | ✓ | H | VH | Selectorized, Plate-Loaded | Flat / Mid Seat, Incline Seat | Nippard's #1 chest |
+| **Barbell Bench Press** | Sh HAdd, Sh Flex, Elb Ext, Scap Prot | C | ✗ | M | H | Standard BB, Smith, Cambered (✓ stretch override) | Flat, 15°, **30°** (✓ stretch override), 45° (✓ stretch override) | Heavy load; flat caps stretch — 30° or cambered restores it |
+| **Dumbbell Bench Press** | Sh HAdd, Sh Flex, Elb Ext, Scap Prot | C | ✓ | M | H | DB | Flat, 15°, 30°, 45° | Israetel: incline DB for max stretch |
+| Deficit Push-Up | Sh HAdd, Elb Ext, Scap Prot | C | ✓ | M | H | Handles, DB Handles, Parallettes, Blocks | — | Israetel: ultra-deep stretch |
+| Chest-Focused Dip | Sh Add, Sh HAdd, Elb Ext | C | ✓ | M | H | Parallel Bars, Assisted, Plate-Loaded | — | Israetel: forward lean |
+| Cable Fly | Sh HAdd | I | ✓ | H | VH | Seated, Standing, Crossover, Press-Around | High-to-Low / Mid / Low-to-High | Nippard S-tier |
+| Machine Fly (Pec Deck) | Sh HAdd | I | ✓ | H | H | Pec Deck, Plate-Loaded | — | Nippard A-tier |
+| Dumbbell Fly | Sh HAdd | I | ✓ | M | H | Flat, Incline, Janicki | — | A-tier; deep stretch |
 
 #### Vertical / Overhead Push
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
@@ -127,27 +130,27 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 #### Lat-Biased
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
 |---|---|---|---|---|---|---|---|
-| Lat Pulldown | Sh Add, Elb Flex, Scap DR | C | ✓ | H | VH | Cable Wide, Cable Neutral, Single-Arm, Machine | Nippard S-tier |
-| Single-Arm Cable Pulldown | Sh Add | I | ✓ | H | VH | Cable Single Handle, Cable Rope | Pure lat (minimal elbow flex) |
-| Dumbbell Row (Elbow-Tucked) | Sh Ext, Elb Flex | C | ✓ | M | H | DB on Bench, DB Standing | Tucked elbow = lat focus |
-| Straight-Arm Pulldown / Lat Prayer | Sh Ext | I | ✓ | H | VH | Cable Rope, Cable Bar, Band, Machine Pullover | Israetel: deep lat stretch |
-| Pullover | Sh Ext, Sh Add | I | ✓ | M | H | Cable, DB, Machine | Better as lat than chest |
+| Lat Pulldown | Sh Add, Elb Flex, Scap DR, **Scap Dep** | C | ✓ | H | VH | Cable Wide, Cable Neutral, Single-Arm, Machine | Nippard S-tier |
+| Single-Arm Cable Pulldown | Sh Add, **Scap Dep** | I | ✓ | H | VH | Cable Single Handle, Cable Rope | Pure lat (minimal elbow flex) |
+| Dumbbell Row (Elbow-Tucked) | Sh Ext, Elb Flex, **Scap Elev** | C | ✓ | M | H | DB on Bench, DB Standing | Tucked elbow = lat focus |
+| Straight-Arm Pulldown / Lat Prayer | Sh Ext, **Scap Dep** | I | ✓ | H | VH | Cable Rope, Cable Bar, Band, Machine Pullover | Israetel: deep lat stretch |
+| Pullover | Sh Ext, Sh Add, **Scap Dep** | I | ✓ | M | H | Cable, DB, Machine | Better as lat than chest |
 
 #### Upper Back & Rhomboid
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
 |---|---|---|---|---|---|---|---|
 | Chest-Supported Row | Sh Ext, Scap Retr, Elb Flex | C | ✓ | H | VH | T-Bar, Machine, Incline DB, Seal | Nippard: best all-around back |
 | Cable Row (Elbow-Flared) | Sh HAbd, Scap Retr, Elb Flex | C | ✓ | H | VH | Seated, Wide-Grip, Single-Arm | Wide-elbow path = mid-back |
-| Barbell Row | Sh Ext, Scap Retr, Elb Flex, Sp Ext | C | ✓ | L | M | BB, Deficit Pendlay, Yates | Nippard A-tier deficit Pendlay |
-| Meadows Row | Sh Ext, Scap Retr, Elb Flex | C | ✓ | M | H | Landmine, T-Bar, One-Arm BB | Nippard S-tier; isolateral |
+| Barbell Row | Sh Ext, Scap Retr, Elb Flex, Sp Ext, **Scap Elev** | C | ✓ | L | M | BB, Deficit Pendlay, Yates | Nippard A-tier deficit Pendlay |
+| Meadows Row | Sh Ext, Scap Retr, Elb Flex, **Scap Elev** | C | ✓ | M | H | Landmine, T-Bar, One-Arm BB | Nippard S-tier; isolateral |
 | Inverted Row to Face/Throat | Sh HAbd, Scap Retr, Elb Flex | C | ✗ | M | H | Smith, BB Rack, TRX | Israetel: rear-delt-heavy row |
-| Single-Arm DB Row (Elbow-Flared) | Sh HAbd, Scap Retr, Elb Flex | C | ✓ | M | H | DB on Bench, DB Standing | Flared elbow = mid-back focus |
+| Single-Arm DB Row (Elbow-Flared) | Sh HAbd, Scap Retr, Elb Flex, **Scap Elev** | C | ✓ | M | H | DB on Bench, DB Standing | Flared elbow = mid-back focus |
 | Cable Face Pull (Rhomboid) | Sh HAbd, Scap Retr, Elb Flex | C | ✓ | M | H | Cable Rope, Cable Bar | Mid-back biased face pull |
 
 #### Bicep-Biased Pull
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
 |---|---|---|---|---|---|---|---|
-| Pull-Up / Chin-Up | Sh Add, Sh Ext, Elb Flex, Scap DR | C | ✓ | M | H | BW, Weighted, Assisted, Underhand, Neutral | Israetel: unbeatable for lats |
+| Pull-Up / Chin-Up | Sh Add, Sh Ext, Elb Flex, Scap DR, **Scap Dep** | C | ✓ | M | H | BW, Weighted, Assisted, Underhand, Neutral | Israetel: unbeatable for lats |
 | Supinated Pulldown | Sh Add, Elb Flex | C | ✓ | H | H | Cable Underhand, Machine Underhand | — |
 | Supinated Row | Sh Ext, Elb Flex, Scap Retr | C | ✓ | H | H | Cable, BB, Machine | — |
 
@@ -277,19 +280,18 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 | Knee Flexors | ★★ | Seated Leg Curl, Lying Leg Curl, RDL |
 | Hip Extensors | ★★★ | Machine Hip Thrust, RDL, Long-Stride Lunge, Back Extension |
 | Hip Adductors | ★ | Long-Stride Lunge, FFE Lunge (incidental) |
-| Hip Abductors | ★ | Bulgarian Split Squat (incidental) |
+| Hip Abductors | ★★ | Toes-Spread Squat / Hack / Leg Press / Belt Squat (via stance toggle), Bulgarian Split Squat |
 | Shoulder Horizontal Adductors | ★★★ | Machine Chest Press, Cable Fly, Incline Press |
 | Shoulder Horizontal Abductors | ★★★ | Reverse Pec Deck, Reverse Cable Crossover, Cable Row |
 | Shoulder Adductors | ★★ | Lat Pulldown, Pull-Up, Single-Arm Cable Pulldown |
 | Shoulder Extensors | ★★★ | Chest-Supported Row, Lat Prayer, Pullover |
 | Shoulder Abductors | ★★★ | Cable Lateral, Machine Lateral, BTB Cuff Cable |
 | Shoulder Flexors | ★★ | Machine Shoulder Press, Incline Press |
-| Shoulder Internal Rotators | ✗ | **Gap** |
 | Shoulder External Rotators | ★ | Face Pull only |
 | Scapular Retractors | ★★ | Chest-Supported Row, Cable Row, Face Pull |
 | Scapular Protractors | ★ | Chest Press variants (incidental) |
-| Scapular Elevators | ✗ | **Gap** — no shrug pattern |
-| Scapular Depressors | ✗ | **Gap** |
+| Scapular Elevators | ★★ | RDL, Conventional DL, Barbell Row, Meadows Row, Single-Arm DB Rows |
+| Scapular Depressors | ★★ | Lat Pulldown, Pull-Up, Single-Arm Cable Pulldown, Lat Prayer, Pullover |
 | Scapular Upward Rotators | ★ | Cable Y-Raise, Machine Shoulder Press |
 | Scapular Downward Rotators | ★★ | Lat Pulldown, Pull-Up |
 | Elbow Flexors | ★★★ | Bayesian, Preacher, Lat Pulldown |
@@ -298,14 +300,14 @@ Stretch emphasis: ✓ if loaded in the lengthened position
 | Spinal Extensors | ★★ | Back Extension, RDL, Good Morning |
 | Spinal Rotators & Lateral Flexors | ★★ | Woodchop, Pallof, Side Bend |
 | Hip Flexors | ★ | V-Up, Ab Wheel (incidental) |
-| Hip External / Internal Rotators | ✗ | **Gap** |
+| Hip External Rotators | ★★ | Toes-Spread Squat / Hack / Leg Press / Belt Squat (via stance toggle), Bulgarian Split Squat |
+| Hip Internal Rotators | ★ | Bulgarian Split Squat / Lunges (incidental) |
 | Ankle Plantarflexors | ★★ | Standing Calf Raise, Seated Calf Raise |
-| Ankle Dorsiflexors | ✗ | **Gap** |
 
-**Known gaps** (mostly minor stabilizers — light penalty in rating):
+**Remaining gaps** (light penalty in rating):
 
-- Shoulder Internal Rotators
-- Scapular Elevators / Depressors (no shrugs)
-- Hip Abductors / Adductors as direct work
-- Hip Internal / External Rotators
-- Ankle Dorsiflexors (no Tib raise)
+- Shoulder External Rotators — Face Pull is the only pick. Could add a Cable External Rotation if wanted.
+- Scapular Protractors — only incidentally trained (every chest press involves protraction at lockout). Could add a Serratus Punch.
+- Hip Adductors as direct isolation — covered incidentally via lunges and any unilateral lift; no dedicated machine pick.
+
+The rating engine penalizes these lightly because they're either covered indirectly or are minor stabilizers.

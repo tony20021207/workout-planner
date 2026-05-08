@@ -12,15 +12,33 @@ export type CategoryType = "systemic" | "regional";
 export type Difficulty = "hard" | "medium" | "easy";
 export type StimulusLevel = "very-high" | "high" | "medium" | "low";
 
+/**
+ * Optional tag overrides applied when a specific equipment / angle option
+ * is selected. The rating engine resolves these on top of the exercise's
+ * base tags, so the toggle looks like a harmless choice on the surface
+ * while quietly modifying the rating-relevant attributes underneath.
+ */
+export interface TagOverrides {
+  stretchEmphasis?: boolean;
+  stability?: StimulusLevel;
+  sfr?: StimulusLevel;
+  /** Joint actions to ADD to the exercise's base list. */
+  addJointActions?: JointAction[];
+  /** Joint actions to REMOVE from the exercise's base list. */
+  removeJointActions?: JointAction[];
+}
+
 export interface EquipmentOption {
   id: string;
   name: string;
+  tagOverrides?: TagOverrides;
 }
 
 export interface AngleOption {
   id: string;
   name: string;
   description: string;
+  tagOverrides?: TagOverrides;
 }
 
 export interface WarmupInfo {
@@ -31,9 +49,10 @@ export interface WarmupInfo {
 }
 
 /**
- * Canonical joint actions used by the rating engine. These are the exact
- * strings the rating prompt and coverage check expect. Use these literals
- * when tagging an exercise so coverage analysis works.
+ * Canonical joint actions used by the rating engine. Trimmed by user spec:
+ * Shoulder Internal Rotators removed (over-trained incidentally; external
+ * rotation is the under-trained one we care about). Ankle Dorsiflexors
+ * removed (minimal muscle, trained alongside other lifts).
  */
 export const JOINT_ACTIONS = [
   // Shoulder
@@ -43,7 +62,6 @@ export const JOINT_ACTIONS = [
   "Shoulder Adductors",
   "Shoulder Horizontal Abductors",
   "Shoulder Horizontal Adductors",
-  "Shoulder Internal Rotators",
   "Shoulder External Rotators",
   // Scapula
   "Scapular Retractors",
@@ -71,7 +89,6 @@ export const JOINT_ACTIONS = [
   "Knee Flexors",
   // Ankle
   "Ankle Plantarflexors",
-  "Ankle Dorsiflexors",
 ] as const;
 
 export type JointAction = (typeof JOINT_ACTIONS)[number];
@@ -186,6 +203,23 @@ export const categories: Category[] = [
                   { id: "smith", name: "Smith Machine Squat" },
                   { id: "heel-elevated", name: "Heel-Elevated Squat" },
                 ],
+                angles: [
+                  {
+                    id: "parallel-stance",
+                    name: "Parallel Stance",
+                    description:
+                      "Feet shoulder-width, toes pointing forward. Standard quad/hip-extension pattern.",
+                  },
+                  {
+                    id: "toes-spread",
+                    name: "Toes-Spread Stance",
+                    description:
+                      "Slightly wider stance with toes flared out. Recruits glute medius and hip external rotators alongside the quads.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Abductors", "Hip External Rotators"],
+                    },
+                  },
+                ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Nippard rates high-bar squats S-tier and front squats A-tier; Smith stability lets lifters push closer to failure. Israetel recommends heel elevation for deeper knee travel.",
@@ -207,6 +241,21 @@ export const categories: Category[] = [
                 equipment: [
                   { id: "hack", name: "Hack Squat Machine" },
                   { id: "pendulum", name: "Pendulum Squat Machine" },
+                ],
+                angles: [
+                  {
+                    id: "parallel-stance-hack",
+                    name: "Parallel Stance",
+                    description: "Feet shoulder-width, toes forward. Standard quad bias.",
+                  },
+                  {
+                    id: "toes-spread-hack",
+                    name: "Toes-Spread Stance",
+                    description: "Wider stance with toes flared. Adds glute medius and hip external rotation work.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Abductors", "Hip External Rotators"],
+                    },
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
@@ -230,6 +279,21 @@ export const categories: Category[] = [
                   { id: "belt-machine", name: "Belt Squat Machine" },
                   { id: "cable-belt", name: "Cable Belt Setup" },
                 ],
+                angles: [
+                  {
+                    id: "parallel-stance-belt",
+                    name: "Parallel Stance",
+                    description: "Feet shoulder-width, toes forward.",
+                  },
+                  {
+                    id: "toes-spread-belt",
+                    name: "Toes-Spread Stance",
+                    description: "Wider stance with toes flared. Adds glute medius and hip external rotation.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Abductors", "Hip External Rotators"],
+                    },
+                  },
+                ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Israetel highlights belt squats for quads with low systemic fatigue.",
@@ -252,6 +316,21 @@ export const categories: Category[] = [
                   { id: "leg-press-45", name: "45° Leg Press" },
                   { id: "plate-leg-press", name: "Plate-Loaded" },
                   { id: "selectorized-leg-press", name: "Selectorized" },
+                ],
+                angles: [
+                  {
+                    id: "parallel-stance-lp",
+                    name: "Parallel Stance",
+                    description: "Feet shoulder-width, toes forward. Standard quad bias.",
+                  },
+                  {
+                    id: "toes-spread-lp",
+                    name: "Toes-Spread Stance",
+                    description: "Wider stance with toes flared. Adds glute medius and hip external rotation.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Abductors", "Hip External Rotators"],
+                    },
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier; main limitation is ROM.",
@@ -375,6 +454,21 @@ export const categories: Category[] = [
                   { id: "smith-feet-fwd", name: "Smith Machine (Feet Forward)" },
                   { id: "box", name: "Box Squat" },
                 ],
+                angles: [
+                  {
+                    id: "parallel-stance-sb",
+                    name: "Parallel Stance",
+                    description: "Feet shoulder-width, toes forward.",
+                  },
+                  {
+                    id: "toes-spread-sb",
+                    name: "Toes-Spread Stance",
+                    description: "Wider stance with toes flared. Adds glute medius and hip external rotation.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Abductors", "Hip External Rotators"],
+                    },
+                  },
+                ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel & Nippard: glute-biased squat patterning.",
               },
@@ -422,8 +516,13 @@ export const categories: Category[] = [
                 id: "rdl",
                 name: "Stiff-Leg / Romanian Deadlift",
                 difficulty: "hard",
-                targetedMuscles: ["Hamstrings", "Glutes", "Adductors", "Erectors"],
-                jointActions: ["Hip Extensors", "Spinal Extensors", "Knee Flexors"],
+                targetedMuscles: ["Hamstrings", "Glutes", "Adductors", "Erectors", "Upper Traps"],
+                jointActions: [
+                  "Hip Extensors",
+                  "Spinal Extensors",
+                  "Knee Flexors",
+                  "Scapular Elevators",
+                ],
                 compound: true,
                 stretchEmphasis: true,
                 stability: "medium",
@@ -562,12 +661,13 @@ export const categories: Category[] = [
                 id: "deadlift",
                 name: "Conventional / Sumo Deadlift",
                 difficulty: "hard",
-                targetedMuscles: ["Glutes", "Hamstrings", "Adductors", "Erectors"],
+                targetedMuscles: ["Glutes", "Hamstrings", "Adductors", "Erectors", "Upper Traps"],
                 jointActions: [
                   "Hip Extensors",
                   "Spinal Extensors",
                   "Knee Extensors",
                   "Scapular Retractors",
+                  "Scapular Elevators",
                 ],
                 compound: true,
                 stretchEmphasis: false,
@@ -696,10 +796,22 @@ export const categories: Category[] = [
                 description:
                   "Selectorized or plate-loaded chest press machine. Smooth resistance with deep stretch and full-ROM contraction.",
                 mechanics:
-                  "Fixed handle path eliminates balance demand and lets the lifter push close to failure safely.",
+                  "Fixed handle path eliminates balance demand and lets the lifter push close to failure safely. Adjustable seat angle on most machines lets you bias mid- vs upper-chest.",
                 equipment: [
                   { id: "select-mcp", name: "Selectorized" },
                   { id: "plate-mcp", name: "Plate-Loaded" },
+                ],
+                angles: [
+                  {
+                    id: "flat-mcp",
+                    name: "Flat / Mid Seat",
+                    description: "Sternal mid-chest bias. Standard horizontal press path.",
+                  },
+                  {
+                    id: "incline-mcp",
+                    name: "Incline Seat",
+                    description: "Tilted seat biases the clavicular pec and front delt.",
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: his overall best chest builder.",
@@ -720,16 +832,41 @@ export const categories: Category[] = [
                 stability: "medium",
                 sfr: "high",
                 description:
-                  "Flat barbell bench press. Heavy compound chest pattern; the bar stops at chest level, capping bottom-range stretch.",
+                  "Barbell bench press, flat or inclined. Heavy compound chest pattern. On a flat bench the bar stops at chest level (capped stretch); incline 30° opens longer ROM.",
                 mechanics:
-                  "Bar arcs from chest to lockout. Bar contact with the chest limits how lengthened the pec gets compared to DB or cambered-bar versions.",
+                  "Bar arcs from chest to lockout. Cambered bar drops below chest line for a deeper stretch; 30° incline lengthens the path enough to load the pec near full stretch.",
                 equipment: [
                   { id: "bb-bp", name: "Standard Barbell" },
                   { id: "smith-bp", name: "Smith Machine" },
-                  { id: "cambered", name: "Cambered Bar (deeper stretch)" },
+                  { id: "cambered", name: "Cambered Bar (deeper stretch)", tagOverrides: { stretchEmphasis: true } },
+                ],
+                angles: [
+                  {
+                    id: "flat-bb",
+                    name: "Flat Bench",
+                    description: "Bar stops at the chest, limiting bottom stretch. Mid-chest bias.",
+                  },
+                  {
+                    id: "15-bb",
+                    name: "15° Incline",
+                    description: "Slight upper-chest bias; ROM still capped by bar contact.",
+                  },
+                  {
+                    id: "30-bb",
+                    name: "30° Incline",
+                    description:
+                      "Clavicular pec bias and longer pressing arc — bar travels deeper than flat, giving real stretch under load.",
+                    tagOverrides: { stretchEmphasis: true },
+                  },
+                  {
+                    id: "45-bb",
+                    name: "45° Incline",
+                    description: "Heavy front-delt bias; treat as a shoulder press.",
+                    tagOverrides: { stretchEmphasis: true },
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
-                coachNotes: "Heavy load potential; less stretch than DB unless using cambered bar.",
+                coachNotes: "Heavy load potential; flat bench limits stretch — 30° incline or cambered bar opens it back up.",
               },
               {
                 id: "dumbbell-bench-press",
@@ -747,48 +884,36 @@ export const categories: Category[] = [
                 stability: "medium",
                 sfr: "high",
                 description:
-                  "Flat dumbbell bench press. Independent dumbbells let the chest stretch deeper at the bottom.",
+                  "Dumbbell bench press, flat or inclined. Independent DBs travel below chest line for a deep stretch in any seat angle.",
                 mechanics:
-                  "DBs travel below chest level for a deep stretch; the lifter pays for it with reduced stability vs a machine.",
+                  "DBs reach below chest at the bottom regardless of angle, giving consistent stretch. Incline biases clavicular pec / front delt.",
                 equipment: [
                   { id: "db-bp", name: "Dumbbell" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
-                coachNotes: "Israetel: deeper bottom stretch than barbell bench.",
-              },
-              {
-                id: "incline-press",
-                name: "Incline Press",
-                difficulty: "medium",
-                targetedMuscles: ["Upper Pectorals", "Front Delts", "Triceps"],
-                jointActions: [
-                  "Shoulder Flexors",
-                  "Shoulder Horizontal Adductors",
-                  "Elbow Extensors",
-                  "Scapular Protractors",
-                ],
-                compound: true,
-                stretchEmphasis: true,
-                stability: "medium",
-                sfr: "high",
-                description:
-                  "15°–30° incline press. Biases the clavicular pec and front delt while still building the mid/lower chest.",
-                mechanics:
-                  "Incline shifts the line of pull more vertical, increasing shoulder flexion demand and clavicular pec involvement.",
-                equipment: [
-                  { id: "bb-inc", name: "Barbell" },
-                  { id: "db-inc", name: "Dumbbell" },
-                  { id: "smith-inc", name: "Smith Machine" },
-                  { id: "machine-inc", name: "Machine" },
-                ],
                 angles: [
-                  { id: "15", name: "15° Incline", description: "Slight upper-chest bias with strong mid-chest involvement." },
-                  { id: "30", name: "30° Incline", description: "Stronger clavicular pec bias." },
-                  { id: "45", name: "45° Incline", description: "Heavy front-delt bias; treat as a shoulder press." },
+                  {
+                    id: "flat-db",
+                    name: "Flat Bench",
+                    description: "Sternal / mid-chest bias with deep DB stretch.",
+                  },
+                  {
+                    id: "15-db",
+                    name: "15° Incline",
+                    description: "Slight upper-chest bias with strong mid-chest involvement.",
+                  },
+                  {
+                    id: "30-db",
+                    name: "30° Incline",
+                    description: "Strong clavicular pec bias. Israetel: max stretch incline DB.",
+                  },
+                  {
+                    id: "45-db",
+                    name: "45° Incline",
+                    description: "Heavy front-delt bias; treat as a shoulder press.",
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
-                coachNotes:
-                  "Nippard: incline pressing for upper chest. Israetel: incline DB for max stretch.",
+                coachNotes: "Israetel: incline DB for max chest stretch.",
               },
               {
                 id: "deficit-pushup",
@@ -1049,6 +1174,7 @@ export const categories: Category[] = [
                   "Shoulder Adductors",
                   "Elbow Flexors",
                   "Scapular Downward Rotators",
+                  "Scapular Depressors",
                 ],
                 compound: true,
                 stretchEmphasis: true,
@@ -1072,7 +1198,7 @@ export const categories: Category[] = [
                 name: "Single-Arm Cable Pulldown",
                 difficulty: "easy",
                 targetedMuscles: ["Lats", "Teres Major"],
-                jointActions: ["Shoulder Adductors"],
+                jointActions: ["Shoulder Adductors", "Scapular Depressors"],
                 compound: false,
                 stretchEmphasis: true,
                 stability: "high",
@@ -1093,7 +1219,7 @@ export const categories: Category[] = [
                 name: "Dumbbell Row (Elbow-Tucked)",
                 difficulty: "medium",
                 targetedMuscles: ["Lats", "Teres Major", "Biceps"],
-                jointActions: ["Shoulder Extensors", "Elbow Flexors"],
+                jointActions: ["Shoulder Extensors", "Elbow Flexors", "Scapular Elevators"],
                 compound: true,
                 stretchEmphasis: true,
                 stability: "medium",
@@ -1114,7 +1240,7 @@ export const categories: Category[] = [
                 name: "Straight-Arm Pulldown / Lat Prayer",
                 difficulty: "easy",
                 targetedMuscles: ["Lats", "Teres Major"],
-                jointActions: ["Shoulder Extensors"],
+                jointActions: ["Shoulder Extensors", "Scapular Depressors"],
                 compound: false,
                 stretchEmphasis: true,
                 stability: "high",
@@ -1138,7 +1264,7 @@ export const categories: Category[] = [
                 name: "Pullover",
                 difficulty: "medium",
                 targetedMuscles: ["Lats", "Teres Major", "Long Head Triceps"],
-                jointActions: ["Shoulder Extensors", "Shoulder Adductors"],
+                jointActions: ["Shoulder Extensors", "Shoulder Adductors", "Scapular Depressors"],
                 compound: false,
                 stretchEmphasis: true,
                 stability: "medium",
@@ -1226,6 +1352,7 @@ export const categories: Category[] = [
                   "Scapular Retractors",
                   "Elbow Flexors",
                   "Spinal Extensors",
+                  "Scapular Elevators",
                 ],
                 compound: true,
                 stretchEmphasis: true,
@@ -1253,6 +1380,7 @@ export const categories: Category[] = [
                   "Shoulder Extensors",
                   "Scapular Retractors",
                   "Elbow Flexors",
+                  "Scapular Elevators",
                 ],
                 compound: true,
                 stretchEmphasis: true,
@@ -1306,6 +1434,7 @@ export const categories: Category[] = [
                   "Shoulder Horizontal Abductors",
                   "Scapular Retractors",
                   "Elbow Flexors",
+                  "Scapular Elevators",
                 ],
                 compound: true,
                 stretchEmphasis: true,
@@ -1365,6 +1494,7 @@ export const categories: Category[] = [
                   "Shoulder Extensors",
                   "Elbow Flexors",
                   "Scapular Downward Rotators",
+                  "Scapular Depressors",
                 ],
                 compound: true,
                 stretchEmphasis: true,
@@ -2561,3 +2691,61 @@ export const MAJOR_JOINT_ACTIONS: JointAction[] = [
   "Spinal Flexors",
   "Ankle Plantarflexors",
 ];
+
+// ============================================================
+// TAG RESOLUTION
+// ============================================================
+
+export interface ResolvedTags {
+  stretchEmphasis: boolean;
+  stability: StimulusLevel;
+  sfr: StimulusLevel;
+  jointActions: JointAction[];
+  /** Which option overrides were applied, for debugging / display. */
+  appliedOverrides: string[];
+}
+
+/**
+ * Resolve an exercise's effective tags given the user's selected equipment
+ * and angle. Overrides on the option layer on top of the exercise's base
+ * tags. Multiple overrides compose: equipment overrides apply first, then
+ * angle overrides on top.
+ */
+export function resolveEffectiveTags(
+  exercise: Exercise,
+  selectedEquipmentName?: string,
+  selectedAngleName?: string,
+): ResolvedTags {
+  let stretchEmphasis = exercise.stretchEmphasis;
+  let stability = exercise.stability;
+  let sfr = exercise.sfr;
+  const jointActionSet = new Set<JointAction>(exercise.jointActions);
+  const applied: string[] = [];
+
+  const apply = (overrides: TagOverrides | undefined, label: string) => {
+    if (!overrides) return;
+    if (overrides.stretchEmphasis !== undefined) stretchEmphasis = overrides.stretchEmphasis;
+    if (overrides.stability !== undefined) stability = overrides.stability;
+    if (overrides.sfr !== undefined) sfr = overrides.sfr;
+    overrides.addJointActions?.forEach((a) => jointActionSet.add(a));
+    overrides.removeJointActions?.forEach((a) => jointActionSet.delete(a));
+    applied.push(label);
+  };
+
+  if (selectedEquipmentName) {
+    const eq = exercise.equipment?.find((e) => e.name === selectedEquipmentName);
+    apply(eq?.tagOverrides, `equipment:${selectedEquipmentName}`);
+  }
+  if (selectedAngleName) {
+    const ang = exercise.angles?.find((a) => a.name === selectedAngleName);
+    apply(ang?.tagOverrides, `angle:${selectedAngleName}`);
+  }
+
+  return {
+    stretchEmphasis,
+    stability,
+    sfr,
+    jointActions: Array.from(jointActionSet),
+    appliedOverrides: applied,
+  };
+}
