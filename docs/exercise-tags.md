@@ -19,7 +19,19 @@ Flat snapshot of every exercise in `client/src/lib/data.ts` with the tags the ra
   - **Overhead Press** → Machine Shoulder Press / Free-Weight Overhead Press
   - **Hip Thrust** → Machine Hip Thrust / Free-Weight Hip Thrust
 
-**Tag overrides on toggles:** Equipment / angle options can carry an optional `tagOverrides` block that quietly modifies the rating-relevant tags when that option is selected. Example: BB Bench Press at 30° incline gets `stretchEmphasis: true` because the longer pressing arc loads the pec near full stretch even though flat BB doesn't. Toes-spread stance on bilateral squats adds `Hip Abductors` and `Hip External Rotators` to the joint actions. The user just sees a toggle; the rating engine resolves the effective tags via `resolveEffectiveTags(exercise, equipment, angle)`.
+**Tag overrides on toggles:** Equipment / angle options can carry an optional `tagOverrides` block that quietly modifies the rating-relevant tags when that option is selected. Examples:
+
+- **30° BB Bench Press** → `{ stretchEmphasis: true }` (longer pressing arc gives real stretch)
+- **Toes-Spread squat stance** → `{ addJointActions: ["Hip Abductors", "Hip External Rotators"] }`
+- **Wide Stance Hack/Leg Press** → `{ addJointActions: ["Hip Adductors"] }`
+- **Sumo Deadlift** → `{ addJointActions: ["Hip Adductors", "Hip External Rotators"] }`
+- **B-Stance Hip Thrust** → `{ addJointActions: ["Hip Abductors"] }`
+- **75° Incline Curl** → `{ stretchEmphasis: false }` (closer to upright = less stretch than 45°)
+- **Pec Deck Low Seat** → `{ addJointActions: ["Shoulder Flexors"] }` (upper-chest bias)
+- **Close-Grip Pulldown** → `{ addJointActions: ["Shoulder Extensors"] }` (deeper adduction recruits posterior fibers)
+- **Horizontal-Elbow Face Pull** → `{ removeJointActions: ["Shoulder External Rotators"] }` (path shifts away from rotation toward retraction)
+
+The user just sees a toggle. The rating engine resolves the effective tags via `resolveEffectiveTags(exercise, equipment, angle)` and uses those for joint-action coverage and the anatomical-size-weighted balance check.
 
 **Taxonomy update:** Shoulder Internal Rotators and Ankle Dorsiflexors removed from the canonical list (incidentally trained / minimal muscle). Down to **27 joint actions** from 29.
 

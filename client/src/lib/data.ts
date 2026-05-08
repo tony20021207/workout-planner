@@ -244,16 +244,34 @@ export const categories: Category[] = [
                 ],
                 angles: [
                   {
-                    id: "parallel-stance-hack",
-                    name: "Parallel Stance",
-                    description: "Feet shoulder-width, toes forward. Standard quad bias.",
+                    id: "parallel-mid-hack",
+                    name: "Parallel / Mid Foot",
+                    description: "Standard stance with foot mid-platform. Balanced quad-glute bias.",
+                  },
+                  {
+                    id: "low-foot-hack",
+                    name: "Low Foot Position",
+                    description: "Foot low on the platform. Maximizes knee travel and quad emphasis.",
+                  },
+                  {
+                    id: "high-foot-hack",
+                    name: "High Foot Position",
+                    description: "Foot high on the platform. Reduces knee travel and biases the glutes / hamstrings.",
                   },
                   {
                     id: "toes-spread-hack",
                     name: "Toes-Spread Stance",
-                    description: "Wider stance with toes flared. Adds glute medius and hip external rotation work.",
+                    description: "Wider stance with toes flared. Adds glute medius and hip external rotation.",
                     tagOverrides: {
                       addJointActions: ["Hip Abductors", "Hip External Rotators"],
+                    },
+                  },
+                  {
+                    id: "wide-stance-hack",
+                    name: "Wide Stance",
+                    description: "Wide foot placement loads the adductors heavily.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Adductors"],
                     },
                   },
                 ],
@@ -319,9 +337,19 @@ export const categories: Category[] = [
                 ],
                 angles: [
                   {
-                    id: "parallel-stance-lp",
-                    name: "Parallel Stance",
-                    description: "Feet shoulder-width, toes forward. Standard quad bias.",
+                    id: "parallel-mid-lp",
+                    name: "Parallel / Mid Foot",
+                    description: "Standard stance with foot mid-platform. Balanced quad-glute bias.",
+                  },
+                  {
+                    id: "low-foot-lp",
+                    name: "Low Foot Position",
+                    description: "Foot low on the platform. Maximizes knee travel and quad emphasis.",
+                  },
+                  {
+                    id: "high-foot-lp",
+                    name: "High Foot Position",
+                    description: "Foot high on the platform. Reduces knee travel and biases the glutes / hamstrings.",
                   },
                   {
                     id: "toes-spread-lp",
@@ -329,6 +357,14 @@ export const categories: Category[] = [
                     description: "Wider stance with toes flared. Adds glute medius and hip external rotation.",
                     tagOverrides: {
                       addJointActions: ["Hip Abductors", "Hip External Rotators"],
+                    },
+                  },
+                  {
+                    id: "wide-stance-lp",
+                    name: "Wide Stance",
+                    description: "Wide foot placement loads the adductors heavily.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Adductors"],
                     },
                   },
                 ],
@@ -353,6 +389,18 @@ export const categories: Category[] = [
                   { id: "bulgarian", name: "Bulgarian Split Squat" },
                   { id: "db-split", name: "Dumbbell Split Squat" },
                   { id: "smith-split", name: "Smith Machine Split Squat" },
+                ],
+                angles: [
+                  {
+                    id: "short-stride-quad",
+                    name: "Short Stride (Quad)",
+                    description: "Front foot close to back. Maximizes knee flexion and quad stretch.",
+                  },
+                  {
+                    id: "ffe-quad",
+                    name: "Front-Foot Elevated",
+                    description: "Front foot on a 4–6 inch plate. Even deeper quad stretch in the bottom.",
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier for quad-biased unilateral loading.",
@@ -430,6 +478,24 @@ export const categories: Category[] = [
                   { id: "bulgarian-glute", name: "Bulgarian Split Squat" },
                   { id: "db-glute-split", name: "Dumbbell Split Squat" },
                   { id: "smith-glute-split", name: "Smith Machine" },
+                ],
+                angles: [
+                  {
+                    id: "long-stride-glute",
+                    name: "Long Stride",
+                    description: "Front foot far from back foot. Deepens glute stretch via hip flexion.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Adductors"],
+                    },
+                  },
+                  {
+                    id: "ffe-glute",
+                    name: "Front-Foot Elevated",
+                    description: "Front foot on a plate or step adds glute stretch at the bottom.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Adductors"],
+                    },
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
@@ -609,6 +675,29 @@ export const categories: Category[] = [
                 equipment: [
                   { id: "thrust-machine", name: "Glute Thrust Machine" },
                 ],
+                angles: [
+                  {
+                    id: "standard-mht",
+                    name: "Standard Stance",
+                    description: "Feet shoulder-width, knees ~90° at the top. Balanced glute / hamstring loading.",
+                  },
+                  {
+                    id: "wide-toes-out-mht",
+                    name: "Wide / Toes-Out",
+                    description: "Wider stance with toes flared adds glute medius and external rotator engagement.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Abductors", "Hip External Rotators"],
+                    },
+                  },
+                  {
+                    id: "b-stance-mht",
+                    name: "B-Stance (Single-Leg Bias)",
+                    description: "One foot back as a kickstand — most load goes to the front-leg glute, including glute medius.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Abductors"],
+                    },
+                  },
+                ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: top middle-glute option.",
               },
@@ -630,6 +719,29 @@ export const categories: Category[] = [
                   { id: "bb-ht", name: "Barbell" },
                   { id: "db-ht", name: "Dumbbell" },
                   { id: "smith-ht", name: "Smith Machine" },
+                ],
+                angles: [
+                  {
+                    id: "standard-fht",
+                    name: "Standard Stance",
+                    description: "Feet shoulder-width, knees ~90° at the top.",
+                  },
+                  {
+                    id: "wide-toes-out-fht",
+                    name: "Wide / Toes-Out",
+                    description: "Wider stance with toes flared adds glute medius and external rotator engagement.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Abductors", "Hip External Rotators"],
+                    },
+                  },
+                  {
+                    id: "b-stance-fht",
+                    name: "B-Stance (Single-Leg Bias)",
+                    description: "One foot back as a kickstand — most load goes to the front-leg glute, including glute medius.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Abductors"],
+                    },
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: hard shortened-position glute contraction.",
@@ -681,6 +793,29 @@ export const categories: Category[] = [
                   { id: "bb-dl", name: "Barbell" },
                   { id: "trap-dl", name: "Trap Bar" },
                   { id: "db-dl", name: "Dumbbell" },
+                ],
+                angles: [
+                  {
+                    id: "conventional",
+                    name: "Conventional Stance",
+                    description: "Narrow stance, hands outside knees. Posterior-chain dominant.",
+                  },
+                  {
+                    id: "semi-sumo",
+                    name: "Semi-Sumo Stance",
+                    description: "Moderately wide stance with mild toe flare. Adds adductor involvement.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Adductors"],
+                    },
+                  },
+                  {
+                    id: "sumo",
+                    name: "Sumo Stance",
+                    description: "Wide stance, toes flared, hands inside knees. Heavy adductor and external-rotator load with reduced lumbar shear.",
+                    tagOverrides: {
+                      addJointActions: ["Hip Adductors", "Hip External Rotators"],
+                    },
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
@@ -1015,6 +1150,26 @@ export const categories: Category[] = [
                   { id: "pec-deck", name: "Pec Deck" },
                   { id: "plate-fly", name: "Plate-Loaded Fly Machine" },
                 ],
+                angles: [
+                  {
+                    id: "mid-seat-pd",
+                    name: "Mid Seat (Sternal)",
+                    description: "Standard seat height. Sternal / mid-chest bias.",
+                  },
+                  {
+                    id: "high-seat-pd",
+                    name: "High Seat (Lower-Chest Bias)",
+                    description: "Higher seat puts the arc lower, biasing the lower pec.",
+                  },
+                  {
+                    id: "low-seat-pd",
+                    name: "Low Seat (Upper-Chest Bias)",
+                    description: "Lower seat tilts the arc upward, recruiting clavicular pec and front delt.",
+                    tagOverrides: {
+                      addJointActions: ["Shoulder Flexors"],
+                    },
+                  },
+                ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier; stable, focused chest tension.",
               },
@@ -1181,14 +1336,32 @@ export const categories: Category[] = [
                 stability: "high",
                 sfr: "very-high",
                 description:
-                  "Cable pulldown to the upper chest. Easier to track than pull-ups for hypertrophy progression.",
+                  "Cable or machine pulldown to the upper chest. Easier to track than pull-ups for hypertrophy progression.",
                 mechanics:
-                  "Cables maintain tension at the top stretch; close/neutral grip with elbows pulling straight down biases the lats.",
+                  "Cables maintain tension at the top stretch. Grip width and orientation shift the bias between lats and elbow flexors.",
                 equipment: [
-                  { id: "cable-wide", name: "Cable Wide-Grip" },
-                  { id: "cable-neutral", name: "Cable Neutral-Grip" },
-                  { id: "cable-single", name: "Single-Arm / Half-Kneeling" },
+                  { id: "cable-pd", name: "Cable" },
                   { id: "machine-pd", name: "Machine Pulldown" },
+                ],
+                angles: [
+                  {
+                    id: "wide-grip-pd",
+                    name: "Wide Grip",
+                    description: "Pronated wide grip lengthens the lat moment arm — maximum lat-width bias.",
+                  },
+                  {
+                    id: "neutral-grip-pd",
+                    name: "Neutral Grip",
+                    description: "Palms-facing grip is shoulder-friendly with balanced lat / elbow-flexor recruitment.",
+                  },
+                  {
+                    id: "close-grip-pd",
+                    name: "Close Grip",
+                    description: "Narrow grip emphasizes lat thickness via deeper shoulder adduction; recruits more biceps.",
+                    tagOverrides: {
+                      addJointActions: ["Shoulder Extensors"],
+                    },
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier; preferred over pull-ups for tracking.",
@@ -1623,13 +1796,31 @@ export const categories: Category[] = [
                 description:
                   "Lying back on an incline bench so the arms hang behind the torso. Maximal biceps long-head stretch.",
                 mechanics:
-                  "Bench tilt places the shoulder in extension, lengthening the biceps before the curl begins.",
+                  "Bench tilt places the shoulder in extension, lengthening the biceps before the curl begins. Lower bench angle = deeper stretch.",
                 equipment: [
                   { id: "db-incline-curl", name: "Dumbbell" },
                   { id: "cable-incline-curl", name: "Cable" },
                 ],
+                angles: [
+                  {
+                    id: "45-incline",
+                    name: "45° Bench",
+                    description: "Most reclined position. Maximum shoulder extension and biceps long-head stretch.",
+                  },
+                  {
+                    id: "60-incline",
+                    name: "60° Bench",
+                    description: "Moderate recline. Strong stretch with slightly easier setup.",
+                  },
+                  {
+                    id: "75-incline",
+                    name: "75° Bench",
+                    description: "Closer to upright. Less stretch — closer to a standing curl. Stretch tag drops.",
+                    tagOverrides: { stretchEmphasis: false },
+                  },
+                ],
                 warmup: PLACEHOLDER_WARMUP,
-                coachNotes: "Israetel & Nippard: A-tier deep stretch.",
+                coachNotes: "Israetel & Nippard: A-tier deep stretch (especially at 45°).",
               },
               {
                 id: "lying-curl",
@@ -1920,15 +2111,27 @@ export const categories: Category[] = [
                 description:
                   "Lying triceps extension with EZ-bar or dumbbells. Brutal stretch in the bottom position.",
                 mechanics:
-                  "Allowing the bar to track behind the head deepens the long-head stretch while loading all three heads.",
+                  "Bar path determines whether the long head is stretched. To-forehead version hits all three heads evenly; over-head path adds shoulder flexion that loads the long head deeply.",
                 equipment: [
                   { id: "bb-sk", name: "Barbell" },
                   { id: "ez-sk", name: "EZ-Bar" },
                   { id: "db-sk", name: "Dumbbell" },
                   { id: "smith-sk", name: "Smith Machine" },
                 ],
+                angles: [
+                  {
+                    id: "to-forehead",
+                    name: "To Forehead",
+                    description: "Bar travels straight down to the forehead. Balanced loading across all three heads.",
+                  },
+                  {
+                    id: "over-head",
+                    name: "Over-Head Path",
+                    description: "Bar continues past the forehead toward the bench, adding shoulder flexion. Deep long-head stretch — equivalent to a JM press path.",
+                  },
+                ],
                 warmup: PLACEHOLDER_WARMUP,
-                coachNotes: "Nippard: S-tier; Israetel: near-perfect force curve.",
+                coachNotes: "Nippard: S-tier; Israetel: near-perfect force curve. Over-head path doubles as long-head work.",
               },
               {
                 id: "cable-kickback",
@@ -2175,13 +2378,28 @@ export const categories: Category[] = [
                 stability: "high",
                 sfr: "high",
                 description:
-                  "Cable face pull with elbows high. Rear delt + external rotator + scapular retraction.",
+                  "Cable face pull. Rear delt + external rotator + scapular retraction. Elbow path determines bias.",
                 mechanics:
-                  "High elbows direct work into the rear delt and external rotators while retracting the scapulae.",
+                  "High elbows direct work into the rear delt + external rotators. Horizontal elbows shift toward upper-back. Lower elbow paths recruit lat involvement.",
                 equipment: [
                   { id: "cable-rope-fp", name: "Cable Rope" },
                   { id: "cable-bar-fp", name: "Cable Bar" },
                   { id: "trx-fp", name: "TRX" },
+                ],
+                angles: [
+                  {
+                    id: "high-elbows-fp",
+                    name: "High Elbows (Forehead Level)",
+                    description: "Elbows raised level with the forehead. Maximum rear-delt + external-rotator emphasis.",
+                  },
+                  {
+                    id: "horizontal-elbows-fp",
+                    name: "Horizontal Elbows (Chest Level)",
+                    description: "Elbows pulled straight back at chest height. Shifts toward upper-back / scapular retraction.",
+                    tagOverrides: {
+                      removeJointActions: ["Shoulder External Rotators"],
+                    },
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: rear-delt + rotator cuff balanced work.",
@@ -2247,10 +2465,22 @@ export const categories: Category[] = [
                 description:
                   "Seated machine hamstring curl. The pre-stretched hip position amplifies the stimulus.",
                 mechanics:
-                  "Hip flexion pre-stretches the hamstrings; knee flexion then loads them in their longest position.",
+                  "Hip flexion pre-stretches the hamstrings; knee flexion then loads them in their longest position. Leaning the torso further forward deepens the stretch.",
                 equipment: [
                   { id: "select-slc", name: "Selectorized" },
                   { id: "plate-slc", name: "Plate-Loaded" },
+                ],
+                angles: [
+                  {
+                    id: "upright-slc",
+                    name: "Upright Torso",
+                    description: "Standard seated position. Already pre-stretches the hamstrings via hip flexion.",
+                  },
+                  {
+                    id: "lean-forward-slc",
+                    name: "Lean-Forward Torso",
+                    description: "Chest propped forward over the thighs to maximize hip flexion. Nippard's preferred variant — deepest hamstring stretch loadable on a machine.",
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
@@ -2307,10 +2537,27 @@ export const categories: Category[] = [
                 description:
                   "Seated machine leg extension. Trains all four quad heads with rectus femoris emphasis.",
                 mechanics:
-                  "Fixed hip lets the rectus femoris stretch and contract under tension; the vasti contribute throughout.",
+                  "Fixed hip lets the rectus femoris stretch and contract under tension; the vasti contribute throughout. Toe position subtly biases vastus medialis vs lateralis.",
                 equipment: [
                   { id: "select-le", name: "Selectorized" },
                   { id: "plate-le", name: "Plate-Loaded" },
+                ],
+                angles: [
+                  {
+                    id: "parallel-toes-le",
+                    name: "Toes Parallel",
+                    description: "Standard foot position. Balanced loading across all four heads.",
+                  },
+                  {
+                    id: "toes-out-le",
+                    name: "Toes-Out",
+                    description: "Toes flared outward biases the vastus medialis (VMO).",
+                  },
+                  {
+                    id: "toes-in-le",
+                    name: "Toes-In",
+                    description: "Toes pointed inward biases the vastus lateralis.",
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: near-perfect quad iso.",
@@ -2380,12 +2627,29 @@ export const categories: Category[] = [
                 description:
                   "Standing calf raise with knees extended. Belt squat or dip belt versions remove spinal load.",
                 mechanics:
-                  "Straight knee keeps the gastrocnemius lengthened and primarily loaded.",
+                  "Straight knee keeps the gastrocnemius lengthened and primarily loaded. Toe position subtly biases medial vs lateral gastroc head.",
                 equipment: [
                   { id: "belt-calf", name: "Belt Squat" },
                   { id: "standing-calf", name: "Standing Calf Machine" },
                   { id: "dip-belt-calf", name: "Dip Belt Off Ledge" },
                   { id: "lp-calf", name: "Leg Press Calves" },
+                ],
+                angles: [
+                  {
+                    id: "parallel-toes-calf",
+                    name: "Toes Parallel",
+                    description: "Standard. Balanced loading across both gastroc heads.",
+                  },
+                  {
+                    id: "toes-in-calf",
+                    name: "Toes-In",
+                    description: "Toes pointed inward biases the medial gastroc head.",
+                  },
+                  {
+                    id: "toes-out-calf",
+                    name: "Toes-Out",
+                    description: "Toes flared outward biases the lateral gastroc head.",
+                  },
                 ],
                 warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: deep loaded stretch with pause.",
