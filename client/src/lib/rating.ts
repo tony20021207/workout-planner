@@ -19,10 +19,11 @@ export interface SelectionBreakdown {
 }
 
 export interface VolumeBreakdown {
-  rir: BreakdownEntry;
   reps: BreakdownEntry;
   sessionCaps: BreakdownEntry;
   frequency: BreakdownEntry;
+  /** New 12.5-pt criterion: compound-vs-isolation ratio + RIR-mismatch penalties from user's self-report. */
+  compoundIsolationIntensity: BreakdownEntry;
 }
 
 export interface CoverageCheck {
@@ -50,6 +51,10 @@ export interface RatingResult {
   selectionBreakdown: SelectionBreakdown;
   volumeBreakdown: VolumeBreakdown;
   coverage: CoverageCheck;
+  /** Educational text on the user's RIR alignment with the targets. */
+  intensityNote: string;
+  /** Empty string if no pulldowns; otherwise the scap-depression cueing reminder. */
+  scapularDepressionNote: string;
   optimizedRoutine: OptimizedExercise[];
 }
 

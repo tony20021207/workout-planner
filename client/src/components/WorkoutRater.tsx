@@ -20,11 +20,13 @@ import {
   Replace,
   AlertTriangle,
   X,
+  Flame,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useWorkout } from "@/contexts/WorkoutContext";
+import { useWorkout, type RIRChoice } from "@/contexts/WorkoutContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
@@ -65,8 +67,85 @@ function BreakdownRow({ label, score, max, notes }: { label: string; score: numb
   );
 }
 
+function EffortPanel({
+  compoundRIR,
+  isolationRIR,
+  onChange,
+}: {
+  compoundRIR: RIRChoice;
+  isolationRIR: RIRChoice;
+  onChange: (next: { compoundRIR: RIRChoice; isolationRIR: RIRChoice }) => void;
+}) {
+  const choices: { value: RIRChoice; label: string }[] = [
+    { value: "0", label: "0 RIR" },
+    { value: "1-2", label: "1–2 RIR" },
+    { value: "3+", label: "3+ RIR" },
+  ];
+
+  const renderRow = (
+    title: string,
+    target: RIRChoice,
+    current: RIRChoice,
+    setCurrent: (v: RIRChoice) => void,
+  ) => (
+    <div className="space-y-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-xs font-semibold text-foreground">{title}</span>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          target: {target} RIR
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-1">
+        {choices.map((c) => (
+          <button
+            key={c.value}
+            onClick={() => setCurrent(c.value)}
+            className={`text-xs px-2 py-1.5 rounded border transition-colors ${
+              current === c.value
+                ? c.value === target
+                  ? "bg-lime/20 border-lime text-lime"
+                  : "bg-yellow-500/10 border-yellow-500/50 text-yellow-300"
+                : "bg-secondary border-border text-muted-foreground hover:border-lime/40"
+            }`}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="p-4 bg-secondary/30 border border-border rounded-sm space-y-4">
+      <div className="flex items-start gap-2">
+        <Flame className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+        <div>
+          <h4 className="text-sm font-semibold text-foreground">Effort calibration</h4>
+          <p className="text-[11px] text-muted-foreground italic mt-0.5 leading-snug">
+            On the last rep of a working set — assuming you keep the same form, ROM, and tempo —
+            how many more reps could you do? <strong>Nippard's million-dollar test:</strong> if
+            someone offered you $1M to do one more clean rep, could you?
+          </p>
+        </div>
+      </div>
+      {renderRow(
+        "Compound / multi-joint sets",
+        "1-2",
+        compoundRIR,
+        (v) => onChange({ compoundRIR: v, isolationRIR }),
+      )}
+      {renderRow(
+        "Isolation / single-joint sets",
+        "0",
+        isolationRIR,
+        (v) => onChange({ compoundRIR, isolationRIR: v }),
+      )}
+    </div>
+  );
+}
+
 export default function WorkoutRater() {
-  const { routine, replaceRoutine, addRoutineItem } = useWorkout();
+  const { routine, replaceRoutine, addRoutineItem, effort, setEffort } = useWorkout();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<SourceMode>("routine");
   const [pastedText, setPastedText] = useState("");
@@ -97,11 +176,12 @@ export default function WorkoutRater() {
       rateMutation.mutate({
         source: "routine",
         text: serializeRoutineToText(routine),
+        effort,
       });
     } else if (mode === "text") {
-      rateMutation.mutate({ source: "text", text: pastedText });
+      rateMutation.mutate({ source: "text", text: pastedText, effort });
     } else if (imageDataUrl) {
-      rateMutation.mutate({ source: "image", imageDataUrl });
+      rateMutation.mutate({ source: "image", imageDataUrl, effort });
     }
   };
 
@@ -296,6 +376,15 @@ Tue - Pull
         </Tabs>
       )}
 
+      {/* Effort calibration — always visible before result */}
+      {!result && (
+        <EffortPanel
+          compoundRIR={effort.compoundRIR}
+          isolationRIR={effort.isolationRIR}
+          onChange={setEffort}
+        />
+      )}
+
       {/* Submit button */}
       {!result && (
         <Button
@@ -311,7 +400,7 @@ Tue - Pull
           ) : (
             <>
               <Sparkles className="w-4 h-4 mr-2" />
-              Rate this workout
+              Rate this microcycle
             </>
           )}
         </Button>
@@ -343,18 +432,40 @@ Tue - Pull
               </div>
               <div className="p-4 bg-card rounded-sm border border-border space-y-3">
                 <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">Volume & Intensity · 50</h4>
-                <BreakdownRow label="RIR Targets" score={result.volumeBreakdown.rir.score} max={12.5} notes={result.volumeBreakdown.rir.notes} />
                 <BreakdownRow label="Rep Ranges" score={result.volumeBreakdown.reps.score} max={12.5} notes={result.volumeBreakdown.reps.notes} />
                 <BreakdownRow label="Session Caps" score={result.volumeBreakdown.sessionCaps.score} max={12.5} notes={result.volumeBreakdown.sessionCaps.notes} />
                 <BreakdownRow label="Frequency" score={result.volumeBreakdown.frequency.score} max={12.5} notes={result.volumeBreakdown.frequency.notes} />
+                <BreakdownRow label="Compound/Isolation + RIR" score={result.volumeBreakdown.compoundIsolationIntensity.score} max={12.5} notes={result.volumeBreakdown.compoundIsolationIntensity.notes} />
               </div>
             </div>
+
+            {/* Intensity calibration note */}
+            {result.intensityNote && (
+              <div className="p-3 bg-orange-500/5 border border-orange-500/30 rounded-sm flex items-start gap-2 text-xs">
+                <Flame className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-foreground mb-0.5">RIR / Effort calibration</p>
+                  <p className="text-muted-foreground leading-relaxed">{result.intensityNote}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Scap-depression cueing note (only if pulldown movements present) */}
+            {result.scapularDepressionNote && (
+              <div className="p-3 bg-blue-500/5 border border-blue-500/30 rounded-sm flex items-start gap-2 text-xs">
+                <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-foreground mb-0.5">Pulldown technique cue</p>
+                  <p className="text-muted-foreground leading-relaxed">{result.scapularDepressionNote}</p>
+                </div>
+              </div>
+            )}
 
             {/* Coverage — joint-action level */}
             <div className="p-4 bg-card rounded-sm border border-border">
               <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider mb-1">Joint-Action Coverage</h4>
               <p className="text-xs text-muted-foreground mb-3">
-                Scored against the 29-action kinesiology taxonomy (shoulder flexors, hip extensors, etc.).
+                Scored against the 27-action kinesiology taxonomy, weighted by anatomical muscle size — bigger movers count more.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>

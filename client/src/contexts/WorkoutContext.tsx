@@ -15,6 +15,28 @@ export interface SetDetail {
   weight: number;
 }
 
+/**
+ * User's self-reported reps-in-reserve at the last rep of a working set,
+ * **on the explicit premise that movement quality stays consistent** (no
+ * body english, no shortened ROM, no tempo cheating).
+ *
+ * Nippard's "million-dollar test": if someone offered you $1M to do one
+ * more clean rep — same form, same ROM, same tempo — could you?
+ *
+ * Targets per Nippard / Israetel: compound = 1-2 RIR, isolation = 0 RIR.
+ */
+export type RIRChoice = "0" | "1-2" | "3+";
+
+export interface EffortCalibration {
+  compoundRIR: RIRChoice;
+  isolationRIR: RIRChoice;
+}
+
+const DEFAULT_EFFORT: EffortCalibration = {
+  compoundRIR: "1-2",
+  isolationRIR: "0",
+};
+
 export interface RoutineItem {
   id: string;
   exercise: string;
@@ -52,9 +74,12 @@ interface WorkoutContextType {
   replaceRoutine: (items: RoutineItem[]) => void;
   updateRoutineItem: (id: string, updates: Partial<RoutineItem>) => void;
   totalWeeklySets: number;
+  effort: EffortCalibration;
+  setEffort: (effort: EffortCalibration) => void;
 }
 
 const STORAGE_KEY = "kinesiology_routine";
+const EFFORT_STORAGE_KEY = "kinesiology_effort";
 
 function loadRoutineFromStorage(): RoutineItem[] {
   try {
@@ -76,15 +101,46 @@ function saveRoutineToStorage(routine: RoutineItem[]) {
   }
 }
 
+function loadEffortFromStorage(): EffortCalibration {
+  try {
+    const stored = sessionStorage.getItem(EFFORT_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed?.compoundRIR && parsed?.isolationRIR) return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return DEFAULT_EFFORT;
+}
+
+function saveEffortToStorage(effort: EffortCalibration) {
+  try {
+    sessionStorage.setItem(EFFORT_STORAGE_KEY, JSON.stringify(effort));
+  } catch {
+    // ignore
+  }
+}
+
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 
 export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [routine, setRoutine] = useState<RoutineItem[]>(() => loadRoutineFromStorage());
+  const [effort, setEffortState] = useState<EffortCalibration>(() => loadEffortFromStorage());
 
   // Persist routine to sessionStorage on every change
   useEffect(() => {
     saveRoutineToStorage(routine);
   }, [routine]);
+
+  // Persist effort calibration on every change
+  useEffect(() => {
+    saveEffortToStorage(effort);
+  }, [effort]);
+
+  const setEffort = useCallback((next: EffortCalibration) => {
+    setEffortState(next);
+  }, []);
 
   const addToRoutine = useCallback((params: AddExerciseParams) => {
     const parameters = getProgrammingParameters(params.category);
@@ -143,7 +199,18 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
 
   return (
     <WorkoutContext.Provider
-      value={{ routine, addToRoutine, addRoutineItem, removeFromRoutine, clearRoutine, replaceRoutine, updateRoutineItem, totalWeeklySets }}
+      value={{
+        routine,
+        addToRoutine,
+        addRoutineItem,
+        removeFromRoutine,
+        clearRoutine,
+        replaceRoutine,
+        updateRoutineItem,
+        totalWeeklySets,
+        effort,
+        setEffort,
+      }}
     >
       {children}
     </WorkoutContext.Provider>

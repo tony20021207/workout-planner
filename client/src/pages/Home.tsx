@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Dumbbell, ChevronDown, LogIn, User, Calendar, FileDown } from "lucide-react";
+import { Dumbbell, ChevronDown, LogIn, User, Calendar, FileDown, Sparkles } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,21 @@ export default function Home() {
             <span className="font-heading font-bold text-sm text-foreground">KineticBuilder</span>
           </div>
           <div className="flex items-center gap-3">
+            <a
+              href="#rate"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById("rate")?.scrollIntoView({ behavior: "smooth" });
+              }}
+            >
+              <Button
+                size="sm"
+                className="bg-purple-600 text-white hover:bg-purple-700 font-semibold"
+              >
+                <Sparkles className="w-4 h-4 mr-1.5" />
+                Rate
+              </Button>
+            </a>
             {isAuthenticated && (
               <Link href="/calendar">
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-lime">
@@ -150,8 +165,8 @@ export default function Home() {
         )}
       </section>
 
-      {/* Weekly Pool Section */}
-      <section className="relative py-12">
+      {/* Weekly Microcycle Section */}
+      <section id="rate" className="relative py-12">
         <div className="absolute inset-0 opacity-5">
           <img
             src={ABSTRACT_BG}
