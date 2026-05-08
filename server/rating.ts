@@ -74,10 +74,10 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total):
 
 4. BIOMECHANICAL ANGLE BIAS / VARIETY (8 pts): Verify angles cover the intended muscle proportions without redundancy. Reason at the joint-action level — pressing angles vary shoulder flexors vs horizontal adductors; pulldown grips vary lat fibers; arm-position curls vary biceps long-head stretch.
 
-5. COMPOUND vs ISOLATION RATIO (8 pts): Target ~40% compound (Tier 1 multi-joint) / ~60% isolation (Tier 2 single-joint), per Israetel-style hypertrophy. Penalty curve:
-   - within 10 percentage points of target on either side: full credit
-   - 10–20 pp off: −2 to −4
-   - more than 20 pp off: −4 to −8
+5. COMPOUND vs ISOLATION RATIO (8 pts): With realistic per-session counts of 3–5 exercises, the achievable compound shares are 25% (1/4), 33% (1/3 or 2/6), 40% (2/5), 50% (2/4), etc. Award FULL CREDIT for any compound share in the 20%–50% band — that covers 1+2, 1+3, 1+4, 2+3, 2+4, 2+5 patterns and all of Israetel's "compound-light isolation-heavy" hypertrophy programming. Apply penalties only outside the band:
+   - 15–20% compound or 50–60% compound: −2 to −3 (slightly off)
+   - 10–15% compound or 60–70% compound: −4 to −5 (notably off)
+   - <10% compound (almost no compounds) or >70% compound (CNS-heavy): −5 to −8
 
 ═══ INTENSITY & VOLUME · 35 pts ═══
 

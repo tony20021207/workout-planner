@@ -84,11 +84,15 @@ const POOL_RUBRIC: { bucket: string; total: number; criteria: CriterionDoc[] }[]
         num: 5,
         name: "Compound vs Isolation Ratio",
         max: 8,
-        measures: "Whether your pool's volume balance is around 40% compound / 60% isolation per Israetel-style hypertrophy programming.",
-        calc: "Score deviation from the 40/60 target. ±10pp = full credit. 10–20pp off = −2 to −4. >20pp off = −4 to −8.",
-        poor: "80% compound (over-stresses CNS) or 90% isolation (under-uses big lifts).",
-        medium: "30/70 or 50/50 — close but off.",
-        good: "35–45% compound, 55–65% isolation.",
+        measures: "Whether your pool's compound/isolation balance lands in a healthy hypertrophy band. Real per-session counts of 3–5 exercises produce ratios like 25% (1/4), 33% (1/3), 40% (2/5), or 50% (2/4) — all of these are valid.",
+        calc:
+          "Full credit for any compound share in the 20–50% band. Outside that:\n" +
+          "  • 15–20% or 50–60%: −2 to −3\n" +
+          "  • 10–15% or 60–70%: −4 to −5\n" +
+          "  • <10% (almost no compound) or >70% (CNS-heavy): −5 to −8",
+        poor: "80% compound (over-stresses CNS) or routine with no compounds at all.",
+        medium: "Just outside the band — 17% or 55% compound.",
+        good: "Anywhere in the 20–50% compound band: 25%, 33%, 40%, 50% all earn full credit.",
       },
     ],
   },

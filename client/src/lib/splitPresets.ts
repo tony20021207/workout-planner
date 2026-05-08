@@ -275,6 +275,19 @@ function orderDayItems(items: RoutineItem[]): RoutineItem[] {
   return [...items].sort((a, b) => primingScore(b) - primingScore(a));
 }
 
+/**
+ * Acceptable per-day compound share. With 3-5 exercises per session,
+ * 25% / 33% / 40% / 50% are all natural ratios depending on the day's
+ * size. The rating gives full credit for anything in this band and the
+ * UI flags days inside it green.
+ */
+export const COMPOUND_PCT_GOOD_MIN = 0.2;
+export const COMPOUND_PCT_GOOD_MAX = 0.5;
+
+export function isCompoundRatioOnTarget(pct: number): boolean {
+  return pct >= COMPOUND_PCT_GOOD_MIN && pct <= COMPOUND_PCT_GOOD_MAX;
+}
+
 export interface AllocationResult {
   /** Mapping of dayId -> ordered exercise IDs assigned to that day. */
   byDay: Record<string, string[]>;
@@ -286,7 +299,10 @@ export interface AllocationResult {
     compounds: number;
     isolations: number;
     compoundPct: number;
-    targetCompoundPct: number;
+    /** Lower bound of the green-flag band. */
+    targetCompoundPctMin: number;
+    /** Upper bound of the green-flag band. */
+    targetCompoundPctMax: number;
   }>;
 }
 
@@ -330,7 +346,8 @@ export function allocatePoolToSplit(
       compounds: compoundsCount,
       isolations: isolationsCount,
       compoundPct: total > 0 ? compoundsCount / total : 0,
-      targetCompoundPct: 0.4,
+      targetCompoundPctMin: COMPOUND_PCT_GOOD_MIN,
+      targetCompoundPctMax: COMPOUND_PCT_GOOD_MAX,
     };
   }
 

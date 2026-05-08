@@ -32,6 +32,9 @@ import {
   ALL_PRESETS,
   SPLIT_PRESETS,
   allocatePoolToSplit,
+  isCompoundRatioOnTarget,
+  COMPOUND_PCT_GOOD_MIN,
+  COMPOUND_PCT_GOOD_MAX,
   type SplitId,
   type SplitPreset,
 } from "@/lib/splitPresets";
@@ -115,11 +118,10 @@ function DayCard({
   items: RoutineItem[];
   allDays: { id: string; name: string }[];
   onMoveExercise: (exerciseId: string, fromDayId: string, toDayId: string) => void;
-  stats: { compounds: number; isolations: number; total: number; compoundPct: number; targetCompoundPct: number };
+  stats: { compounds: number; isolations: number; total: number; compoundPct: number };
 }) {
   const compoundPctRounded = Math.round(stats.compoundPct * 100);
-  const targetPctRounded = Math.round(stats.targetCompoundPct * 100);
-  const ratioOnTarget = Math.abs(compoundPctRounded - targetPctRounded) <= 15;
+  const ratioOnTarget = stats.total > 0 && isCompoundRatioOnTarget(stats.compoundPct);
 
   return (
     <div className="bg-card border-2 border-border rounded-sm overflow-hidden flex flex-col">
@@ -227,7 +229,7 @@ export default function SplitBuilder() {
   }, [routine]);
 
   const dayStats = useMemo(() => {
-    const stats: Record<string, { compounds: number; isolations: number; total: number; compoundPct: number; targetCompoundPct: number }> = {};
+    const stats: Record<string, { compounds: number; isolations: number; total: number; compoundPct: number }> = {};
     if (!activePreset) return stats;
     for (const day of activePreset.days) {
       const ids = split.dayAssignments[day.id] ?? [];
@@ -239,7 +241,6 @@ export default function SplitBuilder() {
         isolations,
         total: items.length,
         compoundPct: items.length > 0 ? compounds / items.length : 0,
-        targetCompoundPct: 0.4,
       };
     }
     return stats;
@@ -382,7 +383,7 @@ export default function SplitBuilder() {
                 {activePreset.shortLabel} · {activePreset.daysPerWeek} day{activePreset.daysPerWeek !== 1 ? "s" : ""}
               </h4>
               <p className="text-[11px] text-muted-foreground italic">
-                Compound% target on each day: 40%
+                Compound share target: {Math.round(COMPOUND_PCT_GOOD_MIN * 100)}–{Math.round(COMPOUND_PCT_GOOD_MAX * 100)}% per day
               </p>
             </div>
             <div
@@ -401,7 +402,7 @@ export default function SplitBuilder() {
                     items={items}
                     allDays={activePreset.days}
                     onMoveExercise={handleMoveExercise}
-                    stats={dayStats[day.id] ?? { compounds: 0, isolations: 0, total: 0, compoundPct: 0, targetCompoundPct: 0.4 }}
+                    stats={dayStats[day.id] ?? { compounds: 0, isolations: 0, total: 0, compoundPct: 0 }}
                   />
                 );
               })}
