@@ -1,9 +1,13 @@
 /**
- * ExerciseList — Step 3: Display exercises organized by subcategory with difficulty, equipment, angles, muscles, and customization
+ * ExerciseList — Step 3: Display exercises organized by subcategory.
+ *
+ * In the weekly-pool model, picking an exercise here just adds it to the
+ * week. Sets / reps / weight are deferred to the per-day allocation step
+ * after the user picks a split (P5).
  */
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Minus, Dumbbell, Clock, RotateCcw, Flame, ChevronDown, Target, Ruler, Info } from "lucide-react";
+import { Plus, ChevronDown, Target, Ruler, Info, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   type CategoryType,
@@ -12,8 +16,6 @@ import {
   type Subcategory,
   type Difficulty,
   getProgrammingParameters,
-  getDefaultSets,
-  getDefaultReps,
 } from "@/lib/data";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { toast } from "sonner";
@@ -40,11 +42,7 @@ function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
 
 function ExerciseCard({ exercise, category, jointFunctionName }: { exercise: Exercise; category: CategoryType; jointFunctionName: string }) {
   const { addToRoutine } = useWorkout();
-  const params = getProgrammingParameters(category);
   const [expanded, setExpanded] = useState(false);
-  const [numSets, setNumSets] = useState(getDefaultSets(category));
-  const [defaultReps, setDefaultReps] = useState(getDefaultReps(category));
-  const [defaultWeight, setDefaultWeight] = useState(0);
   const [selectedEquipment, setSelectedEquipment] = useState(
     exercise.equipment?.[0]?.name ?? undefined
   );
@@ -68,43 +66,11 @@ function ExerciseCard({ exercise, category, jointFunctionName }: { exercise: Exe
       equipment: selectedEquipment,
       angle: selectedAngle,
       warmup: exercise.warmup,
-      numSets,
-      defaultReps,
-      defaultWeight,
+      // sets / reps / weight intentionally not set — the context applies
+      // sensible defaults; per-set values are configured later, after the
+      // user picks a split (P5).
     });
-    toast.success(`${exercise.name} added to routine`, {
-      description: `${numSets} sets × ${defaultReps} reps${defaultWeight > 0 ? ` @ ${defaultWeight} lbs` : ""}`,
-    });
-  };
-
-  const handleSetsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    const num = parseInt(raw, 10);
-    if (raw === "") {
-      setNumSets(1);
-    } else if (!isNaN(num)) {
-      setNumSets(Math.min(10, Math.max(1, num)));
-    }
-  };
-
-  const handleRepsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    const num = parseInt(raw, 10);
-    if (raw === "") {
-      setDefaultReps(1);
-    } else if (!isNaN(num)) {
-      setDefaultReps(Math.min(99, Math.max(1, num)));
-    }
-  };
-
-  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    const num = parseInt(raw, 10);
-    if (raw === "") {
-      setDefaultWeight(0);
-    } else if (!isNaN(num)) {
-      setDefaultWeight(Math.min(9999, Math.max(0, num)));
-    }
+    toast.success(`${exercise.name} added to this week`);
   };
 
   return (
@@ -145,7 +111,7 @@ function ExerciseCard({ exercise, category, jointFunctionName }: { exercise: Exe
         </div>
       </div>
 
-      {/* Customization subtab */}
+      {/* Expanded customization (no sets/reps/weight — those come later) */}
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -231,64 +197,6 @@ function ExerciseCard({ exercise, category, jointFunctionName }: { exercise: Exe
                   })()}
                 </div>
               )}
-
-              {/* Sets with plus/minus */}
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1 mb-1.5">
-                    <Dumbbell className="w-3 h-3" /> Sets
-                  </label>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setNumSets(Math.max(1, numSets - 1))}
-                      className="w-7 h-7 flex items-center justify-center bg-secondary border border-border rounded text-muted-foreground hover:text-destructive hover:border-destructive/50 transition-colors"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={numSets}
-                      onChange={handleSetsChange}
-                      className="w-10 bg-secondary border border-border rounded px-1 py-1 text-sm text-foreground text-center focus:border-lime focus:outline-none"
-                    />
-                    <button
-                      onClick={() => setNumSets(Math.min(10, numSets + 1))}
-                      className="w-7 h-7 flex items-center justify-center bg-secondary border border-border rounded text-muted-foreground hover:text-lime hover:border-lime/50 transition-colors"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1 mb-1.5">
-                    <RotateCcw className="w-3 h-3" /> Reps (default)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={defaultReps}
-                    onChange={handleRepsChange}
-                    className="w-full bg-secondary border border-border rounded px-2 py-1.5 text-sm text-foreground focus:border-lime focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1 mb-1.5">
-                    <Dumbbell className="w-3 h-3" /> Weight (lbs)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={defaultWeight}
-                    onChange={handleWeightChange}
-                    className="w-full bg-secondary border border-border rounded px-2 py-1.5 text-sm text-foreground focus:border-lime focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <p className="text-[11px] text-muted-foreground">
-                Default: {params.sets} × {params.reps} | {params.rest} rest | {params.frequency}
-              </p>
             </div>
           </motion.div>
         )}
@@ -342,48 +250,36 @@ export default function ExerciseList({ category, jointFunction }: ExerciseListPr
             3
           </span>
           <h2 className="font-heading text-2xl font-bold text-foreground">
-            Choose Exercises
+            Choose Exercises for the Week
           </h2>
         </div>
 
-        {/* Programming Parameters Panel */}
-        <div className="p-5 bg-secondary/50 border-2 border-lime/30 rounded-sm">
-          <h3 className="font-heading font-semibold text-lime mb-3 flex items-center gap-2">
-            <Flame className="w-4 h-4" />
-            Algorithm Output — Programming Parameters
+        {/* Programming Parameters — informational only at this step */}
+        <div className="p-4 bg-secondary/40 border border-lime/20 rounded-sm">
+          <h3 className="font-heading font-semibold text-sm text-lime mb-2 flex items-center gap-2">
+            <Sparkles className="w-4 h-4" />
+            Programming Targets ({category === "systemic" ? "Tier 1" : "Tier 2"})
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs uppercase tracking-wider">
-                <Dumbbell className="w-3 h-3" />
-                Sets
-              </div>
-              <p className="font-heading font-bold text-lg text-foreground">{params.sets}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div>
+              <span className="text-muted-foreground uppercase tracking-wider block">Sets</span>
+              <span className="font-semibold text-foreground">{params.sets}</span>
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs uppercase tracking-wider">
-                <RotateCcw className="w-3 h-3" />
-                Reps
-              </div>
-              <p className="font-heading font-bold text-lg text-foreground">{params.reps}</p>
+            <div>
+              <span className="text-muted-foreground uppercase tracking-wider block">Reps</span>
+              <span className="font-semibold text-foreground">{params.reps}</span>
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs uppercase tracking-wider">
-                <Clock className="w-3 h-3" />
-                Frequency
-              </div>
-              <p className="font-heading font-bold text-lg text-foreground">{params.frequency}</p>
+            <div>
+              <span className="text-muted-foreground uppercase tracking-wider block">Frequency</span>
+              <span className="font-semibold text-foreground">{params.frequency}</span>
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs uppercase tracking-wider">
-                <Clock className="w-3 h-3" />
-                Rest
-              </div>
-              <p className="font-heading font-bold text-lg text-foreground">{params.rest}</p>
+            <div>
+              <span className="text-muted-foreground uppercase tracking-wider block">Rest</span>
+              <span className="font-semibold text-foreground">{params.rest}</span>
             </div>
           </div>
-          <p className="mt-3 text-sm text-muted-foreground italic">
-            {params.rationale}
+          <p className="mt-2 text-[11px] text-muted-foreground italic">
+            Sets, reps, and weight are auto-recommended after you pick a split. Pick the exercises you want this week — that's all this step does.
           </p>
         </div>
 

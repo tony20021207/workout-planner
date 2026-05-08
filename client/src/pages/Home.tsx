@@ -102,12 +102,12 @@ export default function Home() {
               </span>
             </div>
             <h1 className="font-heading text-4xl md:text-6xl font-bold text-foreground leading-tight mb-4">
-              Build Your Routine<br />
+              Build a Hypertrophy Week<br />
               <span className="text-lime">By Joint Function</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
-              Science-driven workout programming based on biomechanical joint functions. 
-              Select movements, get algorithmic parameters, and build a complete routine.
+              Pick the exercises you want this week. Rate the selection out of 100 against the
+              Hypertrophy Matrix, fix the gaps it flags, then split into days.
             </p>
 
             <motion.div
@@ -150,7 +150,7 @@ export default function Home() {
         )}
       </section>
 
-      {/* Routine Section */}
+      {/* Weekly Pool Section */}
       <section className="relative py-12">
         <div className="absolute inset-0 opacity-5">
           <img
@@ -160,12 +160,15 @@ export default function Home() {
           />
         </div>
         <div className="relative container">
-          <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center gap-3 mb-2">
             <div className="h-8 w-1 bg-lime rounded-full" />
             <h2 className="font-heading text-3xl font-bold text-foreground">
-              Workout Builder
+              This Week's Exercises
             </h2>
           </div>
+          <p className="text-sm text-muted-foreground mb-8 ml-4">
+            Overview of everything you've picked for the week. Rate it before splitting into days.
+          </p>
           <RoutineTable />
         </div>
       </section>

@@ -1,12 +1,26 @@
 /**
- * RoutineTable — Workout Builder display with per-set customization, PDF export, and save
+ * RoutineTable — Weekly exercise pool overview.
+ *
+ * In the new flow, this is just an overview of exercises the user picked
+ * for the week — no sets/reps/weight here. The user is prompted to Rate,
+ * then in a later step (P4) picks a split, then per-day sets/reps are
+ * configured (P5). PDF / Save-to-Calendar at this stage produce a
+ * "weekly pool" reference; the daily-detail PDF comes after split.
  */
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, ClipboardList, Zap, Target, FileDown, Save, Plus, Minus } from "lucide-react";
+import {
+  Trash2,
+  ClipboardList,
+  Zap,
+  Target,
+  FileDown,
+  Save,
+  Sparkles,
+  Layers,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWorkout } from "@/contexts/WorkoutContext";
-import { type RoutineItem, type SetDetail } from "@/contexts/WorkoutContext";
+import { type RoutineItem } from "@/contexts/WorkoutContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
@@ -22,108 +36,8 @@ function DifficultyDot({ difficulty }: { difficulty: string }) {
   return <span className={`w-2 h-2 rounded-full ${colors[difficulty] || "bg-gray-500"}`} />;
 }
 
-function NumberInput({
-  value,
-  onChange,
-  min = 0,
-  max = 999,
-  className = "",
-}: {
-  value: number;
-  onChange: (val: number) => void;
-  min?: number;
-  max?: number;
-  className?: string;
-}) {
-  const [localValue, setLocalValue] = useState(String(value));
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    setLocalValue(raw);
-    const num = parseInt(raw, 10);
-    if (!isNaN(num) && num >= min && num <= max) {
-      onChange(num);
-    }
-  };
-
-  const handleBlur = () => {
-    const num = parseInt(localValue, 10);
-    if (isNaN(num) || num < min) {
-      setLocalValue(String(min));
-      onChange(min);
-    } else if (num > max) {
-      setLocalValue(String(max));
-      onChange(max);
-    } else {
-      setLocalValue(String(num));
-      onChange(num);
-    }
-  };
-
-  return (
-    <input
-      type="text"
-      inputMode="numeric"
-      value={localValue}
-      onChange={handleChange}
-      onBlur={handleBlur}
-      className={`w-14 bg-secondary border border-border rounded px-2 py-1 text-sm text-foreground text-center focus:border-lime focus:outline-none ${className}`}
-    />
-  );
-}
-
-function SetRow({
-  setIndex,
-  setDetail,
-  onUpdate,
-}: {
-  setIndex: number;
-  setDetail: SetDetail;
-  onUpdate: (updates: Partial<SetDetail>) => void;
-}) {
-  return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="text-muted-foreground w-6 text-right font-mono">S{setIndex + 1}</span>
-      <NumberInput
-        value={setDetail.reps}
-        onChange={(val) => onUpdate({ reps: val })}
-        min={1}
-        max={99}
-        className="w-12 text-xs"
-      />
-      <span className="text-muted-foreground">reps</span>
-      <span className="text-muted-foreground">@</span>
-      <NumberInput
-        value={setDetail.weight}
-        onChange={(val) => onUpdate({ weight: val })}
-        min={0}
-        max={9999}
-        className="w-14 text-xs"
-      />
-      <span className="text-muted-foreground">lbs</span>
-    </div>
-  );
-}
-
-function RoutineItemRow({ item, index }: { item: RoutineItem; index: number }) {
-  const { removeFromRoutine, updateRoutineItem } = useWorkout();
-  const [expanded, setExpanded] = useState(false);
-
-  const addSet = () => {
-    const lastSet = item.sets[item.sets.length - 1];
-    const newSet: SetDetail = { reps: lastSet?.reps ?? 10, weight: lastSet?.weight ?? 0 };
-    updateRoutineItem(item.id, { sets: [...item.sets, newSet] });
-  };
-
-  const removeSet = () => {
-    if (item.sets.length <= 1) return;
-    updateRoutineItem(item.id, { sets: item.sets.slice(0, -1) });
-  };
-
-  const updateSet = (setIndex: number, updates: Partial<SetDetail>) => {
-    const newSets = item.sets.map((s, i) => (i === setIndex ? { ...s, ...updates } : s));
-    updateRoutineItem(item.id, { sets: newSets });
-  };
+function PoolItemRow({ item, index }: { item: RoutineItem; index: number }) {
+  const { removeFromRoutine } = useWorkout();
 
   return (
     <motion.div
@@ -134,7 +48,6 @@ function RoutineItemRow({ item, index }: { item: RoutineItem; index: number }) {
       transition={{ duration: 0.2 }}
       className={`p-4 ${index % 2 === 0 ? "bg-card" : "bg-secondary/30"} border-b border-border last:border-b-0`}
     >
-      {/* Main row */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <DifficultyDot difficulty={item.difficulty} />
@@ -147,106 +60,43 @@ function RoutineItemRow({ item, index }: { item: RoutineItem; index: number }) {
             <span className="font-heading font-semibold text-foreground text-sm block truncate">
               {item.exercise}
             </span>
-            <p className="text-[10px] text-muted-foreground truncate">
+            <p className="text-[11px] text-muted-foreground truncate">
               {item.targetedMuscles.join(", ")}
             </p>
+            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+              <span className="uppercase tracking-wider">{item.jointFunction}</span>
+              {(item.equipment || item.angle) && <span className="text-border">|</span>}
+              {item.equipment && <span>{item.equipment}</span>}
+              {item.angle && <span>· {item.angle}</span>}
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="hidden sm:flex items-center gap-3 text-xs text-muted-foreground">
-            <span>{item.sets.length} sets</span>
-            <span>•</span>
-            <span>{item.parameters.frequency}</span>
-            <span>•</span>
-            <span>{item.parameters.rest}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setExpanded(!expanded)}
-            className="text-xs text-lime hover:text-lime/80 px-2"
-          >
-            {expanded ? "Close" : "Edit"}
-          </Button>
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => removeFromRoutine(item.id)}
             className="text-muted-foreground hover:text-destructive w-8 h-8 p-0"
+            title="Remove from week"
           >
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       </div>
-
-      {/* Mobile summary */}
-      <div className="flex flex-wrap gap-2 sm:hidden text-xs text-muted-foreground mt-2">
-        <span>{item.sets.length} sets</span>
-        <span>•</span>
-        <span>{item.parameters.frequency}</span>
-        <span>•</span>
-        <span>{item.parameters.rest}</span>
-      </div>
-
-      {/* Expanded per-set editor */}
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                  Per-Set Configuration
-                </span>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={removeSet}
-                    disabled={item.sets.length <= 1}
-                    className="w-7 h-7 p-0 text-muted-foreground hover:text-destructive"
-                  >
-                    <Minus className="w-3 h-3" />
-                  </Button>
-                  <span className="text-xs text-foreground font-medium w-6 text-center">
-                    {item.sets.length}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={addSet}
-                    disabled={item.sets.length >= 10}
-                    className="w-7 h-7 p-0 text-muted-foreground hover:text-lime"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
-              {item.sets.map((setDetail, setIdx) => (
-                <SetRow
-                  key={setIdx}
-                  setIndex={setIdx}
-                  setDetail={setDetail}
-                  onUpdate={(updates) => updateSet(setIdx, updates)}
-                />
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
 
 export default function RoutineTable() {
-  const { routine, clearRoutine, totalWeeklySets } = useWorkout();
+  const { routine, clearRoutine } = useWorkout();
   const { isAuthenticated } = useAuth();
+
+  // Aggregate stats for the weekly overview footer.
+  const systemicCount = routine.filter((r) => r.category === "systemic").length;
+  const regionalCount = routine.filter((r) => r.category === "regional").length;
+  const uniqueJointActions = new Set<string>();
+  routine.forEach((r) => r.targetedMuscles.forEach((m) => uniqueJointActions.add(m)));
 
   const handleExportPDF = async () => {
     const { default: jsPDF } = await import("jspdf");
@@ -254,29 +104,37 @@ export default function RoutineTable() {
 
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-    // Title
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text("Kinesiology Workout Builder", 14, 20);
+    doc.text("Weekly Exercise Pool", 14, 20);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Generated: ${new Date().toLocaleDateString()}  |  Total Weekly Sets: ${Math.round(totalWeeklySets)}`, 14, 28);
+    doc.text(
+      `Generated: ${new Date().toLocaleDateString()}  |  ${routine.length} exercises (${systemicCount} systemic, ${regionalCount} regional)`,
+      14,
+      28,
+    );
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "italic");
+    doc.text(
+      "Sets, reps, and weight are configured after split selection.",
+      14,
+      34,
+    );
 
-    // Main workout table
     const tableData = routine.map((item) => [
       item.exercise,
       item.jointFunction,
-      `${item.sets.length}`,
-      item.sets.map((s, i) => `S${i + 1}: ${s.reps} reps @ ${s.weight}lbs`).join(", "),
-      item.parameters.frequency,
-      item.parameters.rest,
-      item.difficulty.charAt(0).toUpperCase() + item.difficulty.slice(1),
+      item.category === "systemic" ? "Tier 1" : "Tier 2",
+      item.equipment ?? "—",
+      item.angle ?? "—",
+      item.targetedMuscles.join(", "),
     ]);
 
     autoTable(doc, {
-      startY: 34,
-      head: [["Exercise", "Joint Function", "Sets", "Set Details", "Freq", "Rest", "Difficulty"]],
+      startY: 40,
+      head: [["Exercise", "Joint Function", "Tier", "Equipment", "Angle", "Targeted Muscles"]],
       body: tableData,
       styles: { fontSize: 7, cellPadding: 2 },
       headStyles: { fillColor: [132, 204, 22], textColor: [15, 23, 42], fontStyle: "bold" },
@@ -284,31 +142,8 @@ export default function RoutineTable() {
       theme: "grid",
     });
 
-    // Warmup section
-    const warmupY = (doc as any).lastAutoTable.finalY + 10;
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("Recommended Warmups", 14, warmupY);
-
-    const warmupData = routine.map((item) => [
-      item.exercise,
-      item.warmup.name,
-      `${item.warmup.sets} × ${item.warmup.reps}`,
-      item.warmup.instructions.join(" "),
-    ]);
-
-    autoTable(doc, {
-      startY: warmupY + 4,
-      head: [["Before", "Warmup Exercise", "Sets × Reps", "Instructions"]],
-      body: warmupData,
-      styles: { fontSize: 7, cellPadding: 2 },
-      headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255], fontStyle: "bold" },
-      columnStyles: { 3: { cellWidth: 70 } },
-      theme: "grid",
-    });
-
-    doc.save("workout-routine.pdf");
-    toast.success("PDF exported successfully!");
+    doc.save("weekly-exercise-pool.pdf");
+    toast.success("PDF exported");
   };
 
   const [, setLocation] = useLocation();
@@ -323,14 +158,15 @@ export default function RoutineTable() {
 
   if (routine.length === 0) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="border-2 border-dashed border-border rounded-sm p-12 text-center">
           <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
           <h3 className="font-heading font-bold text-lg text-muted-foreground mb-2">
-            Your Routine is Empty
+            No Exercises Picked Yet
           </h3>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Select a movement category, choose a joint function, and add exercises to build your weekly routine — or paste / upload an existing one to rate it below.
+            Pick a movement category above, then add the exercises you want for the week.
+            Or paste / upload an existing routine below to rate it directly.
           </p>
         </div>
         <WorkoutRater />
@@ -339,26 +175,19 @@ export default function RoutineTable() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header with stats */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h3 className="font-heading font-bold text-xl text-foreground">
-            Your Routine
+            This Week's Exercises
           </h3>
           <p className="text-sm text-muted-foreground">
-            {routine.length} exercise{routine.length !== 1 ? "s" : ""} programmed
+            {routine.length} exercise{routine.length !== 1 ? "s" : ""} picked.
+            Sets &amp; reps come after you choose a split.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="px-4 py-2 bg-lime/10 border-2 border-lime/30 rounded-sm">
-            <span className="text-xs text-muted-foreground uppercase tracking-wider block">
-              Total Weekly Sets
-            </span>
-            <span className="font-heading font-bold text-2xl text-lime">
-              {Math.round(totalWeeklySets)}
-            </span>
-          </div>
           <Button
             size="sm"
             onClick={handleExportPDF}
@@ -387,44 +216,52 @@ export default function RoutineTable() {
         </div>
       </div>
 
+      {/* Rate prompt — sits between the list and the rater */}
+      <div className="p-4 bg-purple-500/10 border-2 border-purple-500/30 rounded-sm flex items-start gap-3">
+        <div className="p-1.5 bg-purple-500/20 rounded-sm shrink-0">
+          <Sparkles className="w-4 h-4 text-purple-300" />
+        </div>
+        <div className="text-sm">
+          <p className="font-semibold text-foreground mb-1">Before you pick a split, rate this selection.</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            The Hypertrophy Matrix scores your weekly pool out of 100 and flags missing joint actions or under-trained muscles.
+            Make tweaks here, then move on to the split step.
+          </p>
+        </div>
+      </div>
+
       {/* Exercise rows */}
       <div className="border-2 border-border rounded-sm overflow-hidden">
         <AnimatePresence>
           {routine.map((item, index) => (
-            <RoutineItemRow key={item.id} item={item} index={index} />
+            <PoolItemRow key={item.id} item={item} index={index} />
           ))}
         </AnimatePresence>
       </div>
 
-      {/* Summary Footer */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Summary footer */}
+      <div className="grid grid-cols-3 gap-3">
         <div className="p-3 bg-secondary/50 rounded-sm text-center">
-          <span className="text-xs text-muted-foreground block">Systemic</span>
-          <span className="font-heading font-bold text-foreground">
-            {routine.filter((r) => r.category === "systemic").length}
+          <span className="text-xs text-muted-foreground block uppercase tracking-wider">
+            <Zap className="w-3 h-3 inline mr-1" />Tier 1
           </span>
+          <span className="font-heading font-bold text-lg text-foreground">{systemicCount}</span>
         </div>
         <div className="p-3 bg-secondary/50 rounded-sm text-center">
-          <span className="text-xs text-muted-foreground block">Regional</span>
-          <span className="font-heading font-bold text-foreground">
-            {routine.filter((r) => r.category === "regional").length}
+          <span className="text-xs text-muted-foreground block uppercase tracking-wider">
+            <Target className="w-3 h-3 inline mr-1" />Tier 2
           </span>
-        </div>
-        <div className="p-3 bg-secondary/50 rounded-sm text-center">
-          <span className="text-xs text-muted-foreground block">Total Exercises</span>
-          <span className="font-heading font-bold text-foreground">
-            {routine.length}
-          </span>
+          <span className="font-heading font-bold text-lg text-foreground">{regionalCount}</span>
         </div>
         <div className="p-3 bg-lime/10 border border-lime/30 rounded-sm text-center">
-          <span className="text-xs text-muted-foreground block">Weekly Sets</span>
-          <span className="font-heading font-bold text-lime">
-            {Math.round(totalWeeklySets)}
+          <span className="text-xs text-muted-foreground block uppercase tracking-wider">
+            <Layers className="w-3 h-3 inline mr-1" />Muscle Groups
           </span>
+          <span className="font-heading font-bold text-lg text-lime">{uniqueJointActions.size}</span>
         </div>
       </div>
 
-      {/* Hypertrophy Matrix Rater (inline) */}
+      {/* Hypertrophy Matrix Rater */}
       <WorkoutRater />
     </div>
   );
