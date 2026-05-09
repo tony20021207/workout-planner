@@ -1,9 +1,8 @@
 /**
- * ExerciseList — Step 3: Display exercises organized by subcategory.
+ * ExerciseCard — render-and-add card for a single exercise.
  *
- * In the weekly-pool model, picking an exercise here just adds it to the
- * week. Sets / reps / weight are deferred to the per-day allocation step
- * after the user picks a split (P5).
+ * Originally part of the 3-step Tier-1/Tier-2 navigation; now lives here
+ * as a reusable card consumed by the muscle-group selector.
  */
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,19 +10,12 @@ import { Plus, ChevronDown, Target, Ruler, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   type CategoryType,
-  type JointFunction,
   type Exercise,
-  type Subcategory,
   type Difficulty,
 } from "@/lib/data";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { toast } from "sonner";
 import { getEquipmentNote } from "@/lib/equipmentNotes";
-
-interface ExerciseListProps {
-  category: CategoryType;
-  jointFunction: JointFunction;
-}
 
 function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
   const config = {
@@ -39,7 +31,7 @@ function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
   );
 }
 
-function ExerciseCard({ exercise, category, jointFunctionName }: { exercise: Exercise; category: CategoryType; jointFunctionName: string }) {
+export function ExerciseCard({ exercise, category, jointFunctionName }: { exercise: Exercise; category: CategoryType; jointFunctionName: string }) {
   const { addToRoutine } = useWorkout();
   const [expanded, setExpanded] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(
@@ -203,68 +195,3 @@ function ExerciseCard({ exercise, category, jointFunctionName }: { exercise: Exe
   );
 }
 
-function SubcategorySection({ subcategory, category, jointFunctionName }: { subcategory: Subcategory; category: CategoryType; jointFunctionName: string }) {
-  return (
-    <div className="space-y-3">
-      <div className="border-l-2 border-lime/50 pl-3">
-        <h4 className="font-heading font-semibold text-sm text-foreground">{subcategory.name}</h4>
-        <p className="text-[11px] text-muted-foreground">{subcategory.description}</p>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {subcategory.exercises.map((exercise: Exercise, index: number) => (
-          <motion.div
-            key={exercise.id}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05, duration: 0.3 }}
-          >
-            <ExerciseCard
-              exercise={exercise}
-              category={category}
-              jointFunctionName={jointFunctionName}
-            />
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export default function ExerciseList({ category, jointFunction }: ExerciseListProps) {
-  return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={jointFunction.id}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className="space-y-6"
-      >
-        <div className="flex items-center gap-3">
-          <span className="inline-flex items-center justify-center w-10 h-10 rounded-sm bg-lime text-lime-foreground font-heading font-bold text-lg">
-            3
-          </span>
-          <h2 className="font-heading text-2xl font-bold text-foreground">
-            Choose Exercises for the Week
-          </h2>
-        </div>
-        <p className="text-xs text-muted-foreground italic ml-13 -mt-3">
-          Sets, reps, and RIR are auto-recommended after you rate, pick a lifestyle, and pick an experience level. This step is just exercise selection.
-        </p>
-
-        {/* Subcategories with exercises */}
-        <div className="space-y-6">
-          {jointFunction.subcategories.map((subcategory: Subcategory) => (
-            <SubcategorySection
-              key={subcategory.id}
-              subcategory={subcategory}
-              category={category}
-              jointFunctionName={jointFunction.name}
-            />
-          ))}
-        </div>
-      </motion.div>
-    </AnimatePresence>
-  );
-}

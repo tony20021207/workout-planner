@@ -3,18 +3,14 @@
  * Design: "Kinetic Energy" — Neo-Brutalism meets Athletic Performance
  * Dark slate base (#0F172A), electric lime (#84CC16) accents, diagonal cuts, bold typography
  */
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { Dumbbell, LogIn, User, Calendar, Hammer, ClipboardEdit } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { Button } from "@/components/ui/button";
-import CategorySelector from "@/components/CategorySelector";
-import JointFunctionSelector from "@/components/JointFunctionSelector";
-import ExerciseList from "@/components/ExerciseList";
+import MuscleGroupSelector from "@/components/MuscleGroupSelector";
 import RoutineTable from "@/components/RoutineTable";
 import SplitBuilder from "@/components/SplitBuilder";
-import { type CategoryType, type JointFunction } from "@/lib/data";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { Link } from "wouter";
 
@@ -24,17 +20,6 @@ const ABSTRACT_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663485353368/jf
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
   const { routine } = useWorkout();
-  const [selectedCategory, setSelectedCategory] = useState<CategoryType | null>(null);
-  const [selectedJointFunction, setSelectedJointFunction] = useState<JointFunction | null>(null);
-
-  const handleCategorySelect = (category: CategoryType) => {
-    setSelectedCategory(category);
-    setSelectedJointFunction(null);
-  };
-
-  const handleJointFunctionSelect = (jf: JointFunction) => {
-    setSelectedJointFunction(jf);
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -162,26 +147,8 @@ export default function Home() {
       </section>
 
       {/* Main Builder Section */}
-      <section id="builder" className="container py-12 space-y-12">
-        <CategorySelector
-          selected={selectedCategory}
-          onSelect={handleCategorySelect}
-        />
-
-        {selectedCategory && (
-          <JointFunctionSelector
-            category={selectedCategory}
-            selected={selectedJointFunction}
-            onSelect={handleJointFunctionSelect}
-          />
-        )}
-
-        {selectedCategory && selectedJointFunction && (
-          <ExerciseList
-            category={selectedCategory}
-            jointFunction={selectedJointFunction}
-          />
-        )}
+      <section id="builder" className="container py-12">
+        <MuscleGroupSelector />
       </section>
 
       {/* Weekly Microcycle Section */}
