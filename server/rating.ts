@@ -63,7 +63,7 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total, 5 criteria × 20 pt
    - very-high = 1.5×
    - high = 1.0×
    - moderate = 0.5×
-   Compute the weighted average per exercise across the pool, normalize to a 0–20 score where a pool of all very-high picks = 20, all high = 14, all moderate = 7. Mixed pools land in between. Very-high picks include Bayesian Curl, Lat Prayer, Pullover, Sissy Squat, Reverse Nordic, Deficit Push-Up, RDL, EZ-Bar Overhead Triceps Extension, BTB Cuffed Cable Lateral, Jefferson Curl, Cable Fly. Tag-overrides on toggles can push other exercises (incline DB / BB bench, cambered bar, skullcrusher over-head, etc.) into very-high too.
+   Compute the weighted average per exercise across the pool, normalize to a 0–20 score where a pool of all very-high picks = 20, all high = 14, all moderate = 7. Mixed pools land in between. Very-high picks include Bayesian Curl, Lat Prayer, Pullover, Sissy Squat, Reverse Nordic, Deficit Push-Up, RDL, EZ-Bar Overhead Triceps Extension, Jefferson Curl, Cable Fly. Tag-overrides on toggles can push other exercises (incline DB / BB bench, cambered bar, skullcrusher over-head, feet-elevated hip thrust / glute bridge, etc.) into very-high too.
 
 3. STIMULUS-TO-FATIGUE RATIO / SFR (20 pts): Reward exercises with high local muscle disruption and low systemic / joint fatigue. Penalize over-reliance on conventional / sumo deadlifts and other CNS-heavy picks for hypertrophy. A pool of high-SFR machines + cables = 18–20; a pool relying on heavy free-weight compounds = 8–12.
 

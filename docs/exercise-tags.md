@@ -67,9 +67,9 @@ Compound: `C` (multi-joint) · `I` (isolation)
 Stretch column: `mod` moderate · `high` · **`VH`** very-high
 "Equipment" column lists the toggle options on that entry.
 
-**Very-high stretch base picks** (11): Bayesian Curl, Lat Prayer, Pullover, Sissy Squat, Reverse Nordic Curl, Deficit Push-Up, Stiff-Leg/Romanian Deadlift, EZ-Bar Overhead Triceps Extension, BTB Cuffed Cable Lateral, Jefferson Curl, Cable Fly.
+**Very-high stretch base picks** (10): Bayesian Curl, Lat Prayer, Pullover, Sissy Squat, Reverse Nordic Curl, Deficit Push-Up, Stiff-Leg/Romanian Deadlift, EZ-Bar Overhead Triceps Extension, Jefferson Curl, Cable Fly.
 
-**Very-high via toggle override**: Cambered Bar BB Bench (any incline), BB Bench at 30°/45° incline, DB Bench at 30°/45° incline, Incline DB Fly, Janicki DB Fly, Skullcrusher Over-Head Path, Seated Leg Curl Lean-Forward, Bulgarian Split Squat (Quad) FFE, Bulgarian Split Squat (Glute) Long Stride / FFE, Cable Single-Leg Step-Up.
+**Very-high via toggle override**: Cambered Bar BB Bench (any incline), BB Bench at 30°/45° incline, DB Bench at 30°/45° incline, Incline DB Fly, Janicki DB Fly, Skullcrusher Over-Head Path, Seated Leg Curl Lean-Forward, Bulgarian Split Squat (Quad) FFE, Bulgarian Split Squat (Glute) Long Stride / FFE, Cable Single-Leg Step-Up, Machine / Free-Weight Hip Thrust feet-elevated, Glute Bridge feet-elevated.
 
 ---
 
@@ -223,9 +223,8 @@ Stretch column: `mod` moderate · `high` · **`VH`** very-high
 #### Medial Delt — Stretch Bias
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
 |---|---|---|---|---|---|---|---|
-| Cable Lateral Raise | Sh Abd | I | ✓ | H | VH | Single-Arm, Cuffed, BTB, Hand-Height | Nippard's #1 side-delt |
+| Cable Lateral Raise | Sh Abd | I | ✓ | H | VH | Single-Arm, Cuffed | Nippard's #1 side-delt |
 | Cable Y-Raise | Sh Abd, Scap UR | I | ✓ | H | H | Handles, Cuffs, Dual Cable | Nippard S-tier |
-| Behind-the-Back Cuffed Cable Lateral | Sh Abd | I | ✓ | H | H | Cable Cuff, Single-Arm | Nippard S-tier |
 
 #### Rear Delt
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
@@ -301,7 +300,7 @@ Stretch column: `mod` moderate · `high` · **`VH`** very-high
 | Shoulder Horizontal Abductors | ★★★ | Reverse Pec Deck, Reverse Cable Crossover, Cable Row |
 | Shoulder Adductors | ★★ | Lat Pulldown, Pull-Up, Single-Arm Cable Pulldown |
 | Shoulder Extensors | ★★★ | Chest-Supported Row, Lat Prayer, Pullover |
-| Shoulder Abductors | ★★★ | Cable Lateral, Machine Lateral, BTB Cuff Cable |
+| Shoulder Abductors | ★★★ | Cable Lateral, Machine Lateral, Cable Y-Raise |
 | Shoulder Flexors | ★★ | Machine Shoulder Press, Incline Press |
 | Shoulder External Rotators | ★ | Face Pull only |
 | Scapular Retractors | ★★ | Chest-Supported Row, Cable Row, Face Pull |

@@ -665,6 +665,12 @@ export const categories: Category[] = [
                     description: "Feet shoulder-width, knees ~90° at the top. Balanced glute / hamstring loading.",
                   },
                   {
+                    id: "feet-elevated-mht",
+                    name: "Feet Elevated",
+                    description: "Feet on a plate / step / box. Hips drop into deeper flexion at the bottom, lengthening the glute under load through a longer ROM.",
+                    tagOverrides: { stretchLevel: "very-high" },
+                  },
+                  {
                     id: "wide-toes-out-mht",
                     name: "Wide / Toes-Out",
                     description: "Wider stance with toes flared adds glute medius and external rotator engagement.",
@@ -709,6 +715,12 @@ export const categories: Category[] = [
                     description: "Feet shoulder-width, knees ~90° at the top.",
                   },
                   {
+                    id: "feet-elevated-fht",
+                    name: "Feet Elevated",
+                    description: "Feet on a plate / step / box. Hips drop into deeper flexion at the bottom for a deeper glute stretch under load.",
+                    tagOverrides: { stretchLevel: "very-high" },
+                  },
+                  {
                     id: "wide-toes-out-fht",
                     name: "Wide / Toes-Out",
                     description: "Wider stance with toes flared adds glute medius and external rotator engagement.",
@@ -746,6 +758,19 @@ export const categories: Category[] = [
                   { id: "db-gb", name: "Dumbbell" },
                   { id: "machine-gb", name: "Machine" },
                   { id: "bw-gb", name: "Bodyweight" },
+                ],
+                angles: [
+                  {
+                    id: "standard-gb",
+                    name: "Standard (Floor)",
+                    description: "Shoulders and feet on the floor. Reduced hip-flexion ROM compared to a full hip thrust.",
+                  },
+                  {
+                    id: "feet-elevated-gb",
+                    name: "Feet Elevated",
+                    description: "Feet on a plate / step. Hips drop deeper at the bottom, recovering ROM lost vs the bench-supported hip thrust and adding stretch under load.",
+                    tagOverrides: { stretchLevel: "very-high" },
+                  },
                 ],
                 coachNotes: "Nippard: beginner-friendly hip-thrust alternative.",
               },
@@ -2226,7 +2251,6 @@ export const categories: Category[] = [
                 equipment: [
                   { id: "cable-single-lat", name: "Single-Arm Cable" },
                   { id: "cuffed-lat", name: "Cuffed Cable" },
-                  { id: "btb-cable-lat", name: "Behind-the-Back Cable" },
                 ],
                 coachNotes: "Nippard's #1 side-delt pick.",
               },
@@ -2250,26 +2274,6 @@ export const categories: Category[] = [
                   { id: "dual-y", name: "Dual Cable" },
                 ],
                 coachNotes: "Nippard: S-tier.",
-              },
-              {
-                id: "btb-cable-lateral",
-                name: "Behind-the-Back Cuffed Cable Lateral",
-                difficulty: "medium",
-                targetedMuscles: ["Medial Delts"],
-                jointActions: ["Shoulder Abductors"],
-                compound: false,
-                stretchLevel: "very-high",
-                stability: "high",
-                sfr: "high",
-                description:
-                  "Cable lateral raise performed with the cable running behind the body. Maximizes side-delt stretch.",
-                mechanics:
-                  "Behind-the-back cable line places the side delt in its longest position before abduction.",
-                equipment: [
-                  { id: "btb-cuff", name: "Cable Cuff" },
-                  { id: "btb-single", name: "Single-Arm Cable" },
-                ],
-                coachNotes: "Nippard: S-tier; emphasizes stretched side-delt.",
               },
             ],
           },
