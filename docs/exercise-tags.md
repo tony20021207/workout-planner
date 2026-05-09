@@ -146,7 +146,7 @@ Stretch column: `mod` moderate · `high` · **`VH`** very-high
 #### Lat-Biased
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
 |---|---|---|---|---|---|---|---|
-| Lat Pulldown | Sh Add, Elb Flex, Scap DR, **Scap Dep** | C | ✓ | H | VH | Cable Wide, Cable Neutral, Single-Arm, Machine | Nippard S-tier |
+| Lat Pulldown | Sh Add, Elb Flex, Scap DR, **Scap Dep** · Close Grip +Sh Ext | C | ✓ | H | VH | Machine Pulldown | Nippard S-tier |
 | Single-Arm Cable Pulldown | Sh Add, **Scap Dep** (default) · +Scap DR (Side anchor) · +Scap Retr + Sh HAbd (Across-Front anchor) | I | ✓ | H | VH | Cable Single Handle | Three line-of-pull options pick the scap target |
 | Dumbbell Row (Elbow-Tucked) | Sh Ext, Elb Flex, **Scap Elev** | C | ✓ | M | H | DB on Bench, DB Standing | Tucked elbow = lat focus |
 | Straight-Arm Pulldown / Lat Prayer | Sh Ext, **Scap Dep** | I | ✓ | H | VH | Cable Rope, Cable Bar, Band, Machine Pullover | Israetel: deep lat stretch |
@@ -156,7 +156,7 @@ Stretch column: `mod` moderate · `high` · **`VH`** very-high
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
 |---|---|---|---|---|---|---|---|
 | Chest-Supported Row | Sh Ext, Scap Retr, Elb Flex | C | ✓ | H | VH | T-Bar, Machine, Incline DB, Seal | Nippard: best all-around back |
-| Cable Row (Elbow-Flared) | Sh HAbd, Scap Retr, Elb Flex | C | ✓ | H | VH | Seated, Wide-Grip, Single-Arm | Wide-elbow path = mid-back |
+| Cable Row (Elbow-Flared) | Sh HAbd, Scap Retr, Elb Flex (default) · Underhand Grip +Scap Dep | C | ✓ | H | VH | Seated, Wide-Grip, Single-Arm | Wide-elbow path = mid-back |
 | Barbell Row | Sh Ext, Scap Retr, Elb Flex, Sp Ext, **Scap Elev** | C | ✓ | L | M | BB, Deficit Pendlay, Yates | Nippard A-tier deficit Pendlay |
 | Meadows Row | Sh Ext, Scap Retr, Elb Flex, **Scap Elev** | C | ✓ | M | H | Landmine, T-Bar, One-Arm BB | Nippard S-tier; isolateral |
 | Inverted Row to Face/Throat | Sh HAbd, Scap Retr, Elb Flex | C | ✗ | M | H | Smith, BB Rack, TRX | Israetel: rear-delt-heavy row |
@@ -306,7 +306,7 @@ Stretch column: `mod` moderate · `high` · **`VH`** very-high
 | Scapular Retractors | ★★ | Chest-Supported Row, Cable Row, Face Pull |
 | Scapular Protractors | ★ | Chest Press variants (incidental) |
 | Scapular Elevators | ★★ | RDL, Conventional DL, Barbell Row, Meadows Row, Single-Arm DB Rows |
-| Scapular Depressors | ★★ | Lat Pulldown, Pull-Up, Single-Arm Cable Pulldown, Lat Prayer, Pullover |
+| Scapular Depressors | ★★★ | Lat Pulldown, Pull-Up, Single-Arm Cable Pulldown, Lat Prayer, Pullover, Cable Row underhand grip |
 | Scapular Upward Rotators | ★★★ | All lateral raises (DB / Cable / Machine / Super-ROM / Y-Raise), Overhead Press cued for full lockout |
 | Scapular Downward Rotators | ★★ | Lat Pulldown, Pull-Up |
 | Elbow Flexors | ★★★ | Bayesian, Preacher, Lat Pulldown |

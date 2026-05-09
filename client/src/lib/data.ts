@@ -1531,6 +1531,21 @@ export const categories: Category[] = [
                   { id: "wide-cable-row", name: "Wide-Grip Cable Row" },
                   { id: "single-cable-row", name: "Single-Arm Cable Row" },
                 ],
+                angles: [
+                  {
+                    id: "pronated-flared-cr",
+                    name: "Pronated, Elbows Flared",
+                    description: "Standard execution. Overhand grip, elbows flared outward, mid-back driven.",
+                  },
+                  {
+                    id: "underhand-cr",
+                    name: "Underhand Grip",
+                    description: "Supinated grip with elbows tucking closer to the torso. Lat-biased pull with strong scapular depression at the end-range squeeze (think 'pull elbows down toward back pocket').",
+                    tagOverrides: {
+                      addJointActions: ["Scapular Depressors"],
+                    },
+                  },
+                ],
                 coachNotes: "Nippard: S-tier horizontal row.",
               },
               {
