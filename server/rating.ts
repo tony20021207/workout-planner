@@ -96,8 +96,9 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total, 5 criteria × 20 pt
    - Pulldown / Pull-Up / Chin-Up → Shoulder Extensors / Adductors, Scapular Downward Rotators.
    - Cable Pullover / Lat Prayer / Single-Arm Cable Pulldown (Facing Away) → Shoulder Extensors, Scapular Downward Rotators (concentric pull). The eccentric stretch at the top is felt, but it's the concentric work that earns the point.
    - Chest Press / Incline Press / Push-Up / Dip → Shoulder Horizontal Adductors + Scapular Protractors (lockout phase = direct concentric).
-   - Row / Face Pull → Shoulder Extensors / Horizontal Abductors, Scapular Retractors.
-   - Face Pull (cued externally) → Shoulder External Rotators (only if cued, otherwise leave it for cueingTips).
+   - Row → Shoulder Extensors / Horizontal Abductors, Scapular Retractors.
+   - Face Pull (rope at face level, thumbs rotating back) → Shoulder Horizontal Abductors, Scapular Retractors, AND Shoulder External Rotators (the rotation is part of the standard movement pattern, not an optional cue).
+   - Cable / DB External Rotation, Cuban Press, Reverse-Grip External Rotation → Shoulder External Rotators (direct).
    - Hip Thrust / Glute Kickback → Hip Extensors.
    - Hip Abduction Machine / Cable Abduction → Hip Abductors.
    - Hip Adduction Machine / Cable Adduction → Hip Adductors.
@@ -120,7 +121,7 @@ For every joint action that scored 0 or half-credit, populate cueingTips[] (limi
   • "Hip External Rotators: during your Barbell Back Squat, actively grip the floor with your toes and rotate your knees outward as you descend. Cue 'spread the floor.' The glute max fires in external rotation, which is what makes this count as direct training rather than just stabilization."
   • "Spinal Extensors: during your Romanian Deadlift, set your back into hard extension before you start each rep and hold it actively under load — don't let the spine pass through neutral on autopilot. Held tension under bar load = direct stimulus."
   • "Scapular Upward Rotators: during your Machine Shoulder Press, deliberately let the shoulder blades rotate up and around the ribcage at lockout instead of shrugging straight up. The serratus and lower trap drive the motion when cued this way."
-  • "Shoulder External Rotators: during your Cable Face Pull, finish each rep with a hard external rotation (rotate the cuff like you're showing your biceps). Most lifters skip this final 10° — adding it converts a stabilizer cameo into a direct ER training rep."
+  • "Shoulder External Rotators: if you don't already have face pulls or a dedicated rotator-cuff exercise, finish your last set of any rear-delt or rowing movement with 8–10 strict external rotations using a light dumbbell or band — adding it covers a chronically under-trained mover."
   • "Spinal Rotators & Lateral Flexors: hold a single dumbbell on one side during your Walking Lunge — the obliques fire isometrically against the asymmetric load. Slow tempo amplifies the stimulus."
   • "Ankle Plantarflexors: at the bottom of your Barbell Squat, drive through the balls of your feet and feel the calves load up before standing — that's the difference between passive stretch and an actual stimulus."
 
