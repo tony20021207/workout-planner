@@ -248,10 +248,13 @@ export default function PostSplitRater() {
               </div>
               {result.coverageBreakdown.cueingTips && result.coverageBreakdown.cueingTips.length > 0 && (
                 <div className="mt-4 p-3 bg-blue-500/5 border border-blue-500/30 rounded-sm">
-                  <div className="flex items-center gap-1.5 mb-2 text-blue-300 font-semibold text-xs">
+                  <div className="flex items-center gap-1.5 mb-1.5 text-blue-300 font-semibold text-xs">
                     <Info className="w-3.5 h-3.5" />
-                    Cue these into your existing exercises
+                    Recover lost coverage points by cueing intentionally
                   </div>
+                  <p className="text-[10px] text-muted-foreground/70 mb-2 leading-snug">
+                    Stabilizer / stretch roles don't auto-score, but you can upgrade them into direct training stimulus by following these cues during your existing exercises.
+                  </p>
                   <ul className="space-y-1.5 text-[11px] text-muted-foreground leading-relaxed list-disc pl-4">
                     {result.coverageBreakdown.cueingTips.map((tip, i) => (
                       <li key={i}>{tip}</li>

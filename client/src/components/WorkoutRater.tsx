@@ -411,7 +411,7 @@ Tue - Pull
                 notes={result.coverageBreakdown.notes}
               />
               <p className="text-xs text-muted-foreground mt-3 mb-3">
-                Anatomically weighted across the 27-action kinesiology taxonomy. 19 major movers up to 15 pts, 8 minor stabilizers up to 5 pts. Positive-only — you earn points for what's covered. Indirect involvement counts (eccentric control, isometric stabilization, loaded stretch).
+                Anatomically weighted across the 27-action kinesiology taxonomy. 19 major movers up to 15 pts (~0.79 each), 8 minor stabilizers up to 5 pts (~0.63 each). DIRECT coverage only — stabilizer roles and passive stretch don't auto-credit. Use the cueing tips below to recover those points by upgrading hidden roles into intentional direct work.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
@@ -441,10 +441,13 @@ Tue - Pull
               </div>
               {result.coverageBreakdown.cueingTips && result.coverageBreakdown.cueingTips.length > 0 && (
                 <div className="mt-4 p-3 bg-blue-500/5 border border-blue-500/30 rounded-sm">
-                  <div className="flex items-center gap-1.5 mb-2 text-blue-300 font-semibold text-xs">
+                  <div className="flex items-center gap-1.5 mb-1.5 text-blue-300 font-semibold text-xs">
                     <Info className="w-3.5 h-3.5" />
-                    Cue these into your existing exercises
+                    Recover lost coverage points by cueing intentionally
                   </div>
+                  <p className="text-[10px] text-muted-foreground/70 mb-2 leading-snug">
+                    Stabilizer / stretch roles don't auto-score, but you can upgrade them into direct training stimulus by following these cues during your existing exercises.
+                  </p>
                   <ul className="space-y-1.5 text-[11px] text-muted-foreground leading-relaxed list-disc pl-4">
                     {result.coverageBreakdown.cueingTips.map((tip, i) => (
                       <li key={i}>{tip}</li>

@@ -82,36 +82,51 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total, 5 criteria × 20 pt
    8 MINOR / stabilizer movers — collectively up to 5 pts (~0.63 each):
      Scapular Elevators, Scapular Depressors, Scapular Upward Rotators, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip Adductors, Hip External Rotators, Hip Internal Rotators.
 
-   For each action: +full / +half (only 1 exercise covers it) / +0 (missing).
+   For each action: +full (covered directly by 2+ exercises) / +half (covered directly by exactly 1 exercise) / +0 (not directly covered).
 
-   COVERAGE LIBERALISM — credit indirect involvement, not just direct concentric work:
-   An exercise covers a joint action if ANY of these apply:
-     (a) Direct concentric primary mover.
-     (b) Eccentric control of that action — e.g., Cable Pullover / Lat Prayer's overhead phase covers Shoulder Flexors eccentrically; Pulldown's reach-up phase covers Scapular Upward Rotators.
-     (c) Isometric stabilization of that joint under load — e.g., Squat / Romanian Deadlift / Conventional Deadlift cover Spinal Extensors and Hip Abductors / Adductors / External Rotators / Internal Rotators as stabilizers.
-     (d) Loaded stretch of the muscle — e.g., bottom of a Squat covers Ankle Plantarflexors via a passive stretch under load.
+   DIRECT COVERAGE ONLY — indirect / stabilizer / passive-stretch involvement does NOT count toward the score:
+   An exercise covers a joint action ONLY when it is the dynamic prime mover or an obvious co-mover doing concentric or eccentric work through a meaningful range. Stabilizer roles, isometric bracing, and passive loaded stretch do NOT score points by default — those become the basis for cueingTips instead (see below).
 
-   Specific examples that MUST be credited:
-   - Squat / Romanian DL / Conventional DL / Leg Press → Spinal Extensors, Hip Abductors, Hip Adductors, Hip External Rotators, Hip Internal Rotators (stabilizers).
-   - Open-toe / wide-stance Squat / Hack / Leg Press → additionally Hip Abductors / External Rotators (active engagement).
-   - Sumo Deadlift → Hip Adductors and Hip External Rotators (direct).
-   - Squat (any) → Ankle Plantarflexors (loaded stretch at depth).
-   - Cable Pullover / Cable Lat Prayer / Single-Arm Cable Pulldown (Facing Away variant) → Shoulder Flexors (eccentric overhead) and Scapular Upward Rotators.
-   - Machine Shoulder Press / Free-Weight Overhead Press / Front Raise → Shoulder Flexors (direct).
-   - Any pulldown / pull-up → Scapular Downward Rotators (direct).
-   - Chest Press / Incline Press / Push-Up / Dip → Scapular Protractors (direct, lockout).
-   - Any row / face pull → Scapular Retractors (direct).
+   What counts as DIRECT and earns points:
+   - Squat / Hack / Leg Press → Knee Extensors, Hip Extensors. (NOT Spinal Ext, NOT Hip stabilizers, NOT Ankle PF — those are stabilizer / stretch roles.)
+   - Romanian DL / Conventional DL → Hip Extensors, Knee Flexors (RDL emphasis).
+   - Sumo Deadlift → Hip Extensors, Hip Adductors (active concentric).
+   - Calf Raise / Standing Calf / Seated Calf → Ankle Plantarflexors.
+   - Machine Shoulder Press / Overhead Press / Front Raise → Shoulder Flexors, Shoulder Abductors (depending on plane).
+   - Pulldown / Pull-Up / Chin-Up → Shoulder Extensors / Adductors, Scapular Downward Rotators.
+   - Cable Pullover / Lat Prayer / Single-Arm Cable Pulldown (Facing Away) → Shoulder Extensors, Scapular Downward Rotators (concentric pull). The eccentric stretch at the top is felt, but it's the concentric work that earns the point.
+   - Chest Press / Incline Press / Push-Up / Dip → Shoulder Horizontal Adductors + Scapular Protractors (lockout phase = direct concentric).
+   - Row / Face Pull → Shoulder Extensors / Horizontal Abductors, Scapular Retractors.
+   - Face Pull (cued externally) → Shoulder External Rotators (only if cued, otherwise leave it for cueingTips).
+   - Hip Thrust / Glute Kickback → Hip Extensors.
+   - Hip Abduction Machine / Cable Abduction → Hip Abductors.
+   - Hip Adduction Machine / Cable Adduction → Hip Adductors.
+   - Plank / Pallof Press / Side Plank → Spinal Extensors / Spinal Rotators & Lateral Flexors (anti-rotation / anti-extension is a direct training stimulus for these).
+   - Leg Curl / Glute-Ham Raise → Knee Flexors.
 
-   Earn points for what's covered. Nothing subtracted afterward.
+   What does NOT count as direct (and therefore goes into cueingTips when undertrained):
+   - Squat-as-spinal-extensor (it's a stabilizer role only).
+   - Squat-as-hip-stabilizer (Abd / Add / IR / ER are bracing only).
+   - Squat-as-ankle-plantarflexor (passive stretch, not a training stimulus).
+   - Pressing-as-scapular-stabilizer beyond protraction.
+   - Any "the antagonist is also working" claim.
 
-CUEING TIPS FOR UNDER-COVERED ACTIONS:
-When the routine's coverage is incomplete on a joint action — either entirely missing or only marked as half-credit — populate cueingTips[] with 1–3 concrete pieces of advice. Each tip names a specific exercise the user already has in the routine and explains how to consciously engage the under-trained joint action through controlled movement. Examples of the form a tip should take:
-  • "Hip External Rotators: during your Barbell Back Squat, actively grip the floor with your toes and rotate your knees out as you descend — the glute max contracts in external rotation while the squat happens."
-  • "Scapular Upward Rotators: during your Machine Shoulder Press, deliberately let the shoulder blades rotate up and around the ribcage at lockout instead of shrugging straight up. The serratus and lower trap drive the motion."
-  • "Shoulder External Rotators: during your Cable Face Pull, finish each rep with a hard external rotation (rotate the cuff like you're showing your biceps) — most lifters skip this final 10° of rotation."
-  • "Spinal Rotators & Lateral Flexors: hold a single dumbbell on one side during your Walking Lunge — the obliques fire isometrically to resist the asymmetric load."
-If a joint action is truly missing AND no exercise in the routine can plausibly train it via cueing alone (e.g. routine has zero pulling movements but Scapular Downward Rotators is missing), name a small substitute — e.g. "Add a single set of Lat Pulldowns or Pull-Ups."
-Skip cueingTips entirely (empty array) if every action is covered.
+   Earn points for what's covered DIRECTLY. Nothing subtracted afterward.
+
+CUEING TIPS FOR UNDER-COVERED ACTIONS — this is the bridge that turns indirect involvement into intentional direct work:
+Because indirect / stabilizer / stretch roles no longer auto-credit, the routine WILL lose points whenever a joint action is only "indirectly" present. cueingTips[] is how the user can recover that gap consciously — by upgrading a stabilizer role into deliberate, direct training through cueing.
+
+For every joint action that scored 0 or half-credit, populate cueingTips[] (limit to the 4 most impactful tips) with concrete advice tying the under-trained action to a specific exercise the user already has. Each tip should explain HOW the user can intentionally engage that action via controlled movement, breath, or set-up — turning what was previously stabilizer work into a real training stimulus. Examples of the form a tip should take:
+  • "Hip External Rotators: during your Barbell Back Squat, actively grip the floor with your toes and rotate your knees outward as you descend. Cue 'spread the floor.' The glute max fires in external rotation, which is what makes this count as direct training rather than just stabilization."
+  • "Spinal Extensors: during your Romanian Deadlift, set your back into hard extension before you start each rep and hold it actively under load — don't let the spine pass through neutral on autopilot. Held tension under bar load = direct stimulus."
+  • "Scapular Upward Rotators: during your Machine Shoulder Press, deliberately let the shoulder blades rotate up and around the ribcage at lockout instead of shrugging straight up. The serratus and lower trap drive the motion when cued this way."
+  • "Shoulder External Rotators: during your Cable Face Pull, finish each rep with a hard external rotation (rotate the cuff like you're showing your biceps). Most lifters skip this final 10° — adding it converts a stabilizer cameo into a direct ER training rep."
+  • "Spinal Rotators & Lateral Flexors: hold a single dumbbell on one side during your Walking Lunge — the obliques fire isometrically against the asymmetric load. Slow tempo amplifies the stimulus."
+  • "Ankle Plantarflexors: at the bottom of your Barbell Squat, drive through the balls of your feet and feel the calves load up before standing — that's the difference between passive stretch and an actual stimulus."
+
+If a joint action is truly missing AND no exercise in the routine can plausibly train it via cueing (e.g. zero pulling movements but Scapular Downward Rotators missing), suggest a small substitute exercise instead — e.g. "Add a single set of Lat Pulldowns or Pull-Ups to cover Scapular Downward Rotators directly."
+
+Skip cueingTips entirely (empty array) only if every action is at full credit.
 
 SCAPULAR-DEPRESSION CUEING:
 If the pool contains pulldown movements (Lat Pulldown, Single-Arm Cable Pulldown, Pull-Up / Chin-Up, Lat Prayer, Pullover), populate scapularDepressionNote with: "Initiate the pull by depressing your scapulae (shoulder blades pull down first, then elbows pull down). This is what makes pulldowns a true scapular depressor exercise." Otherwise leave it empty.
@@ -255,10 +270,10 @@ The 5 pool-stage criteria are compressed proportionally to 70 pts (14 each). Thr
    - 15–20% or 55–65%: −5 to −7
    - <10% or >75%: −10 to −12
 
-5. JOINT-ACTION COVERAGE (14 pts): Anatomically weighted, 75/25 split — 19 major movers up to ~10.5 pts (~0.55 each), 8 minor movers up to ~3.5 pts (~0.44 each). Same lists and crediting rules as the pool stage:
+5. JOINT-ACTION COVERAGE (14 pts): Anatomically weighted, 75/25 split — 19 major movers up to ~10.5 pts (~0.55 each), 8 minor movers up to ~3.5 pts (~0.44 each).
    MAJOR (19): Knee Extensors, Knee Flexors, Hip Extensors, Hip Abductors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Shoulder External Rotators, Elbow Flexors, Elbow Extensors, Spinal Flexors, Spinal Extensors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators.
    MINOR (8): Scapular Elevators, Scapular Depressors, Scapular Upward Rotators, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip Adductors, Hip External Rotators, Hip Internal Rotators.
-   Credit indirect involvement liberally (same rules as pool): squat / DL / leg press cover Spinal Ext + Hip Abductors / Adductors / IR / ER; squat covers Ankle PF via stretch; pullover / lat prayer / facing-away pulldown cover Sh Flex + Scap UR; OHP / Front Raise cover Sh Flex; rows cover Scap Retr; presses cover Scap Prot; pulldowns / pull-ups cover Scap DR. Positive-only.
+   DIRECT COVERAGE ONLY — same rule as the pool stage. Indirect involvement (squat-as-spinal-extensor, squat-as-hip-stabilizer, squat-as-ankle-PF-via-stretch, press-as-scapular-stabilizer beyond protraction) does NOT score points. The user can recover those points by following the cueingTips. Each action: +full (covered directly by 2+ exercises across the week) / +half (1 direct exercise) / +0 (not directly covered). Positive-only.
 
 ═══ POST-SPLIT ADD-ONS · 30 pts (3 × 10 each) ═══
 
@@ -286,8 +301,8 @@ For every criterion's "notes" field, match the tone to where the score lands rel
 - GOOD (≥80%): specific praise calling out what's strong.
 Keep notes to 1–2 sentences. Be specific.
 
-CUEING TIPS FOR UNDER-COVERED ACTIONS (same rule as the pool prompt):
-When the routine's coverage is incomplete on a joint action, populate cueingTips[] with 1–3 concrete tips that name a specific exercise the user already has and explain how to engage the under-trained joint action through controlled movement (e.g., "Hip External Rotators: during your Squat, grip the floor and rotate knees outward as you descend"). If a joint action is truly missing AND no plausible cue exists, suggest a small substitute exercise.
+CUEING TIPS FOR UNDER-COVERED ACTIONS — bridge for indirect coverage (same rule as the pool prompt):
+Because indirect / stabilizer / stretch roles do NOT auto-credit, the user will lose points whenever an action is only indirectly involved. cueingTips[] is the recovery path: for every action that scored 0 or half-credit, give a concrete tip naming a specific exercise the user already has across the week and explaining HOW to consciously upgrade that stabilizer or stretch role into intentional direct training (e.g., "Hip External Rotators: during your Squat, grip the floor and rotate knees outward as you descend — that turns the glute max from a stabilizer into a direct trainee"). Cap at 4 tips so the list stays actionable. If an action is truly missing AND no plausible cue exists in the routine, suggest a small substitute exercise instead.
 
 SCAPULAR-DEPRESSION CUEING:
 If pulldown movements present (Lat Pulldown, Single-Arm Cable Pulldown, Pull-Up / Chin-Up, Lat Prayer, Pullover), populate scapularDepressionNote with the cueing reminder. Otherwise empty string.
