@@ -91,7 +91,8 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total, 5 criteria × 20 pt
    - Romanian DL / Conventional DL → Hip Extensors, Knee Flexors (RDL emphasis).
    - Sumo Deadlift → Hip Extensors, Hip Adductors (active concentric).
    - Calf Raise / Standing Calf / Seated Calf → Ankle Plantarflexors.
-   - Machine Shoulder Press / Overhead Press / Front Raise → Shoulder Flexors, Shoulder Abductors (depending on plane).
+   - Machine Shoulder Press / Overhead Press / Front Raise → Shoulder Flexors, Shoulder Abductors (depending on plane). Scapular Upward Rotators only score on overhead press WHEN cued for full lockout — see cueingTips.
+   - Lateral Raise (Dumbbell / Cable / Machine / Super-ROM / Y-Raise) → Shoulder Abductors AND Scapular Upward Rotators (above ~90° of abduction the scapulo-humeral rhythm forces the scap into upward rotation; it's a real training stimulus, not a stabilizer role).
    - Pulldown / Pull-Up / Chin-Up → Shoulder Extensors / Adductors, Scapular Downward Rotators.
    - Cable Pullover / Lat Prayer / Single-Arm Cable Pulldown → Shoulder Extensors / Adductors, Scapular Downward Rotators or Retractors depending on the line of pull (Single-Arm Cable Pulldown front-anchor = Scap Depression; side-anchor = Scap Downward Rotation; across-front anchor = Scap Retraction). The eccentric stretch at the top is felt, but it's the concentric work that earns the point.
    - Chest Press / Incline Press / Push-Up / Dip → Shoulder Horizontal Adductors + Scapular Protractors (lockout phase = direct concentric).
@@ -118,7 +119,7 @@ Because indirect / stabilizer / stretch roles no longer auto-credit, the routine
 
 For every MAJOR joint action that scored 0 or half-credit, populate cueingTips[] (limit to the 4 most impactful tips) with concrete advice tying the under-trained action to a specific exercise the user already has. Each tip should explain HOW the user can intentionally engage that action via controlled movement, breath, or set-up — turning what was previously stabilizer work into a real training stimulus. Examples:
   • "Spinal Extensors: during your Romanian Deadlift, set your back into hard extension before each rep and hold it actively under load — don't let the spine pass through neutral on autopilot. Held tension under bar load = direct stimulus."
-  • "Scapular Upward Rotators: during your Machine Shoulder Press, deliberately let the shoulder blades rotate up and around the ribcage at lockout instead of shrugging straight up. The serratus and lower trap drive the motion when cued this way."
+  • "Scapular Upward Rotators: on your Machine / Overhead Shoulder Press, drive ALL THE WAY into full lockout each rep — don't park at the 'top' before the elbows lock. Through the last 30° of the press the scapula MUST upwardly rotate around the ribcage to allow the humerus to clear; if you cut the rep short you skip the entire upward-rotation contribution. Lateral raises also count when carried to or above 90° of abduction (the scapulo-humeral rhythm forces upward rotation in the upper range)."
   • "Shoulder External Rotators: if you don't have face pulls or a dedicated rotator-cuff exercise, finish your last set of any rear-delt or rowing movement with 8–10 strict external rotations using a light dumbbell or band."
   • "Hip Adductors: switch your usual squat or leg press to a wider stance for one set per session — the adductors take over a meaningful share of the work as your knees track wider than your hips."
   • "Ankle Plantarflexors: at the bottom of your Barbell Squat, drive through the balls of your feet and feel the calves load up before standing — that's the difference between passive stretch and an actual stimulus."

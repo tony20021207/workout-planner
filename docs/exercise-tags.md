@@ -216,14 +216,14 @@ Stretch column: `mod` moderate · `high` · **`VH`** very-high
 #### Medial Delt — Contracted Bias
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
 |---|---|---|---|---|---|---|---|
-| Dumbbell Lateral Raise | Sh Abd | I | ✗ | M | M | Standing, Seated, Lean-In, Side-Lying | Lean-in highly ranked |
-| Super-ROM Lateral Raise | Sh Abd | I | ✗ | M | M | DB, Cable, Machine | Israetel: broader delt dev |
-| Machine Lateral Raise | Sh Abd | I | ✗ | H | H | Selectorized, Plate-Loaded, Atlantis | Nippard: Atlantis A+ |
+| Dumbbell Lateral Raise | Sh Abd, Scap UR | I | ✗ | M | M | Standing, Seated, Lean-In, Side-Lying | Lean-in highly ranked |
+| Super-ROM Lateral Raise | Sh Abd, Scap UR | I | ✗ | M | M | DB, Cable, Machine | Israetel: broader delt dev |
+| Machine Lateral Raise | Sh Abd, Scap UR | I | ✗ | H | H | Selectorized, Plate-Loaded, Atlantis | Nippard: Atlantis A+ |
 
 #### Medial Delt — Stretch Bias
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
 |---|---|---|---|---|---|---|---|
-| Cable Lateral Raise | Sh Abd | I | ✓ | H | VH | Single-Arm, Cuffed | Nippard's #1 side-delt |
+| Cable Lateral Raise | Sh Abd, Scap UR | I | ✓ | H | VH | Single-Arm, Cuffed | Nippard's #1 side-delt |
 | Cable Y-Raise | Sh Abd, Scap UR | I | ✓ | H | H | Handles, Cuffs, Dual Cable | Nippard S-tier |
 
 #### Rear Delt
@@ -307,7 +307,7 @@ Stretch column: `mod` moderate · `high` · **`VH`** very-high
 | Scapular Protractors | ★ | Chest Press variants (incidental) |
 | Scapular Elevators | ★★ | RDL, Conventional DL, Barbell Row, Meadows Row, Single-Arm DB Rows |
 | Scapular Depressors | ★★ | Lat Pulldown, Pull-Up, Single-Arm Cable Pulldown, Lat Prayer, Pullover |
-| Scapular Upward Rotators | ★ | Cable Y-Raise, Machine Shoulder Press |
+| Scapular Upward Rotators | ★★★ | All lateral raises (DB / Cable / Machine / Super-ROM / Y-Raise), Overhead Press cued for full lockout |
 | Scapular Downward Rotators | ★★ | Lat Pulldown, Pull-Up |
 | Elbow Flexors | ★★★ | Bayesian, Preacher, Lat Pulldown |
 | Elbow Extensors | ★★★ | Overhead Tri Ext, Skullcrusher, Pressdown |
