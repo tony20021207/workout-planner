@@ -201,15 +201,5 @@ export function optimizedToRoutineItem(opt: OptimizedExercise): RoutineItem {
     targetedMuscles: opt.targetedMuscles,
     equipment: opt.equipment,
     angle: opt.angle,
-    warmup: {
-      name: "General activation",
-      sets: "1",
-      reps: "8–10",
-      instructions: [
-        "5 minutes light cardio to raise core temperature.",
-        "Dynamic stretching for the target muscles.",
-        "1–2 ramp-up sets at lighter loads before working sets.",
-      ],
-    },
   };
 }

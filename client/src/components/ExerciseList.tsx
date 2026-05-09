@@ -65,7 +65,6 @@ function ExerciseCard({ exercise, category, jointFunctionName }: { exercise: Exe
       targetedMuscles: exercise.targetedMuscles,
       equipment: selectedEquipment,
       angle: selectedAngle,
-      warmup: exercise.warmup,
       // sets / reps / weight intentionally not set — the context applies
       // sensible defaults; per-set values are configured later, after the
       // user picks a split (P5).

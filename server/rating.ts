@@ -272,11 +272,48 @@ const ratingSchema = {
   },
 };
 
+const lifestyleEnum = z.enum([
+  "desk-job",
+  "runner",
+  "competitive-sports",
+  "bed-rot",
+  "physical-labor",
+]);
+
 const inputSchema = z.object({
   source: z.enum(["routine", "text", "image"]),
   text: z.string().optional(),
   imageDataUrl: z.string().optional(),
+  lifestyle: lifestyleEnum.optional(),
 });
+
+const LIFESTYLE_RATING_GUIDANCE: Record<z.infer<typeof lifestyleEnum>, string> = {
+  "desk-job":
+    "USER CONTEXT — DESK JOB (sits ≥6h/day): Chronic restrictions: rounded thoracic spine, shortened hip flexors, under-active lower trap / serratus, anterior shoulder tightness, weak posterior chain. " +
+    "Bias cueingTips toward: Spinal Extensors (active extension cues on RDLs / hip hinges), Scapular Upward Rotators (shoulder press cued for serratus + lower trap drive), Hip Extensors (hip thrust / glute bridge mind-muscle). " +
+    "Bias opportunityTips toward: Hip Flexor mobility cues if the user has Hip Flex training, Spinal Rotators / obliques (anti-extension via planks). " +
+    "Verdict tone: acknowledge that desk-bound lifters need to actively counter the chronic gaps; be encouraging when they cover Sp Ext, Scap UR / Dep, Hip Ext directly.",
+  runner:
+    "USER CONTEXT — RUNNER / ENDURANCE: Chronic restrictions: tight ankles / quads / hip flexors, weak glute med (hip stability), hamstring overuse. " +
+    "Bias cueingTips toward: Hip Abductors (single-leg or wide-stance cueing), Knee Flexors (full-ROM hamstring work since running shortens them). " +
+    "Bias opportunityTips toward: Hip External Rotators (lateral stability), Spinal Rotators (running counter-rotation). " +
+    "Verdict tone: praise routines with single-leg work and dedicated glute med / hamstring; flag missed Hip Abductors / Knee Flexors as critical for runners.",
+  "competitive-sports":
+    "USER CONTEXT — COMPETITIVE SPORTS: Chronic restrictions: asymmetric loading, rotator cuff fatigue, hip / ankle stability under unpredictable forces, connective-tissue stiffness. " +
+    "Bias cueingTips toward: Shoulder External Rotators and Scapular Retractors (cuff health), single-side stability cues. " +
+    "Bias opportunityTips toward: Spinal Rotators & Lateral Flexors (sport-specific anti-rotation), Hip ER / IR. " +
+    "Verdict tone: emphasize injury prevention through cuff and core work; praise routines that include external rotation, anti-rotation core, and unilateral work.",
+  "bed-rot":
+    "USER CONTEXT — BED-ROT / SEDENTARY: Generalized joint stiffness, both hip flexors AND extensors inhibited, low conditioning, low loading history. " +
+    "Bias cueingTips toward: foundational direct movement (don't suggest near-failure intensity yet — emphasize basic activation cues over advanced techniques). " +
+    "Bias opportunityTips toward: Spinal Rotators (obliques, deeply de-conditioned), Scap UR and Hip ER (basic stabilizer activation). " +
+    "Verdict tone: gentle and encouraging — celebrate any direct coverage; do not over-penalize gaps the lifter isn't ready to fill. Suggest gradual ramp-up.",
+  "physical-labor":
+    "USER CONTEXT — STANDING / PHYSICAL LABOR: Lower-back fatigue, forearm / grip overuse, calf pump from standing, shoulder asymmetry from repeated lifting / carrying. " +
+    "Bias cueingTips toward: Spinal Extensor TECHNIQUE (set extension on RDLs — quality over more stimulus, since the user is already accumulating spinal load at work). " +
+    "Bias opportunityTips toward: Hip External Rotators and Scapular Upward Rotators (counter the asymmetric loading from work). " +
+    "Verdict tone: acknowledge accumulated workday fatigue; praise routines that emphasize quality and counter-balance over more volume.",
+};
 
 // ============================================================
 // POST-SPLIT RATING — runs after split + sets/reps are configured
@@ -462,7 +499,13 @@ const postSplitRatingSchema = {
 const postSplitInputSchema = z.object({
   /** Plain-text serialization of the routine + split + per-day sets/reps. */
   text: z.string(),
+  lifestyle: lifestyleEnum.optional(),
 });
+
+function buildSystemPrompt(basePrompt: string, lifestyle: z.infer<typeof lifestyleEnum> | undefined): string {
+  if (!lifestyle) return basePrompt;
+  return `${LIFESTYLE_RATING_GUIDANCE[lifestyle]}\n\n${basePrompt}`;
+}
 
 export const ratingRouter = router({
   rateWorkout: publicProcedure
@@ -494,7 +537,7 @@ export const ratingRouter = router({
 
       const result = await invokeLLM({
         messages: [
-          { role: "system", content: HYPERTROPHY_MATRIX_PROMPT },
+          { role: "system", content: buildSystemPrompt(HYPERTROPHY_MATRIX_PROMPT, input.lifestyle) },
           { role: "user", content: userContent },
         ],
         outputSchema: {
@@ -522,7 +565,7 @@ export const ratingRouter = router({
 
       const result = await invokeLLM({
         messages: [
-          { role: "system", content: POST_SPLIT_PROMPT },
+          { role: "system", content: buildSystemPrompt(POST_SPLIT_PROMPT, input.lifestyle) },
           {
             role: "user",
             content: [

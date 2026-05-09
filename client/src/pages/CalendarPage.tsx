@@ -178,7 +178,6 @@ export default function CalendarPage() {
       sets: item.sets,
       equipment: item.equipment,
       angle: item.angle,
-      warmup: item.warmup,
       parameters: item.parameters,
     }));
     setSaveScheduleDate(null);
@@ -207,7 +206,6 @@ export default function CalendarPage() {
       sets: item.sets,
       equipment: item.equipment,
       angle: item.angle,
-      warmup: item.warmup,
       parameters: item.parameters,
     }));
     createWorkout.mutate({

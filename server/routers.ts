@@ -7,10 +7,12 @@ import { getDb } from "./db";
 import { workouts, calendarEntries } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { ratingRouter } from "./rating";
+import { sessionWarmupRouter } from "./sessionWarmups";
 
 export const appRouter = router({
   system: systemRouter,
   rating: ratingRouter,
+  sessionWarmups: sessionWarmupRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {

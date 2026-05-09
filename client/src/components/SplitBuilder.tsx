@@ -24,9 +24,11 @@ import {
   Settings,
   X,
   Wand2,
+  Flame,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useWorkout, type RoutineItem } from "@/contexts/WorkoutContext";
+import { useWorkout, type RoutineItem, type SessionWarmup } from "@/contexts/WorkoutContext";
 import {
   ALL_PRESETS,
   SPLIT_PRESETS,
@@ -38,6 +40,8 @@ import {
   type SplitPreset,
 } from "@/lib/splitPresets";
 import { autoRecommendSets } from "@/lib/setRecommender";
+import { trpc } from "@/lib/trpc";
+import { LIFESTYLE_PROFILES } from "@/lib/lifestyle";
 import { toast } from "sonner";
 import DayExerciseEditor from "./DayExerciseEditor";
 import PostSplitRater from "./PostSplitRater";
@@ -104,18 +108,55 @@ function CustomCard({
   );
 }
 
+function WarmupBlock({ warmups }: { warmups: SessionWarmup[] }) {
+  return (
+    <div className="border-b border-orange-500/20 bg-orange-500/[0.03]">
+      <div className="px-3 py-2 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-orange-300 font-semibold border-b border-orange-500/20">
+        <Flame className="w-3 h-3" />
+        Session Warmup · 3 dynamic
+      </div>
+      <ol className="divide-y divide-orange-500/10">
+        {warmups.map((w, i) => (
+          <li key={i} className="p-3 space-y-1.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <h6 className="font-heading font-semibold text-xs text-foreground leading-tight">
+                {i + 1}. {w.name}
+              </h6>
+              <span className="text-[10px] tabular-nums text-orange-300/80 shrink-0">
+                {Math.round(w.durationSeconds / 30) * 30 || w.durationSeconds}s
+              </span>
+            </div>
+            <ul className="space-y-0.5 ml-3 list-disc text-[10px] text-muted-foreground leading-snug">
+              {w.instructions.map((line, j) => (
+                <li key={j}>{line}</li>
+              ))}
+            </ul>
+            {w.lifestyleCue && (
+              <p className="text-[10px] text-purple-300/90 italic leading-snug pl-3">
+                <span className="not-italic font-semibold">Why:</span> {w.lifestyleCue}
+              </p>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 function DayCard({
   day,
   items,
   allDays,
   onMoveExercise,
   stats,
+  warmups,
 }: {
   day: { id: string; name: string; tags: string[]; scheduleHint?: string };
   items: RoutineItem[];
   allDays: { id: string; name: string }[];
   onMoveExercise: (exerciseId: string, fromDayId: string, toDayId: string) => void;
   stats: { compounds: number; isolations: number; total: number; compoundPct: number };
+  warmups?: SessionWarmup[];
 }) {
   const compoundPctRounded = Math.round(stats.compoundPct * 100);
   const ratioOnTarget = stats.total > 0 && isCompoundRatioOnTarget(stats.compoundPct);
@@ -155,6 +196,9 @@ function DayCard({
         </div>
       </div>
 
+      {/* Session warmups (lifestyle-aware, 3 per day) */}
+      {warmups && warmups.length > 0 && <WarmupBlock warmups={warmups} />}
+
       {/* Exercise list with inline sets/reps editor */}
       <div className="flex-1">
         {items.length === 0 ? (
@@ -179,8 +223,36 @@ function DayCard({
 }
 
 export default function SplitBuilder() {
-  const { routine, split, setSplit, clearSplit, updateRoutineItem } = useWorkout();
+  const {
+    routine,
+    split,
+    setSplit,
+    clearSplit,
+    updateRoutineItem,
+    lifestyle,
+    sessionWarmups,
+    setSessionWarmups,
+  } = useWorkout();
   const [open, setOpen] = useState(false);
+
+  const warmupMutation = trpc.sessionWarmups.generate.useMutation({
+    onSuccess: (data: { days: Array<{ dayName: string; warmups: SessionWarmup[] }> }) => {
+      // Reconcile by dayName -> dayId so renames don't break mapping.
+      if (!split.splitId || split.splitId === "custom") return;
+      const preset = SPLIT_PRESETS[split.splitId];
+      const byName = new Map(data.days.map((d) => [d.dayName, d.warmups]));
+      const next: Record<string, SessionWarmup[]> = {};
+      for (const day of preset.days) {
+        const found = byName.get(day.name);
+        if (found) next[day.id] = found;
+      }
+      setSessionWarmups(next);
+      toast.success(`Generated warmups for ${Object.keys(next).length} day${Object.keys(next).length === 1 ? "" : "s"}`);
+    },
+    onError: (err) => {
+      toast.error(`Warmup generation failed: ${err.message}`);
+    },
+  });
 
   const activePreset: SplitPreset | null =
     split.splitId && split.splitId !== "custom" ? SPLIT_PRESETS[split.splitId] : null;
@@ -243,6 +315,26 @@ export default function SplitBuilder() {
       changed += 1;
     }
     toast.success(`Auto-filled sets & reps for ${changed} exercise${changed !== 1 ? "s" : ""}`);
+  };
+
+  const handleGenerateWarmups = () => {
+    if (!activePreset || !lifestyle) return;
+    const days = activePreset.days.map((day) => {
+      const ids = split.dayAssignments[day.id] ?? [];
+      const items = ids.map((id) => itemsById.get(id)).filter(Boolean) as RoutineItem[];
+      return {
+        dayName: day.name,
+        scheduleHint: day.scheduleHint,
+        exercises: items.map((it) => ({
+          exercise: it.exercise,
+          equipment: it.equipment,
+          angle: it.angle,
+          targetedMuscles: it.targetedMuscles,
+          category: it.category,
+        })),
+      };
+    });
+    warmupMutation.mutate({ lifestyle, days });
   };
 
   if (routine.length === 0) {
@@ -377,6 +469,64 @@ export default function SplitBuilder() {
                 Compound share target: {Math.round(COMPOUND_PCT_GOOD_MIN * 100)}–{Math.round(COMPOUND_PCT_GOOD_MAX * 100)}% per day
               </p>
             </div>
+
+            {/* Lifestyle-aware session warmup generator */}
+            <div className="p-3 bg-orange-500/[0.04] border-2 border-orange-500/25 rounded-sm">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="flex items-start gap-2 flex-1 min-w-0">
+                  <div className="p-1.5 bg-orange-500/15 rounded-sm shrink-0">
+                    <Flame className="w-4 h-4 text-orange-300" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h5 className="font-heading font-bold text-sm text-foreground leading-tight">
+                      Session Warmups
+                    </h5>
+                    {!lifestyle ? (
+                      <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                        Pick a lifestyle profile in the rating section above, then generate 3 dynamic warmups per day biased to your chronic restrictions.
+                      </p>
+                    ) : sessionWarmups && Object.keys(sessionWarmups).length > 0 ? (
+                      <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                        Generated for{" "}
+                        <span className="text-orange-300 font-semibold">
+                          {LIFESTYLE_PROFILES.find((p) => p.id === lifestyle)?.name}
+                        </span>
+                        . Re-generate after editing your split.
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                        Profile:{" "}
+                        <span className="text-orange-300 font-semibold">
+                          {LIFESTYLE_PROFILES.find((p) => p.id === lifestyle)?.name}
+                        </span>
+                        . 3 warmups per day will mobilize your chronic restrictions and prep the joint actions about to be trained.
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant={sessionWarmups && Object.keys(sessionWarmups).length > 0 ? "outline" : "default"}
+                  onClick={handleGenerateWarmups}
+                  disabled={!lifestyle || warmupMutation.isPending}
+                  className={
+                    !lifestyle || warmupMutation.isPending
+                      ? ""
+                      : !sessionWarmups || Object.keys(sessionWarmups).length === 0
+                        ? "bg-orange-500 text-white hover:bg-orange-500/90 font-semibold"
+                        : ""
+                  }
+                >
+                  {warmupMutation.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <Flame className="w-3.5 h-3.5 mr-1.5" />
+                  )}
+                  {sessionWarmups && Object.keys(sessionWarmups).length > 0 ? "Re-generate" : "Generate warmups"}
+                </Button>
+              </div>
+            </div>
+
             <div
               className="grid gap-3"
               style={{
@@ -394,6 +544,7 @@ export default function SplitBuilder() {
                     allDays={activePreset.days}
                     onMoveExercise={handleMoveExercise}
                     stats={dayStats[day.id] ?? { compounds: 0, isolations: 0, total: 0, compoundPct: 0 }}
+                    warmups={sessionWarmups?.[day.id]}
                   />
                 );
               })}

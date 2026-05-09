@@ -49,13 +49,6 @@ export interface AngleOption {
   tagOverrides?: TagOverrides;
 }
 
-export interface WarmupInfo {
-  name: string;
-  sets: string;
-  reps: string;
-  instructions: string[];
-}
-
 /**
  * Canonical joint actions used by the rating engine. Trimmed by user spec:
  * Shoulder Internal Rotators removed (over-trained incidentally; external
@@ -120,8 +113,6 @@ export interface Exercise {
   mechanics: string;
   equipment?: EquipmentOption[];
   angles?: AngleOption[];
-  /** Placeholder warmup; replaced by the desk-job-aware warmup engine in a later phase. */
-  warmup: WarmupInfo;
   /** Coach reasoning from the Nippard / Israetel compendium. */
   coachNotes?: string;
 }
@@ -156,17 +147,6 @@ export interface Category {
   description: string;
   jointFunctions: JointFunction[];
 }
-
-const PLACEHOLDER_WARMUP: WarmupInfo = {
-  name: "General activation (replaced by daily warmup engine)",
-  sets: "1–2",
-  reps: "8–10",
-  instructions: [
-    "5 minutes of light cardio to raise core temperature.",
-    "Dynamic stretching for the working muscles.",
-    "1–2 ramp-up sets at lighter loads before working sets.",
-  ],
-};
 
 export const categories: Category[] = [
   // ============================================================
@@ -228,7 +208,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Nippard rates high-bar squats S-tier and front squats A-tier; Smith stability lets lifters push closer to failure. Israetel recommends heel elevation for deeper knee travel.",
               },
@@ -283,7 +262,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Nippard's single best quad exercise. Israetel: feet-low stance for quad bias.",
               },
@@ -320,7 +298,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Israetel highlights belt squats for quads with low systemic fatigue.",
               },
@@ -376,7 +353,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier; main limitation is ROM.",
               },
               {
@@ -411,7 +387,6 @@ export const categories: Category[] = [
                     tagOverrides: { stretchLevel: "very-high" },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier for quad-biased unilateral loading.",
               },
             ],
@@ -442,7 +417,6 @@ export const categories: Category[] = [
                   { id: "bb", name: "Barbell" },
                   { id: "smith-lunge", name: "Smith Machine" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Nippard highlights walking lunges for the lower-glute stretch under load.",
               },
@@ -466,7 +440,6 @@ export const categories: Category[] = [
                   { id: "bb-ffe", name: "Barbell" },
                   { id: "cable-ffe", name: "Cable-Supported" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Both coaches: deep glute stretch under high tension.",
               },
               {
@@ -508,7 +481,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Nippard: forward-lean BSS for glute-focused unilateral work.",
               },
@@ -546,7 +518,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel & Nippard: glute-biased squat patterning.",
               },
               {
@@ -574,7 +545,6 @@ export const categories: Category[] = [
                     tagOverrides: { stretchLevel: "very-high" },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Nippard: useful upper-glute work. Cable single-leg version maximizes loaded stretch on the front-leg glute.",
               },
@@ -619,7 +589,6 @@ export const categories: Category[] = [
                   { id: "smith-rdl", name: "Smith Machine" },
                   { id: "cable-rdl", name: "Cable" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Israetel: deep hamstring stretch from sit-back hip hinge.",
               },
@@ -642,7 +611,6 @@ export const categories: Category[] = [
                   { id: "ssb", name: "Safety Squat Bar" },
                   { id: "smith-gm", name: "Smith Machine" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: pair with RDLs as hamstring hinges.",
               },
               {
@@ -663,7 +631,6 @@ export const categories: Category[] = [
                   { id: "cable-rope-pt", name: "Cable Rope" },
                   { id: "band-pt", name: "Band" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: beginner-friendly hinge for glute focus.",
               },
             ],
@@ -714,7 +681,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: top middle-glute option.",
               },
               {
@@ -759,7 +725,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: hard shortened-position glute contraction.",
               },
               {
@@ -782,7 +747,6 @@ export const categories: Category[] = [
                   { id: "machine-gb", name: "Machine" },
                   { id: "bw-gb", name: "Bodyweight" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: beginner-friendly hip-thrust alternative.",
               },
               {
@@ -833,7 +797,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Nippard: useful but fatiguing — not a top pure-hypertrophy pick.",
               },
@@ -864,7 +827,6 @@ export const categories: Category[] = [
                   { id: "horizontal-bench", name: "Horizontal Bench" },
                   { id: "ghd", name: "Glute-Ham Developer" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier for glutes; full-ROM lumbar extension.",
               },
               {
@@ -886,7 +848,6 @@ export const categories: Category[] = [
                   { id: "ssb-l", name: "Safety Squat Bar" },
                   { id: "smith-gm-l", name: "Smith Machine" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Israetel pairs with stiff-leg deadlifts; lumbar erectors trained isometrically.",
               },
@@ -909,7 +870,6 @@ export const categories: Category[] = [
                   { id: "db-jc", name: "Dumbbell" },
                   { id: "kb-jc", name: "Kettlebell" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Israetel: very light, gradual loading for back resilience.",
               },
@@ -964,7 +924,6 @@ export const categories: Category[] = [
                     description: "Tilted seat biases the clavicular pec and front delt.",
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: his overall best chest builder.",
               },
               {
@@ -1017,7 +976,6 @@ export const categories: Category[] = [
                     tagOverrides: { stretchLevel: "very-high" },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Heavy load potential; flat bench limits stretch — 30° incline or cambered bar opens it back up.",
               },
               {
@@ -1066,7 +1024,6 @@ export const categories: Category[] = [
                     tagOverrides: { stretchLevel: "very-high" },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: incline DB for max chest stretch.",
               },
               {
@@ -1093,7 +1050,6 @@ export const categories: Category[] = [
                   { id: "parallettes", name: "Parallettes" },
                   { id: "blocks", name: "Yoga Blocks" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: ultra-deep chest stretch.",
               },
               {
@@ -1119,7 +1075,6 @@ export const categories: Category[] = [
                   { id: "assisted-dip", name: "Assisted Dip Machine" },
                   { id: "plate-dip", name: "Plate-Loaded Dip" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier chest. Israetel: forward lean for chest.",
               },
               {
@@ -1159,7 +1114,6 @@ export const categories: Category[] = [
                     description: "Pulleys low, arms sweeping up across the body. Upper-chest / clavicular pec bias.",
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Nippard: seated cable fly S-tier; constant tension at deep stretch.",
               },
@@ -1201,7 +1155,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier; stable, focused chest tension.",
               },
               {
@@ -1223,7 +1176,6 @@ export const categories: Category[] = [
                   { id: "incline-fly", name: "Incline Bench", tagOverrides: { stretchLevel: "very-high" } },
                   { id: "janicki", name: "Janicki Setup", tagOverrides: { stretchLevel: "very-high" } },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier; Israetel: deep stretch + strong contraction.",
               },
             ],
@@ -1257,7 +1209,6 @@ export const categories: Category[] = [
                   { id: "select-msp", name: "Selectorized" },
                   { id: "plate-msp", name: "Plate-Loaded" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A+ for front delts.",
               },
               {
@@ -1284,7 +1235,6 @@ export const categories: Category[] = [
                   { id: "bb-ohp", name: "Barbell" },
                   { id: "smith-ohp", name: "Smith Machine" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: seated DB press A-tier.",
               },
               {
@@ -1310,7 +1260,6 @@ export const categories: Category[] = [
                   { id: "smith-jm", name: "Smith Machine JM Press" },
                   { id: "bb-jm", name: "Barbell JM Press" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier compound triceps.",
               },
               {
@@ -1332,7 +1281,6 @@ export const categories: Category[] = [
                   { id: "parallel-bars-trip", name: "Parallel Bars" },
                   { id: "assisted-dip-trip", name: "Assisted Dip" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: vertical-torso narrow-grip dip for triceps.",
               },
             ],
@@ -1394,7 +1342,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier; preferred over pull-ups for tracking.",
               },
               {
@@ -1430,7 +1377,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Elbow tucked / minimal flexion = pure lat work. Facing-away variant is a great upward-rotation primer.",
               },
               {
@@ -1451,7 +1397,6 @@ export const categories: Category[] = [
                   { id: "db-row-bench", name: "DB on Bench" },
                   { id: "db-row-rack", name: "DB Standing (Rack-Supported)" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Tucked elbow = lat focus.",
               },
               {
@@ -1474,7 +1419,6 @@ export const categories: Category[] = [
                   { id: "band-prayer", name: "Band" },
                   { id: "machine-pullover", name: "Machine Pullover" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Israetel: leaning forward maximizes lat stretch. Nippard: smooth cable progression.",
               },
@@ -1497,7 +1441,6 @@ export const categories: Category[] = [
                   { id: "db-pullover", name: "Dumbbell Pullover" },
                   { id: "machine-po", name: "Machine Pullover" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: better as a lat exercise than a chest one.",
               },
             ],
@@ -1532,7 +1475,6 @@ export const categories: Category[] = [
                   { id: "incline-db-row", name: "Incline Bench DB Row" },
                   { id: "seal-row", name: "Seal Row" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: best all-around back exercise.",
               },
               {
@@ -1558,7 +1500,6 @@ export const categories: Category[] = [
                   { id: "wide-cable-row", name: "Wide-Grip Cable Row" },
                   { id: "single-cable-row", name: "Single-Arm Cable Row" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier horizontal row.",
               },
               {
@@ -1586,7 +1527,6 @@ export const categories: Category[] = [
                   { id: "deficit-pendlay", name: "Deficit Pendlay Row" },
                   { id: "yates", name: "Yates Row" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Israetel: deficit barbell row for big stretch. Nippard: A-tier deficit Pendlay.",
               },
@@ -1614,7 +1554,6 @@ export const categories: Category[] = [
                   { id: "tbar-meadows", name: "T-Bar Setup" },
                   { id: "one-arm-bb", name: "One-Arm Barbell" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier; isolateral stretch.",
               },
               {
@@ -1640,7 +1579,6 @@ export const categories: Category[] = [
                   { id: "bb-rack-inv", name: "Barbell in Rack" },
                   { id: "trx-inv", name: "TRX / Suspension" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Israetel: face/throat pull line for rear-delt-heavy row.",
               },
@@ -1667,7 +1605,6 @@ export const categories: Category[] = [
                   { id: "db-bench-row", name: "DB on Bench" },
                   { id: "db-rack-row", name: "DB Standing (Rack-Supported)" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Flared elbow = mid-back / rhomboid focus.",
               },
               {
@@ -1692,7 +1629,6 @@ export const categories: Category[] = [
                   { id: "cable-rope-fpr", name: "Cable Rope" },
                   { id: "cable-bar-fpr", name: "Cable Bar" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Companion to the rear-delt face pull, but mid-back biased.",
               },
             ],
@@ -1730,7 +1666,6 @@ export const categories: Category[] = [
                   { id: "underhand-pu", name: "Underhand (Chin-Up)" },
                   { id: "neutral-pu", name: "Neutral Grip" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Israetel: unbeatable for lats. Nippard: less smooth resistance than pulldown but strong elbow-flexor recruitment.",
               },
@@ -1752,7 +1687,6 @@ export const categories: Category[] = [
                   { id: "cable-uh-pd", name: "Cable Underhand Pulldown" },
                   { id: "machine-uh-pd", name: "Machine Underhand Pulldown" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
               },
               {
                 id: "supinated-row",
@@ -1777,7 +1711,6 @@ export const categories: Category[] = [
                   { id: "bb-uh-row", name: "Underhand Barbell Row" },
                   { id: "machine-uh-row", name: "Machine Row" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
               },
             ],
           },
@@ -1826,7 +1759,6 @@ export const categories: Category[] = [
                   { id: "cable-bilateral-bay", name: "Cable Bilateral" },
                   { id: "freemotion", name: "FreeMotion Cable" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard's #1 biceps exercise.",
               },
               {
@@ -1865,7 +1797,6 @@ export const categories: Category[] = [
                     tagOverrides: { stretchLevel: "moderate" },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel & Nippard: A-tier deep stretch (especially at 45°).",
               },
               {
@@ -1887,7 +1818,6 @@ export const categories: Category[] = [
                   { id: "low-cable-lying", name: "Low-Cable Lying Curl" },
                   { id: "decline-bench-curl", name: "Decline-Bench Curl" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: clown / lying cable for hard biceps stretch.",
               },
             ],
@@ -1918,7 +1848,6 @@ export const categories: Category[] = [
                   { id: "ez-preacher", name: "EZ-Bar" },
                   { id: "cable-preacher", name: "Cable" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier biceps.",
               },
               {
@@ -1940,7 +1869,6 @@ export const categories: Category[] = [
                   { id: "superman-curl", name: "Superman / FreeMotion" },
                   { id: "ez-cable", name: "EZ-Bar Cable" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier; Israetel: Superman variant strong.",
               },
               {
@@ -1962,7 +1890,6 @@ export const categories: Category[] = [
                   { id: "ez-strict", name: "EZ-Bar" },
                   { id: "db-strict", name: "Dumbbell" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier; easy progression.",
               },
             ],
@@ -1993,7 +1920,6 @@ export const categories: Category[] = [
                   { id: "machine-hammer", name: "Machine" },
                   { id: "cross-body", name: "Cross-Body" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier.",
               },
               {
@@ -2015,7 +1941,6 @@ export const categories: Category[] = [
                   { id: "machine-preacher-h", name: "Machine" },
                   { id: "cable-preacher-h", name: "Cable" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier brachialis pick.",
               },
               {
@@ -2038,7 +1963,6 @@ export const categories: Category[] = [
                   { id: "cable-reverse", name: "Cable" },
                   { id: "db-reverse", name: "Dumbbell" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
               },
             ],
           },
@@ -2065,7 +1989,6 @@ export const categories: Category[] = [
                 equipment: [
                   { id: "ez-ohte", name: "EZ-Bar" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S+ for long head. Cable variants live under Cable Katana.",
               },
               {
@@ -2087,7 +2010,6 @@ export const categories: Category[] = [
                   { id: "cable-rope-katana", name: "Cable Rope" },
                   { id: "cuff-katana", name: "Cuff Cable" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier long-head cable work.",
               },
               {
@@ -2109,7 +2031,6 @@ export const categories: Category[] = [
                   { id: "ez-fp", name: "EZ-Bar" },
                   { id: "cable-fp", name: "Cable" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: B-tier; Israetel: solid long-head option.",
               },
             ],
@@ -2140,7 +2061,6 @@ export const categories: Category[] = [
                   { id: "rope-pd", name: "Rope" },
                   { id: "machine-pd-tri", name: "Machine" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Nippard: A-tier bar pressdown. Israetel: V-bar for stretch path.",
               },
@@ -2177,7 +2097,6 @@ export const categories: Category[] = [
                     tagOverrides: { stretchLevel: "very-high" },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier; Israetel: near-perfect force curve. Over-head path doubles as long-head work.",
               },
               {
@@ -2199,7 +2118,6 @@ export const categories: Category[] = [
                   { id: "cuff-kick", name: "Cable Cuff" },
                   { id: "machine-kick", name: "Machine" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: A-tier; cable better than DB kickback.",
               },
             ],
@@ -2238,7 +2156,6 @@ export const categories: Category[] = [
                   { id: "lean-in", name: "Lean-In DB" },
                   { id: "side-lying", name: "Side-Lying DB" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Israetel: seated strict eccentric. Nippard: lean-in and side-lying highly ranked.",
               },
@@ -2261,7 +2178,6 @@ export const categories: Category[] = [
                   { id: "cable-srom", name: "Cable" },
                   { id: "machine-srom", name: "Machine" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: broader delt development.",
               },
               {
@@ -2283,7 +2199,6 @@ export const categories: Category[] = [
                   { id: "plate-mlr", name: "Plate-Loaded" },
                   { id: "atlantis", name: "Atlantis Standing" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: Atlantis A+; clean isolation.",
               },
             ],
@@ -2313,7 +2228,6 @@ export const categories: Category[] = [
                   { id: "cuffed-lat", name: "Cuffed Cable" },
                   { id: "btb-cable-lat", name: "Behind-the-Back Cable" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard's #1 side-delt pick.",
               },
               {
@@ -2335,7 +2249,6 @@ export const categories: Category[] = [
                   { id: "cuffs-y", name: "Cable Cuffs" },
                   { id: "dual-y", name: "Dual Cable" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier.",
               },
               {
@@ -2356,7 +2269,6 @@ export const categories: Category[] = [
                   { id: "btb-cuff", name: "Cable Cuff" },
                   { id: "btb-single", name: "Single-Arm Cable" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier; emphasizes stretched side-delt.",
               },
             ],
@@ -2385,7 +2297,6 @@ export const categories: Category[] = [
                   { id: "pec-deck-r", name: "Pec Deck" },
                   { id: "rear-machine", name: "Rear-Delt Machine" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard's best rear-delt pick.",
               },
               {
@@ -2407,7 +2318,6 @@ export const categories: Category[] = [
                   { id: "cable-cuffs-rcc", name: "Cable Cuffs" },
                   { id: "cross-body-rcc", name: "Cross-Body Pull" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: S-tier rear-delt.",
               },
               {
@@ -2448,7 +2358,6 @@ export const categories: Category[] = [
                     },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: rear-delt + rotator cuff balanced work.",
               },
             ],
@@ -2479,7 +2388,6 @@ export const categories: Category[] = [
                   { id: "plate-fr", name: "Plate" },
                   { id: "machine-fr", name: "Machine" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Nippard: D-tier. Include only if pressing volume is low.",
               },
@@ -2530,7 +2438,6 @@ export const categories: Category[] = [
                     tagOverrides: { stretchLevel: "very-high" },
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Nippard's #1 hamstring pick. Lean forward to amplify stretch.",
               },
@@ -2561,7 +2468,6 @@ export const categories: Category[] = [
                   { id: "standing-lc", name: "Standing Leg Curl" },
                   { id: "ankle-cuff-lc", name: "Cable Ankle Cuff" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: needed for complete hamstring development.",
               },
             ],
@@ -2607,7 +2513,6 @@ export const categories: Category[] = [
                     description: "Toes pointed inward biases the vastus lateralis.",
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: near-perfect quad iso.",
               },
               {
@@ -2629,7 +2534,6 @@ export const categories: Category[] = [
                   { id: "band-rn", name: "Band-Assisted" },
                   { id: "weighted-rn", name: "Weighted" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Both coaches: massive quad stretch.",
               },
               {
@@ -2651,7 +2555,6 @@ export const categories: Category[] = [
                   { id: "ss-bench", name: "Sissy Squat Bench" },
                   { id: "trx-ss", name: "TRX-Assisted" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Nippard: best quad stretching movement (awkward setup).",
               },
             ],
@@ -2699,7 +2602,6 @@ export const categories: Category[] = [
                     description: "Toes flared outward biases the lateral gastroc head.",
                   },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: deep loaded stretch with pause.",
               },
               {
@@ -2721,7 +2623,6 @@ export const categories: Category[] = [
                   { id: "db-on-knees", name: "Dumbbell on Knees" },
                   { id: "smith-sc", name: "Smith Machine Seated" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: useful soleus emphasis.",
               },
             ],
@@ -2758,7 +2659,6 @@ export const categories: Category[] = [
                   { id: "select-acm", name: "Selectorized" },
                   { id: "plate-acm", name: "Plate-Loaded" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: best ab option when designed well.",
               },
               {
@@ -2780,7 +2680,6 @@ export const categories: Category[] = [
                   { id: "bar-cc", name: "Cable Bar" },
                   { id: "round-cc", name: "Rounded Surface" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: accessible and loadable.",
               },
               {
@@ -2801,7 +2700,6 @@ export const categories: Category[] = [
                   { id: "decline-ibc", name: "Decline Bench" },
                   { id: "plate-ibc", name: "Weighted Plate / DB" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
               },
             ],
           },
@@ -2830,7 +2728,6 @@ export const categories: Category[] = [
                   { id: "weighted-vu", name: "Weighted" },
                   { id: "bench-vu", name: "Bench Variation" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
               },
               {
                 id: "ab-wheel",
@@ -2851,7 +2748,6 @@ export const categories: Category[] = [
                   { id: "bb-rollout", name: "Barbell Rollout" },
                   { id: "stability-ball", name: "Stability Ball" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Israetel: phenomenal tension; harder to progress.",
               },
             ],
@@ -2885,7 +2781,6 @@ export const categories: Category[] = [
                   { id: "low-high", name: "Low-to-High", description: "Upward rotation pattern." },
                   { id: "horizontal-cw", name: "Horizontal", description: "Pure rotation." },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes:
                   "Coach data limited for obliques; this is a standard rotational option.",
               },
@@ -2907,7 +2802,6 @@ export const categories: Category[] = [
                   { id: "cable-pp", name: "Cable D-Handle" },
                   { id: "band-pp", name: "Band" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
                 coachNotes: "Standard anti-rotation oblique pick.",
               },
               {
@@ -2928,7 +2822,6 @@ export const categories: Category[] = [
                   { id: "db-sb", name: "Dumbbell" },
                   { id: "cable-sb", name: "Cable" },
                 ],
-                warmup: PLACEHOLDER_WARMUP,
               },
             ],
           },

@@ -102,7 +102,7 @@ function BreakdownRow({ label, score, max, notes }: { label: string; score: numb
 }
 
 export default function PostSplitRater() {
-  const { routine, split } = useWorkout();
+  const { routine, split, lifestyle } = useWorkout();
   const [result, setResult] = useState<PostSplitRatingResult | null>(null);
 
   const activePreset = useMemo(() => {
@@ -133,7 +133,7 @@ export default function PostSplitRater() {
   const handleRate = () => {
     if (!activePreset) return;
     const text = serializeFinalizedWeekToText(routine, activePreset.name, split.dayAssignments, activePreset.days);
-    rateMutation.mutate({ text });
+    rateMutation.mutate({ text, lifestyle: lifestyle ?? undefined });
   };
 
   if (!activePreset || !hasAssignments || !hasSetData) {

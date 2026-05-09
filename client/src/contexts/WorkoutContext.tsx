@@ -2,13 +2,13 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import {
   type CategoryType,
   type Difficulty,
-  type WarmupInfo,
   type ProgrammingParameters,
   getProgrammingParameters,
   generateId,
   getDefaultSets,
   getDefaultReps,
 } from "@/lib/data";
+import { type LifestyleId } from "@/lib/lifestyle";
 
 export interface SetDetail {
   reps: number;
@@ -48,7 +48,6 @@ export interface RoutineItem {
   targetedMuscles: string[];
   equipment?: string;
   angle?: string;
-  warmup: WarmupInfo;
 }
 
 interface AddExerciseParams {
@@ -59,7 +58,6 @@ interface AddExerciseParams {
   targetedMuscles: string[];
   equipment?: string;
   angle?: string;
-  warmup: WarmupInfo;
   numSets?: number;
   defaultReps?: number;
   defaultWeight?: number;
@@ -83,6 +81,16 @@ const DEFAULT_SPLIT: SplitState = {
   dayAssignments: {},
 };
 
+export interface SessionWarmup {
+  name: string;
+  durationSeconds: number;
+  instructions: string[];
+  lifestyleCue: string;
+}
+
+/** Map dayId -> 3 warmups for that day. */
+export type SessionWarmupsByDay = Record<string, SessionWarmup[]>;
+
 interface WorkoutContextType {
   routine: RoutineItem[];
   addToRoutine: (params: AddExerciseParams) => void;
@@ -97,11 +105,17 @@ interface WorkoutContextType {
   split: SplitState;
   setSplit: (state: SplitState) => void;
   clearSplit: () => void;
+  lifestyle: LifestyleId | null;
+  setLifestyle: (id: LifestyleId | null) => void;
+  sessionWarmups: SessionWarmupsByDay | null;
+  setSessionWarmups: (warmups: SessionWarmupsByDay | null) => void;
 }
 
 const STORAGE_KEY = "kinesiology_routine";
 const EFFORT_STORAGE_KEY = "kinesiology_effort";
 const SPLIT_STORAGE_KEY = "kinesiology_split";
+const LIFESTYLE_STORAGE_KEY = "kinesiology_lifestyle";
+const WARMUPS_STORAGE_KEY = "kinesiology_session_warmups";
 
 function loadRoutineFromStorage(): RoutineItem[] {
   try {
@@ -165,12 +179,64 @@ function saveSplitToStorage(split: SplitState) {
   }
 }
 
+function loadLifestyleFromStorage(): LifestyleId | null {
+  try {
+    const stored = sessionStorage.getItem(LIFESTYLE_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (typeof parsed === "string") return parsed as LifestyleId;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function saveLifestyleToStorage(id: LifestyleId | null) {
+  try {
+    if (id) {
+      sessionStorage.setItem(LIFESTYLE_STORAGE_KEY, JSON.stringify(id));
+    } else {
+      sessionStorage.removeItem(LIFESTYLE_STORAGE_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function loadWarmupsFromStorage(): SessionWarmupsByDay | null {
+  try {
+    const stored = sessionStorage.getItem(WARMUPS_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && typeof parsed === "object") return parsed as SessionWarmupsByDay;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function saveWarmupsToStorage(warmups: SessionWarmupsByDay | null) {
+  try {
+    if (warmups) {
+      sessionStorage.setItem(WARMUPS_STORAGE_KEY, JSON.stringify(warmups));
+    } else {
+      sessionStorage.removeItem(WARMUPS_STORAGE_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 
 export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [routine, setRoutine] = useState<RoutineItem[]>(() => loadRoutineFromStorage());
   const [effort, setEffortState] = useState<EffortCalibration>(() => loadEffortFromStorage());
   const [split, setSplitState] = useState<SplitState>(() => loadSplitFromStorage());
+  const [lifestyle, setLifestyleState] = useState<LifestyleId | null>(() => loadLifestyleFromStorage());
+  const [sessionWarmups, setSessionWarmupsState] = useState<SessionWarmupsByDay | null>(() => loadWarmupsFromStorage());
 
   // Persist routine to sessionStorage on every change
   useEffect(() => {
@@ -187,6 +253,20 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     saveSplitToStorage(split);
   }, [split]);
 
+  // Persist lifestyle profile on every change
+  useEffect(() => {
+    saveLifestyleToStorage(lifestyle);
+  }, [lifestyle]);
+
+  // Persist session warmups on every change
+  useEffect(() => {
+    saveWarmupsToStorage(sessionWarmups);
+  }, [sessionWarmups]);
+
+  const setSessionWarmups = useCallback((next: SessionWarmupsByDay | null) => {
+    setSessionWarmupsState(next);
+  }, []);
+
   const setEffort = useCallback((next: EffortCalibration) => {
     setEffortState(next);
   }, []);
@@ -197,6 +277,10 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
 
   const clearSplit = useCallback(() => {
     setSplitState(DEFAULT_SPLIT);
+  }, []);
+
+  const setLifestyle = useCallback((next: LifestyleId | null) => {
+    setLifestyleState(next);
   }, []);
 
   const addToRoutine = useCallback((params: AddExerciseParams) => {
@@ -221,7 +305,6 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       targetedMuscles: params.targetedMuscles,
       equipment: params.equipment,
       angle: params.angle,
-      warmup: params.warmup,
     };
     setRoutine((prev) => [...prev, newItem]);
   }, []);
@@ -270,6 +353,10 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         split,
         setSplit,
         clearSplit,
+        lifestyle,
+        setLifestyle,
+        sessionWarmups,
+        setSessionWarmups,
       }}
     >
       {children}

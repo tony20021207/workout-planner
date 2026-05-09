@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { trpc } from "@/lib/trpc";
+import LifestylePicker from "./LifestylePicker";
 import { toast } from "sonner";
 import {
   type RatingResult,
@@ -112,7 +113,7 @@ function BreakdownRow({ label, score, max, notes }: { label: string; score: numb
 }
 
 export default function WorkoutRater() {
-  const { routine, replaceRoutine, addRoutineItem } = useWorkout();
+  const { routine, replaceRoutine, addRoutineItem, lifestyle } = useWorkout();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<SourceMode>("routine");
   const [pastedText, setPastedText] = useState("");
@@ -139,15 +140,17 @@ export default function WorkoutRater() {
   }, [mode, routine.length, pastedText, imageDataUrl]);
 
   const handleRate = () => {
+    const lifestyleArg = lifestyle ?? undefined;
     if (mode === "routine") {
       rateMutation.mutate({
         source: "routine",
         text: serializeRoutineToText(routine),
+        lifestyle: lifestyleArg,
       });
     } else if (mode === "text") {
-      rateMutation.mutate({ source: "text", text: pastedText });
+      rateMutation.mutate({ source: "text", text: pastedText, lifestyle: lifestyleArg });
     } else if (imageDataUrl) {
-      rateMutation.mutate({ source: "image", imageDataUrl });
+      rateMutation.mutate({ source: "image", imageDataUrl, lifestyle: lifestyleArg });
     }
   };
 
@@ -521,6 +524,11 @@ Tue - Pull
                 )}
               </div>
             )}
+
+            {/* Lifestyle picker — shown only after a rating exists */}
+            <div className="p-4 bg-card rounded-sm border-2 border-purple-500/30">
+              <LifestylePicker />
+            </div>
 
             {/* Optimized routine */}
             <div className="space-y-3">

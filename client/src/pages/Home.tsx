@@ -14,7 +14,6 @@ import JointFunctionSelector from "@/components/JointFunctionSelector";
 import ExerciseList from "@/components/ExerciseList";
 import RoutineTable from "@/components/RoutineTable";
 import SplitBuilder from "@/components/SplitBuilder";
-import WarmupSection from "@/components/WarmupSection";
 import { type CategoryType, type JointFunction } from "@/lib/data";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { Link } from "wouter";
@@ -200,13 +199,6 @@ export default function Home() {
             Distribute the microcycle across the week. Pick a preset or build a custom split.
           </p>
           <SplitBuilder />
-        </section>
-      )}
-
-      {/* Warmup Recommendations */}
-      {routine.length > 0 && (
-        <section className="container py-12">
-          <WarmupSection />
         </section>
       )}
 
