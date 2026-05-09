@@ -1410,13 +1410,28 @@ export const categories: Category[] = [
                 description:
                   "Single-arm cable pulldown executed with minimal elbow flexion to isolate shoulder adduction. Hand-on-handle cable line keeps tension on the lat through the full stretched range.",
                 mechanics:
-                  "Reduced elbow involvement turns the pulldown into a near-isolation lat exercise; the cable maintains tension in the deep stretch.",
+                  "Reduced elbow involvement turns the pulldown into a near-isolation lat exercise; the cable maintains tension in the deep stretch. Reversing your stance (facing away from the cable) shifts the line of pull and recruits scapular up/down rotation.",
                 equipment: [
                   { id: "cable-handle-sap", name: "Cable Single Handle" },
                   { id: "cable-rope-sap", name: "Cable Rope (Single)" },
                 ],
+                angles: [
+                  {
+                    id: "facing-cable-sap",
+                    name: "Facing the Cable",
+                    description: "Standard orientation. Cable in front, pull straight down toward the hip. Pure lat focus + scapular depression.",
+                  },
+                  {
+                    id: "facing-away-sap",
+                    name: "Facing Away from Cable",
+                    description: "Cable behind you. Reach overhead/back, pull forward and down across the body. The reach phase upwardly rotates the scapula; the pull-down phase downwardly rotates it. Trains scapular up/down rotation alongside the lat.",
+                    tagOverrides: {
+                      addJointActions: ["Scapular Upward Rotators", "Scapular Downward Rotators"],
+                    },
+                  },
+                ],
                 warmup: PLACEHOLDER_WARMUP,
-                coachNotes: "Elbow tucked / minimal flexion = pure lat work.",
+                coachNotes: "Elbow tucked / minimal flexion = pure lat work. Facing-away variant is a great upward-rotation primer.",
               },
               {
                 id: "db-row-lat",

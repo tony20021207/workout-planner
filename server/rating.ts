@@ -74,11 +74,35 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total, 5 criteria × 20 pt
    - <10% compound (almost none) or >75% compound (very CNS-heavy): −13 to −18
 
 5. JOINT-ACTION COVERAGE (20 pts, anatomically weighted, POSITIVE-only):
-   The pool earns credit for hitting each canonical joint action, weighted by anatomical importance / muscle mass.
-   - All 12 MAJOR movers covered = full 16 pts: Knee Extensors, Knee Flexors, Hip Extensors, Shoulder Horizontal Adductors, Shoulder Adductors, Shoulder Extensors, Shoulder Abductors, Shoulder Horizontal Abductors, Elbow Flexors, Elbow Extensors, Spinal Flexors, Ankle Plantarflexors. Each major ≈ 1.33 pts.
-   - All 15 MINOR/stabilizer movers covered = remaining 4 pts: Scapular Retractors / Protractors / Elevators / Depressors / Up-Rotators / Down-Rotators, Spinal Extensors, Spinal Rotators & LF, Hip Flexors / Abductors / Adductors / External Rotators / Internal Rotators, Shoulder External Rotators.
-   - Score each action +full / +half (under-trained = only 1 exercise) / +0 (missing).
-   - Earn points for what's covered. Nothing subtracted afterward.
+   The pool earns credit for hitting each canonical joint action. 60/40 bucket split between major and minor — less polar than a strict 80/20 weighting since indirect involvement counts liberally.
+
+   16 MAJOR movers — collectively up to 12 pts (~0.75 each):
+     Knee Extensors, Knee Flexors, Hip Extensors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Elbow Flexors, Elbow Extensors, Spinal Flexors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators.
+
+   11 MINOR / stabilizer movers — collectively up to 8 pts (~0.73 each):
+     Scapular Elevators, Scapular Depressors, Scapular Upward Rotators, Spinal Extensors, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip Abductors, Hip Adductors, Hip External Rotators, Hip Internal Rotators, Shoulder External Rotators.
+
+   For each action: +full / +half (only 1 exercise covers it) / +0 (missing).
+
+   COVERAGE LIBERALISM — credit indirect involvement, not just direct concentric work:
+   An exercise covers a joint action if ANY of these apply:
+     (a) Direct concentric primary mover.
+     (b) Eccentric control of that action — e.g., Cable Pullover / Lat Prayer's overhead phase covers Shoulder Flexors eccentrically; Pulldown's reach-up phase covers Scapular Upward Rotators.
+     (c) Isometric stabilization of that joint under load — e.g., Squat / Romanian Deadlift / Conventional Deadlift cover Spinal Extensors and Hip Abductors / Adductors / External Rotators / Internal Rotators as stabilizers.
+     (d) Loaded stretch of the muscle — e.g., bottom of a Squat covers Ankle Plantarflexors via a passive stretch under load.
+
+   Specific examples that MUST be credited:
+   - Squat / Romanian DL / Conventional DL / Leg Press → Spinal Extensors, Hip Abductors, Hip Adductors, Hip External Rotators, Hip Internal Rotators (stabilizers).
+   - Open-toe / wide-stance Squat / Hack / Leg Press → additionally Hip Abductors / External Rotators (active engagement).
+   - Sumo Deadlift → Hip Adductors and Hip External Rotators (direct).
+   - Squat (any) → Ankle Plantarflexors (loaded stretch at depth).
+   - Cable Pullover / Cable Lat Prayer / Single-Arm Cable Pulldown (Facing Away variant) → Shoulder Flexors (eccentric overhead) and Scapular Upward Rotators.
+   - Machine Shoulder Press / Free-Weight Overhead Press / Front Raise → Shoulder Flexors (direct).
+   - Any pulldown / pull-up → Scapular Downward Rotators (direct).
+   - Chest Press / Incline Press / Push-Up / Dip → Scapular Protractors (direct, lockout).
+   - Any row / face pull → Scapular Retractors (direct).
+
+   Earn points for what's covered. Nothing subtracted afterward.
 
 SCAPULAR-DEPRESSION CUEING:
 If the pool contains pulldown movements (Lat Pulldown, Single-Arm Cable Pulldown, Pull-Up / Chin-Up, Lat Prayer, Pullover), populate scapularDepressionNote with: "Initiate the pull by depressing your scapulae (shoulder blades pull down first, then elbows pull down). This is what makes pulldowns a true scapular depressor exercise." Otherwise leave it empty.
@@ -217,7 +241,10 @@ The 5 pool-stage criteria are compressed proportionally to 70 pts (14 each). Thr
    - 15–20% or 55–65%: −5 to −7
    - <10% or >75%: −10 to −12
 
-5. JOINT-ACTION COVERAGE (14 pts): Anatomically weighted across the 27-action taxonomy. 12 major movers up to ~11 pts, 15 minors up to ~3 pts. Positive-only — earn points for what's covered.
+5. JOINT-ACTION COVERAGE (14 pts): Anatomically weighted, 60/40 split — 16 major movers up to ~8.4 pts (~0.53 each), 11 minor movers up to ~5.6 pts (~0.51 each). Same lists and crediting rules as the pool stage:
+   MAJOR (16): Knee Extensors, Knee Flexors, Hip Extensors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Elbow Flexors, Elbow Extensors, Spinal Flexors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators.
+   MINOR (11): Scapular Elevators, Scapular Depressors, Scapular Upward Rotators, Spinal Extensors, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip Abductors, Hip Adductors, Hip External Rotators, Hip Internal Rotators, Shoulder External Rotators.
+   Credit indirect involvement liberally: squat/DL/leg press cover Spinal Ext + Hip stabilizers; squat covers Ankle PF via stretch; pullover/lat prayer cover Sh Flex + Scap UR; OHP/Front Raise cover Sh Flex; rows cover Scap Retr; presses cover Scap Prot; pulldowns/pull-ups cover Scap DR. Positive-only.
 
 ═══ POST-SPLIT ADD-ONS · 30 pts (3 × 10 each) ═══
 

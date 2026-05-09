@@ -85,14 +85,15 @@ const POOL_CRITERIA: CriterionDoc[] = [
     num: 5,
     name: "Joint-Action Coverage",
     max: 20,
-    measures: "Anatomically weighted coverage of the 27-action kinesiology taxonomy.",
+    measures: "Anatomically weighted coverage of the 27-action kinesiology taxonomy. Indirect involvement counts — eccentric control, isometric stabilization, and loaded stretch all credit toward a joint action, not just direct concentric work.",
     calc:
-      "12 MAJOR movers up to 16 pts (~1.33 each): Knee Ext, Knee Flex, Hip Ext, Sh HAdd, Sh Add, Sh Ext, Sh Abd, Sh HAbd, Elb Flex, Elb Ext, Sp Flex, Ank PF.\n" +
-      "15 MINOR / stabilizers up to 4 pts (~0.27 each): Scap Retr/Prot/Elev/Dep/UR/DR, Sp Ext, Sp Rot/LF, Hip Flex/Abd/Add/ER/IR, Sh ER.\n" +
-      "Each action: +full / +half (only 1 exercise) / +0 (missing). Positive-only — you earn points for what's covered.",
-    poor: "Missing 2+ major movers.",
-    medium: "All majors hit but at least 2 minors missing.",
-    good: "All 27 actions covered, weighted properly.",
+      "60/40 split between major and minor totals (less polar than the previous 80/20).\n\n" +
+      "16 MAJOR movers up to 12 pts (~0.75 each): Knee Ext, Knee Flex, Hip Ext, Sh Flex, Sh Ext, Sh Abd, Sh Add, Sh HAdd, Sh HAbd, Elb Flex, Elb Ext, Sp Flex, Ank PF, Scap Retr, Scap Prot, Scap DR.\n\n" +
+      "11 MINOR / stabilizer movers up to 8 pts (~0.73 each): Scap Elev, Scap Dep, Scap UR, Sp Ext, Sp Rot/LF, Hip Flex, Hip Abd, Hip Add, Hip ER, Hip IR, Sh ER.\n\n" +
+      "Each action: +full / +half (only 1 exercise) / +0 (missing). Positive-only — you earn points for what's covered. Credit indirect involvement: squat / DL / leg press cover Spinal Ext + Hip stabilizers; squat covers Ankle PF via stretch; pullover and the facing-away pulldown variant cover Sh Flex + Scap UR; OHP / Front Raise cover Sh Flex; rows cover Scap Retr; presses cover Scap Prot; pulldowns / pull-ups cover Scap DR.",
+    poor: "Missing 3+ major movers entirely.",
+    medium: "All majors hit but several minors missing.",
+    good: "All 27 actions covered with at least one exercise each.",
   },
 ];
 
