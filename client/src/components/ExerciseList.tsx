@@ -7,7 +7,7 @@
  */
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, ChevronDown, Target, Ruler, Info, Sparkles } from "lucide-react";
+import { Plus, ChevronDown, Target, Ruler, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   type CategoryType,
@@ -15,7 +15,6 @@ import {
   type Exercise,
   type Subcategory,
   type Difficulty,
-  getProgrammingParameters,
 } from "@/lib/data";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { toast } from "sonner";
@@ -232,8 +231,6 @@ function SubcategorySection({ subcategory, category, jointFunctionName }: { subc
 }
 
 export default function ExerciseList({ category, jointFunction }: ExerciseListProps) {
-  const params = getProgrammingParameters(category);
-
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -252,35 +249,9 @@ export default function ExerciseList({ category, jointFunction }: ExerciseListPr
             Choose Exercises for the Week
           </h2>
         </div>
-
-        {/* Programming Parameters — informational only at this step */}
-        <div className="p-4 bg-secondary/40 border border-lime/20 rounded-sm">
-          <h3 className="font-heading font-semibold text-sm text-lime mb-2 flex items-center gap-2">
-            <Sparkles className="w-4 h-4" />
-            Programming Targets ({category === "systemic" ? "Tier 1" : "Tier 2"})
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div>
-              <span className="text-muted-foreground uppercase tracking-wider block">Sets</span>
-              <span className="font-semibold text-foreground">{params.sets}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground uppercase tracking-wider block">Reps</span>
-              <span className="font-semibold text-foreground">{params.reps}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground uppercase tracking-wider block">Frequency</span>
-              <span className="font-semibold text-foreground">{params.frequency}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground uppercase tracking-wider block">Rest</span>
-              <span className="font-semibold text-foreground">{params.rest}</span>
-            </div>
-          </div>
-          <p className="mt-2 text-[11px] text-muted-foreground italic">
-            Sets, reps, and weight are auto-recommended after you pick a split. Pick the exercises you want this week — that's all this step does.
-          </p>
-        </div>
+        <p className="text-xs text-muted-foreground italic ml-13 -mt-3">
+          Sets, reps, and RIR are auto-recommended after you rate, pick a lifestyle, and pick an experience level. This step is just exercise selection.
+        </p>
 
         {/* Subcategories with exercises */}
         <div className="space-y-6">
