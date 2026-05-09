@@ -74,13 +74,13 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total, 5 criteria × 20 pt
    - <10% compound (almost none) or >75% compound (very CNS-heavy): −13 to −18
 
 5. JOINT-ACTION COVERAGE (20 pts, anatomically weighted, POSITIVE-only):
-   The pool earns credit for hitting each canonical joint action. 60/40 bucket split between major and minor — less polar than a strict 80/20 weighting since indirect involvement counts liberally.
+   The pool earns credit for hitting each canonical joint action. 75/25 bucket split between major and minor.
 
-   16 MAJOR movers — collectively up to 12 pts (~0.75 each):
-     Knee Extensors, Knee Flexors, Hip Extensors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Elbow Flexors, Elbow Extensors, Spinal Flexors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators.
+   19 MAJOR movers — collectively up to 15 pts (~0.79 each):
+     Knee Extensors, Knee Flexors, Hip Extensors, Hip Abductors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Shoulder External Rotators, Elbow Flexors, Elbow Extensors, Spinal Flexors, Spinal Extensors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators.
 
-   11 MINOR / stabilizer movers — collectively up to 8 pts (~0.73 each):
-     Scapular Elevators, Scapular Depressors, Scapular Upward Rotators, Spinal Extensors, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip Abductors, Hip Adductors, Hip External Rotators, Hip Internal Rotators, Shoulder External Rotators.
+   8 MINOR / stabilizer movers — collectively up to 5 pts (~0.63 each):
+     Scapular Elevators, Scapular Depressors, Scapular Upward Rotators, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip Adductors, Hip External Rotators, Hip Internal Rotators.
 
    For each action: +full / +half (only 1 exercise covers it) / +0 (missing).
 
@@ -103,6 +103,15 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total, 5 criteria × 20 pt
    - Any row / face pull → Scapular Retractors (direct).
 
    Earn points for what's covered. Nothing subtracted afterward.
+
+CUEING TIPS FOR UNDER-COVERED ACTIONS:
+When the routine's coverage is incomplete on a joint action — either entirely missing or only marked as half-credit — populate cueingTips[] with 1–3 concrete pieces of advice. Each tip names a specific exercise the user already has in the routine and explains how to consciously engage the under-trained joint action through controlled movement. Examples of the form a tip should take:
+  • "Hip External Rotators: during your Barbell Back Squat, actively grip the floor with your toes and rotate your knees out as you descend — the glute max contracts in external rotation while the squat happens."
+  • "Scapular Upward Rotators: during your Machine Shoulder Press, deliberately let the shoulder blades rotate up and around the ribcage at lockout instead of shrugging straight up. The serratus and lower trap drive the motion."
+  • "Shoulder External Rotators: during your Cable Face Pull, finish each rep with a hard external rotation (rotate the cuff like you're showing your biceps) — most lifters skip this final 10° of rotation."
+  • "Spinal Rotators & Lateral Flexors: hold a single dumbbell on one side during your Walking Lunge — the obliques fire isometrically to resist the asymmetric load."
+If a joint action is truly missing AND no exercise in the routine can plausibly train it via cueing alone (e.g. routine has zero pulling movements but Scapular Downward Rotators is missing), name a small substitute — e.g. "Add a single set of Lat Pulldowns or Pull-Ups."
+Skip cueingTips entirely (empty array) if every action is covered.
 
 SCAPULAR-DEPRESSION CUEING:
 If the pool contains pulldown movements (Lat Pulldown, Single-Arm Cable Pulldown, Pull-Up / Chin-Up, Lat Prayer, Pullover), populate scapularDepressionNote with: "Initiate the pull by depressing your scapulae (shoulder blades pull down first, then elbows pull down). This is what makes pulldowns a true scapular depressor exercise." Otherwise leave it empty.
@@ -167,12 +176,17 @@ const ratingSchema = {
     coverageBreakdown: {
       type: "object",
       additionalProperties: false,
-      required: ["score", "hit", "missing", "notes"],
+      required: ["score", "hit", "missing", "notes", "cueingTips"],
       properties: {
-        score: { type: "number", description: "0-20, anatomically weighted across 12 major (16 pts) + 15 minor (4 pts) joint actions." },
+        score: { type: "number", description: "0-20. 75/25 split: 19 major movers up to 15 pts; 8 minor movers up to 5 pts." },
         hit: { type: "array", items: { type: "string" }, description: "Joint actions well covered (exact taxonomy names)." },
         missing: { type: "array", items: { type: "string" }, description: "Joint actions missed or under-trained." },
         notes: { type: "string", description: "Tone-matched coaching comment (poor/medium/good per the score tier)." },
+        cueingTips: {
+          type: "array",
+          items: { type: "string" },
+          description: "1-3 concrete cueing tips for under-trained joint actions, each naming a specific exercise the user already has and how to consciously engage the under-trained action via controlled movement. Empty if every action is well covered.",
+        },
       },
     },
     scapularDepressionNote: {
@@ -241,10 +255,10 @@ The 5 pool-stage criteria are compressed proportionally to 70 pts (14 each). Thr
    - 15–20% or 55–65%: −5 to −7
    - <10% or >75%: −10 to −12
 
-5. JOINT-ACTION COVERAGE (14 pts): Anatomically weighted, 60/40 split — 16 major movers up to ~8.4 pts (~0.53 each), 11 minor movers up to ~5.6 pts (~0.51 each). Same lists and crediting rules as the pool stage:
-   MAJOR (16): Knee Extensors, Knee Flexors, Hip Extensors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Elbow Flexors, Elbow Extensors, Spinal Flexors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators.
-   MINOR (11): Scapular Elevators, Scapular Depressors, Scapular Upward Rotators, Spinal Extensors, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip Abductors, Hip Adductors, Hip External Rotators, Hip Internal Rotators, Shoulder External Rotators.
-   Credit indirect involvement liberally: squat/DL/leg press cover Spinal Ext + Hip stabilizers; squat covers Ankle PF via stretch; pullover/lat prayer cover Sh Flex + Scap UR; OHP/Front Raise cover Sh Flex; rows cover Scap Retr; presses cover Scap Prot; pulldowns/pull-ups cover Scap DR. Positive-only.
+5. JOINT-ACTION COVERAGE (14 pts): Anatomically weighted, 75/25 split — 19 major movers up to ~10.5 pts (~0.55 each), 8 minor movers up to ~3.5 pts (~0.44 each). Same lists and crediting rules as the pool stage:
+   MAJOR (19): Knee Extensors, Knee Flexors, Hip Extensors, Hip Abductors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Shoulder External Rotators, Elbow Flexors, Elbow Extensors, Spinal Flexors, Spinal Extensors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators.
+   MINOR (8): Scapular Elevators, Scapular Depressors, Scapular Upward Rotators, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip Adductors, Hip External Rotators, Hip Internal Rotators.
+   Credit indirect involvement liberally (same rules as pool): squat / DL / leg press cover Spinal Ext + Hip Abductors / Adductors / IR / ER; squat covers Ankle PF via stretch; pullover / lat prayer / facing-away pulldown cover Sh Flex + Scap UR; OHP / Front Raise cover Sh Flex; rows cover Scap Retr; presses cover Scap Prot; pulldowns / pull-ups cover Scap DR. Positive-only.
 
 ═══ POST-SPLIT ADD-ONS · 30 pts (3 × 10 each) ═══
 
@@ -271,6 +285,9 @@ For every criterion's "notes" field, match the tone to where the score lands rel
 - MEDIUM (50–79%): encouragement + one small tweak suggestion.
 - GOOD (≥80%): specific praise calling out what's strong.
 Keep notes to 1–2 sentences. Be specific.
+
+CUEING TIPS FOR UNDER-COVERED ACTIONS (same rule as the pool prompt):
+When the routine's coverage is incomplete on a joint action, populate cueingTips[] with 1–3 concrete tips that name a specific exercise the user already has and explain how to engage the under-trained joint action through controlled movement (e.g., "Hip External Rotators: during your Squat, grip the floor and rotate knees outward as you descend"). If a joint action is truly missing AND no plausible cue exists, suggest a small substitute exercise.
 
 SCAPULAR-DEPRESSION CUEING:
 If pulldown movements present (Lat Pulldown, Single-Arm Cable Pulldown, Pull-Up / Chin-Up, Lat Prayer, Pullover), populate scapularDepressionNote with the cueing reminder. Otherwise empty string.
@@ -311,12 +328,17 @@ const postSplitRatingSchema = {
     coverageBreakdown: {
       type: "object",
       additionalProperties: false,
-      required: ["score", "hit", "missing", "notes"],
+      required: ["score", "hit", "missing", "notes", "cueingTips"],
       properties: {
         score: { type: "number" },
         hit: { type: "array", items: { type: "string" } },
         missing: { type: "array", items: { type: "string" } },
         notes: { type: "string" },
+        cueingTips: {
+          type: "array",
+          items: { type: "string" },
+          description: "1-3 concrete cueing tips for under-trained joint actions, naming a specific exercise the user already has and how to engage the under-trained action via controlled movement.",
+        },
       },
     },
     postSplitAddOns: {

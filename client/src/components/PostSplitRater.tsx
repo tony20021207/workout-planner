@@ -246,6 +246,19 @@ export default function PostSplitRater() {
                   </div>
                 </div>
               </div>
+              {result.coverageBreakdown.cueingTips && result.coverageBreakdown.cueingTips.length > 0 && (
+                <div className="mt-4 p-3 bg-blue-500/5 border border-blue-500/30 rounded-sm">
+                  <div className="flex items-center gap-1.5 mb-2 text-blue-300 font-semibold text-xs">
+                    <Info className="w-3.5 h-3.5" />
+                    Cue these into your existing exercises
+                  </div>
+                  <ul className="space-y-1.5 text-[11px] text-muted-foreground leading-relaxed list-disc pl-4">
+                    {result.coverageBreakdown.cueingTips.map((tip, i) => (
+                      <li key={i}>{tip}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Post-split add-ons */}

@@ -85,12 +85,12 @@ const POOL_CRITERIA: CriterionDoc[] = [
     num: 5,
     name: "Joint-Action Coverage",
     max: 20,
-    measures: "Anatomically weighted coverage of the 27-action kinesiology taxonomy. Indirect involvement counts — eccentric control, isometric stabilization, and loaded stretch all credit toward a joint action, not just direct concentric work.",
+    measures: "Anatomically weighted coverage of the 27-action kinesiology taxonomy. Indirect involvement counts — eccentric control, isometric stabilization, and loaded stretch all credit toward a joint action, not just direct concentric work. When something is under-trained, the rater also drops cueing tips on how to engage it via exercises you already have.",
     calc:
-      "60/40 split between major and minor totals (less polar than the previous 80/20).\n\n" +
-      "16 MAJOR movers up to 12 pts (~0.75 each): Knee Ext, Knee Flex, Hip Ext, Sh Flex, Sh Ext, Sh Abd, Sh Add, Sh HAdd, Sh HAbd, Elb Flex, Elb Ext, Sp Flex, Ank PF, Scap Retr, Scap Prot, Scap DR.\n\n" +
-      "11 MINOR / stabilizer movers up to 8 pts (~0.73 each): Scap Elev, Scap Dep, Scap UR, Sp Ext, Sp Rot/LF, Hip Flex, Hip Abd, Hip Add, Hip ER, Hip IR, Sh ER.\n\n" +
-      "Each action: +full / +half (only 1 exercise) / +0 (missing). Positive-only — you earn points for what's covered. Credit indirect involvement: squat / DL / leg press cover Spinal Ext + Hip stabilizers; squat covers Ankle PF via stretch; pullover and the facing-away pulldown variant cover Sh Flex + Scap UR; OHP / Front Raise cover Sh Flex; rows cover Scap Retr; presses cover Scap Prot; pulldowns / pull-ups cover Scap DR.",
+      "75/25 split between major and minor totals.\n\n" +
+      "19 MAJOR movers up to 15 pts (~0.79 each): Knee Ext, Knee Flex, Hip Ext, Hip Abd, Sh Flex, Sh Ext, Sh Abd, Sh Add, Sh HAdd, Sh HAbd, Sh ER, Elb Flex, Elb Ext, Sp Flex, Sp Ext, Ank PF, Scap Retr, Scap Prot, Scap DR.\n\n" +
+      "8 MINOR / stabilizer movers up to 5 pts (~0.63 each): Scap Elev, Scap Dep, Scap UR, Sp Rot/LF, Hip Flex, Hip Add, Hip ER, Hip IR.\n\n" +
+      "Each action: +full / +half (only 1 exercise) / +0 (missing). Positive-only. Credit indirect involvement: squat / DL / leg press cover Spinal Ext + all 4 Hip stabilizers; squat covers Ankle PF via stretch; pullover and the facing-away pulldown variant cover Sh Flex + Scap UR; OHP / Front Raise cover Sh Flex; rows cover Scap Retr; presses cover Scap Prot; pulldowns / pull-ups cover Scap DR; face pulls + external-rotation finishes cover Sh ER.",
     poor: "Missing 3+ major movers entirely.",
     medium: "All majors hit but several minors missing.",
     good: "All 27 actions covered with at least one exercise each.",

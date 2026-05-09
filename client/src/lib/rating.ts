@@ -20,11 +20,13 @@ export interface SelectionBreakdown {
 }
 
 export interface CoverageBreakdown {
-  /** Pool stage: 0-20. Post-split: 0-14. Anatomically weighted. */
+  /** Pool stage: 0-20. Post-split: 0-14. Anatomically weighted (75/25 major:minor). */
   score: number;
   hit: string[];
   missing: string[];
   notes: string;
+  /** 1-3 cueing tips for under-trained joint actions, each tied to a specific exercise the user already has. Empty if every action is well covered. */
+  cueingTips: string[];
 }
 
 export interface OptimizedExercise {
