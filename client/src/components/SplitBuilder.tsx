@@ -230,8 +230,10 @@ export default function SplitBuilder() {
     clearSplit,
     updateRoutineItem,
     lifestyle,
+    experience,
     sessionWarmups,
     setSessionWarmups,
+    markAutoPlanFresh,
   } = useWorkout();
   const [open, setOpen] = useState(false);
 
@@ -289,6 +291,9 @@ export default function SplitBuilder() {
     const preset = SPLIT_PRESETS[id];
     const allocation = allocatePoolToSplit(routine, preset);
     setSplit({ splitId: id, dayAssignments: allocation.byDay });
+    // setSplit flips the plan-modified flag; auto-allocate is the canonical
+    // "fresh" state, so flip back. This runs after setSplit's state update.
+    markAutoPlanFresh();
     toast.success(`Allocated ${routine.length} exercises across ${preset.daysPerWeek} days`);
   };
 
@@ -296,6 +301,7 @@ export default function SplitBuilder() {
     if (!activePreset) return;
     const allocation = allocatePoolToSplit(routine, activePreset);
     setSplit({ splitId: activePreset.id, dayAssignments: allocation.byDay });
+    markAutoPlanFresh();
     toast.success("Re-allocated using the auto-allocator");
   };
 
@@ -309,11 +315,14 @@ export default function SplitBuilder() {
   const handleAutoFillAllSets = () => {
     let changed = 0;
     for (const item of routine) {
-      const recommended = autoRecommendSets(item);
+      const recommended = autoRecommendSets(item, experience);
       // Always replace — auto-fill is destructive by design.
       updateRoutineItem(item.id, { sets: recommended });
       changed += 1;
     }
+    // updateRoutineItem flipped the plan-modified flag for each call;
+    // restore the fresh state since this entire batch IS the auto path.
+    markAutoPlanFresh();
     toast.success(`Auto-filled sets & reps for ${changed} exercise${changed !== 1 ? "s" : ""}`);
   };
 

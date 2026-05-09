@@ -280,12 +280,37 @@ const lifestyleEnum = z.enum([
   "physical-labor",
 ]);
 
+const experienceEnum = z.enum(["beginner", "foot-in-door", "experienced"]);
+
 const inputSchema = z.object({
   source: z.enum(["routine", "text", "image"]),
   text: z.string().optional(),
   imageDataUrl: z.string().optional(),
   lifestyle: lifestyleEnum.optional(),
+  experience: experienceEnum.optional(),
 });
+
+const EXPERIENCE_RATING_GUIDANCE: Record<z.infer<typeof experienceEnum>, string> = {
+  beginner:
+    "USER EXPERIENCE — BEGINNER (0-6 months training, on/off historically): " +
+    "Goal is the SKILL of training before maximum stimulus. Lower set volume (~10 sets/wk per major mover, MEV edge), higher RIR (3+ for compounds, 1-2 for isolations), 2 sets per exercise is fine. " +
+    "Do NOT penalize lower set counts as long as movement coverage exists. Praise correct exercise selection and consistent application of basics. " +
+    "Verdict tone: encouraging; emphasize that volume and intensity will increase with consistency.",
+  "foot-in-door":
+    "USER EXPERIENCE — FOOT IN THE DOOR (6 months - 2.5 consistent years): " +
+    "Mid-band Nippard / Israetel programming. Aim for ~15 sets/wk per major (mid MEV-MAV), 3 sets per exercise, RIR 1-2 compound / 0 isolation. " +
+    "Verdict tone: focus on progressive overload across all movement patterns.",
+  experienced:
+    "USER EXPERIENCE — EXPERIENCED (>2.5 years consistent training): " +
+    "Upper-edge Nippard / Israetel band: ~20 sets/wk per major (MAV edge), 4 sets per exercise, push to limit (1-3 RIR compound / 0 RIR isolation). Higher session caps (8 sets per mover OK). " +
+    "Recovery is rate-limiting — penalize >25 sets/wk per major as over-MRV. " +
+    "Verdict tone: technical, performance-oriented; assume the lifter executes form well.",
+};
+
+function buildExperiencePrefix(experience: z.infer<typeof experienceEnum> | undefined): string {
+  if (!experience) return "";
+  return EXPERIENCE_RATING_GUIDANCE[experience];
+}
 
 const LIFESTYLE_RATING_GUIDANCE: Record<z.infer<typeof lifestyleEnum>, string> = {
   "desk-job":
@@ -500,11 +525,20 @@ const postSplitInputSchema = z.object({
   /** Plain-text serialization of the routine + split + per-day sets/reps. */
   text: z.string(),
   lifestyle: lifestyleEnum.optional(),
+  experience: experienceEnum.optional(),
 });
 
-function buildSystemPrompt(basePrompt: string, lifestyle: z.infer<typeof lifestyleEnum> | undefined): string {
-  if (!lifestyle) return basePrompt;
-  return `${LIFESTYLE_RATING_GUIDANCE[lifestyle]}\n\n${basePrompt}`;
+function buildSystemPrompt(
+  basePrompt: string,
+  lifestyle: z.infer<typeof lifestyleEnum> | undefined,
+  experience: z.infer<typeof experienceEnum> | undefined,
+): string {
+  const blocks: string[] = [];
+  const expBlock = buildExperiencePrefix(experience);
+  if (expBlock) blocks.push(expBlock);
+  if (lifestyle) blocks.push(LIFESTYLE_RATING_GUIDANCE[lifestyle]);
+  blocks.push(basePrompt);
+  return blocks.join("\n\n");
 }
 
 export const ratingRouter = router({
@@ -537,7 +571,7 @@ export const ratingRouter = router({
 
       const result = await invokeLLM({
         messages: [
-          { role: "system", content: buildSystemPrompt(HYPERTROPHY_MATRIX_PROMPT, input.lifestyle) },
+          { role: "system", content: buildSystemPrompt(HYPERTROPHY_MATRIX_PROMPT, input.lifestyle, input.experience) },
           { role: "user", content: userContent },
         ],
         outputSchema: {
@@ -565,7 +599,7 @@ export const ratingRouter = router({
 
       const result = await invokeLLM({
         messages: [
-          { role: "system", content: buildSystemPrompt(POST_SPLIT_PROMPT, input.lifestyle) },
+          { role: "system", content: buildSystemPrompt(POST_SPLIT_PROMPT, input.lifestyle, input.experience) },
           {
             role: "user",
             content: [

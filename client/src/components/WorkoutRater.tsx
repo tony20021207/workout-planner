@@ -29,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { trpc } from "@/lib/trpc";
 import LifestylePicker from "./LifestylePicker";
+import ExperiencePicker from "./ExperiencePicker";
 import { toast } from "sonner";
 import {
   type RatingResult,
@@ -113,7 +114,7 @@ function BreakdownRow({ label, score, max, notes }: { label: string; score: numb
 }
 
 export default function WorkoutRater() {
-  const { routine, replaceRoutine, addRoutineItem, lifestyle } = useWorkout();
+  const { routine, replaceRoutine, addRoutineItem, lifestyle, experience, markAutoPlanFresh } = useWorkout();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<SourceMode>("routine");
   const [pastedText, setPastedText] = useState("");
@@ -141,16 +142,18 @@ export default function WorkoutRater() {
 
   const handleRate = () => {
     const lifestyleArg = lifestyle ?? undefined;
+    const experienceArg = experience ?? undefined;
     if (mode === "routine") {
       rateMutation.mutate({
         source: "routine",
         text: serializeRoutineToText(routine),
         lifestyle: lifestyleArg,
+        experience: experienceArg,
       });
     } else if (mode === "text") {
-      rateMutation.mutate({ source: "text", text: pastedText, lifestyle: lifestyleArg });
+      rateMutation.mutate({ source: "text", text: pastedText, lifestyle: lifestyleArg, experience: experienceArg });
     } else if (imageDataUrl) {
-      rateMutation.mutate({ source: "image", imageDataUrl, lifestyle: lifestyleArg });
+      rateMutation.mutate({ source: "image", imageDataUrl, lifestyle: lifestyleArg, experience: experienceArg });
     }
   };
 
@@ -195,6 +198,11 @@ export default function WorkoutRater() {
       return;
     }
     replaceRoutine(items);
+    // Adopting the LLM-optimized routine wholesale IS the auto path — this
+    // is the canonical "perfect plan" entry point.
+    if (excluded.size === 0) {
+      markAutoPlanFresh();
+    }
     toast.success(`Adopted ${items.length} exercise${items.length === 1 ? "" : "s"} as your new routine`);
     setMode("routine");
     setResult(null);
@@ -525,9 +533,11 @@ Tue - Pull
               </div>
             )}
 
-            {/* Lifestyle picker — shown only after a rating exists */}
-            <div className="p-4 bg-card rounded-sm border-2 border-purple-500/30">
+            {/* Lifestyle + experience pickers — shown only after a rating exists. */}
+            <div className="p-4 bg-card rounded-sm border-2 border-purple-500/30 space-y-5">
               <LifestylePicker />
+              <div className="border-t border-border" />
+              <ExperiencePicker />
             </div>
 
             {/* Optimized routine */}

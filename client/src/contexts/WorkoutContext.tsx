@@ -9,6 +9,7 @@ import {
   getDefaultReps,
 } from "@/lib/data";
 import { type LifestyleId } from "@/lib/lifestyle";
+import { type ExperienceId } from "@/lib/experience";
 
 export interface SetDetail {
   reps: number;
@@ -107,15 +108,29 @@ interface WorkoutContextType {
   clearSplit: () => void;
   lifestyle: LifestyleId | null;
   setLifestyle: (id: LifestyleId | null) => void;
+  experience: ExperienceId | null;
+  setExperience: (id: ExperienceId | null) => void;
   sessionWarmups: SessionWarmupsByDay | null;
   setSessionWarmups: (warmups: SessionWarmupsByDay | null) => void;
+  /**
+   * Whether the current routine + split + sets-reps was produced solely by
+   * auto-allocate + auto-recommend with no user edits afterward. When true,
+   * we treat the plan as "perfect" and hide the post-split Rate button.
+   * Any manual edit (move exercise, change set count, change reps, etc.)
+   * flips this to false.
+   */
+  autoPlanUntouched: boolean;
+  markAutoPlanFresh: () => void;
+  markAutoPlanModified: () => void;
 }
 
 const STORAGE_KEY = "kinesiology_routine";
 const EFFORT_STORAGE_KEY = "kinesiology_effort";
 const SPLIT_STORAGE_KEY = "kinesiology_split";
 const LIFESTYLE_STORAGE_KEY = "kinesiology_lifestyle";
+const EXPERIENCE_STORAGE_KEY = "kinesiology_experience";
 const WARMUPS_STORAGE_KEY = "kinesiology_session_warmups";
+const AUTO_PLAN_STORAGE_KEY = "kinesiology_auto_plan_untouched";
 
 function loadRoutineFromStorage(): RoutineItem[] {
   try {
@@ -229,6 +244,49 @@ function saveWarmupsToStorage(warmups: SessionWarmupsByDay | null) {
   }
 }
 
+function loadExperienceFromStorage(): ExperienceId | null {
+  try {
+    const stored = sessionStorage.getItem(EXPERIENCE_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (typeof parsed === "string") return parsed as ExperienceId;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function saveExperienceToStorage(id: ExperienceId | null) {
+  try {
+    if (id) {
+      sessionStorage.setItem(EXPERIENCE_STORAGE_KEY, JSON.stringify(id));
+    } else {
+      sessionStorage.removeItem(EXPERIENCE_STORAGE_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function loadAutoPlanFromStorage(): boolean {
+  try {
+    const stored = sessionStorage.getItem(AUTO_PLAN_STORAGE_KEY);
+    if (stored === "true") return true;
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
+function saveAutoPlanToStorage(value: boolean) {
+  try {
+    sessionStorage.setItem(AUTO_PLAN_STORAGE_KEY, String(value));
+  } catch {
+    // ignore
+  }
+}
+
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 
 export function WorkoutProvider({ children }: { children: ReactNode }) {
@@ -236,7 +294,9 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [effort, setEffortState] = useState<EffortCalibration>(() => loadEffortFromStorage());
   const [split, setSplitState] = useState<SplitState>(() => loadSplitFromStorage());
   const [lifestyle, setLifestyleState] = useState<LifestyleId | null>(() => loadLifestyleFromStorage());
+  const [experience, setExperienceState] = useState<ExperienceId | null>(() => loadExperienceFromStorage());
   const [sessionWarmups, setSessionWarmupsState] = useState<SessionWarmupsByDay | null>(() => loadWarmupsFromStorage());
+  const [autoPlanUntouched, setAutoPlanUntouchedState] = useState<boolean>(() => loadAutoPlanFromStorage());
 
   // Persist routine to sessionStorage on every change
   useEffect(() => {
@@ -263,8 +323,30 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     saveWarmupsToStorage(sessionWarmups);
   }, [sessionWarmups]);
 
+  // Persist experience profile on every change
+  useEffect(() => {
+    saveExperienceToStorage(experience);
+  }, [experience]);
+
+  // Persist auto-plan flag on every change
+  useEffect(() => {
+    saveAutoPlanToStorage(autoPlanUntouched);
+  }, [autoPlanUntouched]);
+
   const setSessionWarmups = useCallback((next: SessionWarmupsByDay | null) => {
     setSessionWarmupsState(next);
+  }, []);
+
+  const setExperience = useCallback((next: ExperienceId | null) => {
+    setExperienceState(next);
+  }, []);
+
+  const markAutoPlanFresh = useCallback(() => {
+    setAutoPlanUntouchedState(true);
+  }, []);
+
+  const markAutoPlanModified = useCallback(() => {
+    setAutoPlanUntouchedState(false);
   }, []);
 
   const setEffort = useCallback((next: EffortCalibration) => {
@@ -273,15 +355,24 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
 
   const setSplit = useCallback((next: SplitState) => {
     setSplitState(next);
+    flipPlanModified();
   }, []);
 
   const clearSplit = useCallback(() => {
     setSplitState(DEFAULT_SPLIT);
+    flipPlanModified();
   }, []);
 
   const setLifestyle = useCallback((next: LifestyleId | null) => {
     setLifestyleState(next);
   }, []);
+
+  // Any direct mutation flips the auto-plan flag to false. Auto paths
+  // (handleAutoFillAllSets, handleReallocate, adopt-all from rater)
+  // call markAutoPlanFresh AFTER their batch is done, which sets it
+  // back to true. Setting it to true is a no-op when nothing has
+  // changed, so there's no race to worry about.
+  const flipPlanModified = () => setAutoPlanUntouchedState(false);
 
   const addToRoutine = useCallback((params: AddExerciseParams) => {
     const parameters = getProgrammingParameters(params.category);
@@ -307,28 +398,37 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       angle: params.angle,
     };
     setRoutine((prev) => [...prev, newItem]);
+    flipPlanModified();
   }, []);
 
   const addRoutineItem = useCallback((item: RoutineItem) => {
     setRoutine((prev) => [...prev, item]);
+    flipPlanModified();
   }, []);
 
   const removeFromRoutine = useCallback((id: string) => {
     setRoutine((prev) => prev.filter((item) => item.id !== id));
+    flipPlanModified();
   }, []);
 
   const clearRoutine = useCallback(() => {
     setRoutine([]);
+    flipPlanModified();
   }, []);
 
   const replaceRoutine = useCallback((items: RoutineItem[]) => {
     setRoutine(items);
+    // Caller decides whether this is a fresh auto-plan adoption or a
+    // user-driven replacement. Default to modified; auto paths call
+    // markAutoPlanFresh after.
+    flipPlanModified();
   }, []);
 
   const updateRoutineItem = useCallback((id: string, updates: Partial<RoutineItem>) => {
     setRoutine((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
     );
+    flipPlanModified();
   }, []);
 
   const totalWeeklySets = routine.reduce((total, item) => {
@@ -355,8 +455,13 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         clearSplit,
         lifestyle,
         setLifestyle,
+        experience,
+        setExperience,
         sessionWarmups,
         setSessionWarmups,
+        autoPlanUntouched,
+        markAutoPlanFresh,
+        markAutoPlanModified,
       }}
     >
       {children}

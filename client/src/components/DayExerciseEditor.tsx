@@ -86,9 +86,9 @@ export default function DayExerciseEditor({
   allDays,
   onMoveExercise,
 }: DayExerciseEditorProps) {
-  const { updateRoutineItem } = useWorkout();
+  const { updateRoutineItem, experience } = useWorkout();
   const [expanded, setExpanded] = useState(false);
-  const rec = recommendSetsForItem(item);
+  const rec = recommendSetsForItem(item, experience);
 
   const updateSet = (setIdx: number, partial: Partial<SetDetail>) => {
     const nextSets = item.sets.map((s, i) => (i === setIdx ? { ...s, ...partial } : s));
@@ -110,7 +110,7 @@ export default function DayExerciseEditor({
   };
 
   const applyAutoRec = () => {
-    updateRoutineItem(item.id, { sets: autoRecommendSets(item) });
+    updateRoutineItem(item.id, { sets: autoRecommendSets(item, experience) });
   };
 
   // Compact summary for the collapsed row.

@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Dumbbell, ChevronDown, LogIn, User, Calendar, FileDown, Sparkles } from "lucide-react";
+import { Dumbbell, LogIn, User, Calendar, Hammer, ClipboardEdit } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { Button } from "@/components/ui/button";
@@ -48,21 +48,6 @@ export default function Home() {
             <span className="font-heading font-bold text-sm text-foreground">KineticBuilder</span>
           </div>
           <div className="flex items-center gap-3">
-            <a
-              href="#rate"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById("rate")?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              <Button
-                size="sm"
-                className="bg-purple-600 text-white hover:bg-purple-700 font-semibold"
-              >
-                <Sparkles className="w-4 h-4 mr-1.5" />
-                Rate
-              </Button>
-            </a>
             {isAuthenticated && (
               <Link href="/calendar">
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-lime">
@@ -125,14 +110,48 @@ export default function Home() {
               Hypertrophy Matrix, fix the gaps it flags, then split into days.
             </p>
 
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="mt-8 flex items-center gap-2 text-muted-foreground"
-            >
-              <ChevronDown className="w-5 h-5" />
-              <span className="text-sm">Scroll to begin</span>
-            </motion.div>
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+              <button
+                onClick={() => {
+                  document.getElementById("builder")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="group p-5 bg-lime hover:bg-lime/90 text-lime-foreground rounded-sm border-2 border-lime transition-all text-left"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-lime-foreground/10 rounded-sm shrink-0">
+                    <Hammer className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-lg leading-tight">
+                      Build one now
+                    </h3>
+                    <p className="text-sm opacity-80 mt-0.5 leading-snug">
+                      Step through the kinesiology builder, get auto-allocated and auto-tuned for your level.
+                    </p>
+                  </div>
+                </div>
+              </button>
+              <button
+                onClick={() => {
+                  document.getElementById("rate")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="group p-5 bg-purple-600 hover:bg-purple-700 text-white rounded-sm border-2 border-purple-600 transition-all text-left"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-white/10 rounded-sm shrink-0">
+                    <ClipboardEdit className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-lg leading-tight">
+                      Rate what I have
+                    </h3>
+                    <p className="text-sm opacity-80 mt-0.5 leading-snug">
+                      Paste a routine, upload a screenshot, or import text — get a Hypertrophy Matrix score.
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
           </motion.div>
         </div>
 
@@ -143,7 +162,7 @@ export default function Home() {
       </section>
 
       {/* Main Builder Section */}
-      <section className="container py-12 space-y-12">
+      <section id="builder" className="container py-12 space-y-12">
         <CategorySelector
           selected={selectedCategory}
           onSelect={handleCategorySelect}
