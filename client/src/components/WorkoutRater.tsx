@@ -411,7 +411,7 @@ Tue - Pull
                 notes={result.coverageBreakdown.notes}
               />
               <p className="text-xs text-muted-foreground mt-3 mb-3">
-                Anatomically weighted across the 27-action kinesiology taxonomy. 19 major movers up to 15 pts (~0.79 each), 8 minor stabilizers up to 5 pts (~0.63 each). DIRECT coverage only — stabilizer roles and passive stretch don't auto-credit. Use the cueing tips below to recover those points by upgrading hidden roles into intentional direct work.
+                Anatomically weighted across the 27-action kinesiology taxonomy. 85/15 split: 19 major movers up to 17 pts (~0.89 each), 8 minor stabilizers up to 3 pts (~0.38 each). Missing a major costs ~2.4× missing a minor. DIRECT coverage only — stabilizer roles and passive stretch don't auto-credit. Use the cueing tips below to recover those points by upgrading hidden roles into intentional direct work.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>

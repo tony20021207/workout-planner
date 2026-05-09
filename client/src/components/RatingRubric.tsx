@@ -87,9 +87,9 @@ const POOL_CRITERIA: CriterionDoc[] = [
     max: 20,
     measures: "Anatomically weighted coverage of the 27-action kinesiology taxonomy. DIRECT coverage only — stabilizer roles, isometric bracing, and passive stretch do NOT score. When an action goes uncovered (or only indirectly covered), the rater drops cueing tips on how to upgrade the missing role into intentional direct training via exercises you already have.",
     calc:
-      "75/25 split between major and minor totals.\n\n" +
-      "19 MAJOR movers up to 15 pts (~0.79 each, half-credit ~0.40): Knee Ext, Knee Flex, Hip Ext, Hip Abd, Sh Flex, Sh Ext, Sh Abd, Sh Add, Sh HAdd, Sh HAbd, Sh ER, Elb Flex, Elb Ext, Sp Flex, Sp Ext, Ank PF, Scap Retr, Scap Prot, Scap DR.\n\n" +
-      "8 MINOR / stabilizer movers up to 5 pts (~0.63 each, half-credit ~0.31): Scap Elev, Scap Dep, Scap UR, Sp Rot/LF, Hip Flex, Hip Add, Hip ER, Hip IR.\n\n" +
+      "85/15 split between major and minor totals — missing a major mover costs ~2.4× what missing a minor costs.\n\n" +
+      "19 MAJOR movers up to 17 pts (~0.89 each, half-credit ~0.45): Knee Ext, Knee Flex, Hip Ext, Hip Abd, Sh Flex, Sh Ext, Sh Abd, Sh Add, Sh HAdd, Sh HAbd, Sh ER, Elb Flex, Elb Ext, Sp Flex, Sp Ext, Ank PF, Scap Retr, Scap Prot, Scap DR.\n\n" +
+      "8 MINOR / stabilizer movers up to 3 pts (~0.38 each, half-credit ~0.19): Scap Elev, Scap Dep, Scap UR, Sp Rot/LF, Hip Flex, Hip Add, Hip ER, Hip IR.\n\n" +
       "Each action: +full (covered DIRECTLY by 2+ exercises) / +half (1 direct exercise) / +0 (not directly covered). Stabilizer-role coverage gets ZERO points by default — squat is NOT credited as a spinal extensor or hip stabilizer; passive stretch at the bottom of a squat is NOT credited as Ankle PF. To recover those points, follow the cueing tips: cue the hidden role into intentional direct work (e.g. 'spread the floor' on squats to actively train hip ER, or set the spine into hard extension on RDLs before each rep).",
     poor: "Missing 3+ major movers entirely or relying on stabilizer roles for coverage.",
     medium: "All majors hit directly but several minors missing.",

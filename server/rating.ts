@@ -74,12 +74,12 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total, 5 criteria × 20 pt
    - <10% compound (almost none) or >75% compound (very CNS-heavy): −13 to −18
 
 5. JOINT-ACTION COVERAGE (20 pts, anatomically weighted, POSITIVE-only):
-   The pool earns credit for hitting each canonical joint action. 75/25 bucket split between major and minor.
+   The pool earns credit for hitting each canonical joint action. 85/15 bucket split between major and minor — missing a major mover costs roughly 2.4× what missing a minor costs.
 
-   19 MAJOR movers — collectively up to 15 pts (~0.79 each):
+   19 MAJOR movers — collectively up to 17 pts (~0.89 each, half-credit ~0.45):
      Knee Extensors, Knee Flexors, Hip Extensors, Hip Abductors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Shoulder External Rotators, Elbow Flexors, Elbow Extensors, Spinal Flexors, Spinal Extensors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators.
 
-   8 MINOR / stabilizer movers — collectively up to 5 pts (~0.63 each):
+   8 MINOR / stabilizer movers — collectively up to 3 pts (~0.38 each, half-credit ~0.19):
      Scapular Elevators, Scapular Depressors, Scapular Upward Rotators, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip Adductors, Hip External Rotators, Hip Internal Rotators.
 
    For each action: +full (covered directly by 2+ exercises) / +half (covered directly by exactly 1 exercise) / +0 (not directly covered).
@@ -194,7 +194,7 @@ const ratingSchema = {
       additionalProperties: false,
       required: ["score", "hit", "missing", "notes", "cueingTips"],
       properties: {
-        score: { type: "number", description: "0-20. 75/25 split: 19 major movers up to 15 pts; 8 minor movers up to 5 pts." },
+        score: { type: "number", description: "0-20. 85/15 split: 19 major movers up to 17 pts (~0.89 each); 8 minor movers up to 3 pts (~0.38 each)." },
         hit: { type: "array", items: { type: "string" }, description: "Joint actions well covered (exact taxonomy names)." },
         missing: { type: "array", items: { type: "string" }, description: "Joint actions missed or under-trained." },
         notes: { type: "string", description: "Tone-matched coaching comment (poor/medium/good per the score tier)." },
@@ -271,7 +271,7 @@ The 5 pool-stage criteria are compressed proportionally to 70 pts (14 each). Thr
    - 15–20% or 55–65%: −5 to −7
    - <10% or >75%: −10 to −12
 
-5. JOINT-ACTION COVERAGE (14 pts): Anatomically weighted, 75/25 split — 19 major movers up to ~10.5 pts (~0.55 each), 8 minor movers up to ~3.5 pts (~0.44 each).
+5. JOINT-ACTION COVERAGE (14 pts): Anatomically weighted, 85/15 split — 19 major movers up to ~11.9 pts (~0.63 each, half-credit ~0.31), 8 minor movers up to ~2.1 pts (~0.26 each, half-credit ~0.13). Missing a major costs ~2.4× missing a minor.
    MAJOR (19): Knee Extensors, Knee Flexors, Hip Extensors, Hip Abductors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Shoulder External Rotators, Elbow Flexors, Elbow Extensors, Spinal Flexors, Spinal Extensors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators.
    MINOR (8): Scapular Elevators, Scapular Depressors, Scapular Upward Rotators, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip Adductors, Hip External Rotators, Hip Internal Rotators.
    DIRECT COVERAGE ONLY — same rule as the pool stage. Indirect involvement (squat-as-spinal-extensor, squat-as-hip-stabilizer, squat-as-ankle-PF-via-stretch, press-as-scapular-stabilizer beyond protraction) does NOT score points. The user can recover those points by following the cueingTips. Each action: +full (covered directly by 2+ exercises across the week) / +half (1 direct exercise) / +0 (not directly covered). Positive-only.
