@@ -93,7 +93,7 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total, 5 criteria × 20 pt
    - Calf Raise / Standing Calf / Seated Calf → Ankle Plantarflexors.
    - Machine Shoulder Press / Overhead Press / Front Raise → Shoulder Flexors, Shoulder Abductors (depending on plane).
    - Pulldown / Pull-Up / Chin-Up → Shoulder Extensors / Adductors, Scapular Downward Rotators.
-   - Cable Pullover / Lat Prayer / Single-Arm Cable Pulldown (Facing Away) → Shoulder Extensors, Scapular Downward Rotators (concentric pull). The eccentric stretch at the top is felt, but it's the concentric work that earns the point.
+   - Cable Pullover / Lat Prayer / Single-Arm Cable Pulldown → Shoulder Extensors / Adductors, Scapular Downward Rotators or Retractors depending on the line of pull (Single-Arm Cable Pulldown front-anchor = Scap Depression; side-anchor = Scap Downward Rotation; across-front anchor = Scap Retraction). The eccentric stretch at the top is felt, but it's the concentric work that earns the point.
    - Chest Press / Incline Press / Push-Up / Dip → Shoulder Horizontal Adductors + Scapular Protractors (lockout phase = direct concentric).
    - Row → Shoulder Extensors / Horizontal Abductors, Scapular Retractors.
    - Face Pull (rope at face level, thumbs rotating back) → Shoulder Horizontal Abductors, Scapular Retractors, AND Shoulder External Rotators (the rotation is part of the standard movement pattern, not an optional cue).

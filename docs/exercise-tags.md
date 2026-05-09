@@ -147,7 +147,7 @@ Stretch column: `mod` moderate · `high` · **`VH`** very-high
 | Exercise | Joint Actions | C/I | Stretch | Stab | SFR | Equipment | Coach Note |
 |---|---|---|---|---|---|---|---|
 | Lat Pulldown | Sh Add, Elb Flex, Scap DR, **Scap Dep** | C | ✓ | H | VH | Cable Wide, Cable Neutral, Single-Arm, Machine | Nippard S-tier |
-| Single-Arm Cable Pulldown | Sh Add, **Scap Dep** | I | ✓ | H | VH | Cable Single Handle, Cable Rope | Pure lat (minimal elbow flex) |
+| Single-Arm Cable Pulldown | Sh Add, **Scap Dep** (default) · +Scap DR (Side anchor) · +Scap Retr + Sh HAbd (Across-Front anchor) | I | ✓ | H | VH | Cable Single Handle | Three line-of-pull options pick the scap target |
 | Dumbbell Row (Elbow-Tucked) | Sh Ext, Elb Flex, **Scap Elev** | C | ✓ | M | H | DB on Bench, DB Standing | Tucked elbow = lat focus |
 | Straight-Arm Pulldown / Lat Prayer | Sh Ext, **Scap Dep** | I | ✓ | H | VH | Cable Rope, Cable Bar, Band, Machine Pullover | Israetel: deep lat stretch |
 | Pullover | Sh Ext, Sh Add, **Scap Dep** | I | ✓ | M | H | Cable, DB, Machine | Better as lat than chest |

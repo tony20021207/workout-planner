@@ -1344,7 +1344,6 @@ export const categories: Category[] = [
                 mechanics:
                   "Cables maintain tension at the top stretch. Grip width and orientation shift the bias between lats and elbow flexors.",
                 equipment: [
-                  { id: "cable-pd", name: "Cable" },
                   { id: "machine-pd", name: "Machine Pulldown" },
                 ],
                 angles: [
@@ -1380,29 +1379,36 @@ export const categories: Category[] = [
                 stability: "high",
                 sfr: "very-high",
                 description:
-                  "Single-arm cable pulldown executed with minimal elbow flexion to isolate shoulder adduction. Hand-on-handle cable line keeps tension on the lat through the full stretched range.",
+                  "Single-arm cable pulldown executed with minimal elbow flexion to isolate the lat. The line of pull (front / side / opposite side) changes which scapular action drives the rep.",
                 mechanics:
-                  "Reduced elbow involvement turns the pulldown into a near-isolation lat exercise; the cable maintains tension in the deep stretch. Reversing your stance (facing away from the cable) shifts the line of pull and recruits scapular up/down rotation.",
+                  "Hand-on-handle cable maintains tension through the deep stretch. Three line-of-pull setups recruit different scapular muscles: a front-anchored cable hits scap depression, a side-anchored cable drives downward rotation, and an opposite-side anchor turns the rep into a cross-body pull that retracts the scap.",
                 equipment: [
                   { id: "cable-handle-sap", name: "Cable Single Handle" },
-                  { id: "cable-rope-sap", name: "Cable Rope (Single)" },
                 ],
                 angles: [
                   {
-                    id: "facing-cable-sap",
-                    name: "Facing the Cable",
-                    description: "Standard orientation. Cable in front, pull straight down toward the hip. Pure lat focus + scapular depression.",
+                    id: "facing-front-sap",
+                    name: "Facing the Cable (Straight Down)",
+                    description: "Cable anchored in front and overhead. Pull straight down toward the hip with minimal elbow flexion. End-range squeeze depresses the scap. Pure lat focus.",
                   },
                   {
-                    id: "facing-away-sap",
-                    name: "Facing Away from Cable",
-                    description: "Cable behind you. Reach overhead/back, pull forward and down across the body. The reach phase upwardly rotates the scapula; the pull-down phase downwardly rotates it. Trains scapular up/down rotation alongside the lat.",
+                    id: "from-side-sap",
+                    name: "From the Side (Side Anchor)",
+                    description: "Cable anchored to your side at or slightly above shoulder height. Arm reaches up and outward, then pulls down and inward toward the hip. The arc carries the scapula through downward rotation as the arm descends — strong rhomboid + lower-trap eccentric.",
                     tagOverrides: {
-                      addJointActions: ["Scapular Upward Rotators", "Scapular Downward Rotators"],
+                      addJointActions: ["Scapular Downward Rotators"],
+                    },
+                  },
+                  {
+                    id: "across-front-sap",
+                    name: "Across the Front (Opposite-Side Anchor)",
+                    description: "Cable anchored on the opposite side at chest height. Arm reaches across the body, then pulls back through the chest plane to the same-side hip. Cross-body line plus the end-range pull-back drives scapular retraction and shoulder horizontal abduction.",
+                    tagOverrides: {
+                      addJointActions: ["Scapular Retractors", "Shoulder Horizontal Abductors"],
                     },
                   },
                 ],
-                coachNotes: "Elbow tucked / minimal flexion = pure lat work. Facing-away variant is a great upward-rotation primer.",
+                coachNotes: "Three line-of-pull options give the same lat exercise three different scap targets — pick the one that fills a gap in your routine. Front = depression, Side = downward rotation, Across = retraction.",
               },
               {
                 id: "db-row-lat",
