@@ -73,14 +73,13 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total, 5 criteria × 20 pt
    - 10–15% or 65–75%: −10 to −13
    - <10% compound (almost none) or >75% compound (very CNS-heavy): −13 to −18
 
-5. JOINT-ACTION COVERAGE (20 pts, anatomically weighted, POSITIVE-only):
-   The pool earns credit for hitting each canonical joint action. 85/15 bucket split between major and minor — missing a major mover costs roughly 2.4× what missing a minor costs.
+5. JOINT-ACTION COVERAGE (20 pts, MAJORS only, anatomically weighted, POSITIVE-only):
+   The pool earns credit for hitting each canonical MAJOR joint action. The 5 MINOR / stabilizer actions are tracked SEPARATELY as a bonus pool (see "MINOR COVERAGE BONUS" below). Bonus points are added on top of the 100 — they never deduct.
 
-   19 MAJOR movers — collectively up to 17 pts (~0.89 each, half-credit ~0.45):
-     Knee Extensors, Knee Flexors, Hip Extensors, Hip Abductors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Shoulder External Rotators, Elbow Flexors, Elbow Extensors, Spinal Flexors, Spinal Extensors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators.
+   22 MAJOR movers — collectively up to 20 pts (~0.91 each, half-credit ~0.45):
+     Knee Extensors, Knee Flexors, Hip Extensors, Hip Abductors, Hip Adductors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Shoulder External Rotators, Elbow Flexors, Elbow Extensors, Spinal Flexors, Spinal Extensors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators, Scapular Depressors, Scapular Upward Rotators.
 
-   8 MINOR / stabilizer movers — collectively up to 3 pts (~0.38 each, half-credit ~0.19):
-     Scapular Elevators, Scapular Depressors, Scapular Upward Rotators, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip Adductors, Hip External Rotators, Hip Internal Rotators.
+   NOTE: Scapular Depressors (lower trap), Scapular Upward Rotators (lower trap + serratus), and Hip Adductors are MAJOR — sizeable muscles that desk-bound lifters or those with hip/groin asymmetries chronically under-train.
 
    For each action: +full (covered directly by 2+ exercises) / +half (covered directly by exactly 1 exercise) / +0 (not directly covered).
 
@@ -114,20 +113,37 @@ THE HYPERTROPHY MATRIX — POOL-STAGE RATING (100 pts total, 5 criteria × 20 pt
 
    Earn points for what's covered DIRECTLY. Nothing subtracted afterward.
 
-CUEING TIPS FOR UNDER-COVERED ACTIONS — this is the bridge that turns indirect involvement into intentional direct work:
-Because indirect / stabilizer / stretch roles no longer auto-credit, the routine WILL lose points whenever a joint action is only "indirectly" present. cueingTips[] is how the user can recover that gap consciously — by upgrading a stabilizer role into deliberate, direct training through cueing.
+CUEING TIPS FOR UNDER-COVERED MAJOR ACTIONS — recovery bridge for the 100-pt score:
+Because indirect / stabilizer / stretch roles no longer auto-credit, the routine WILL lose points whenever a MAJOR joint action is only "indirectly" present. cueingTips[] is how the user can recover that gap consciously — by upgrading a stabilizer role into deliberate, direct training through cueing.
 
-For every joint action that scored 0 or half-credit, populate cueingTips[] (limit to the 4 most impactful tips) with concrete advice tying the under-trained action to a specific exercise the user already has. Each tip should explain HOW the user can intentionally engage that action via controlled movement, breath, or set-up — turning what was previously stabilizer work into a real training stimulus. Examples of the form a tip should take:
-  • "Hip External Rotators: during your Barbell Back Squat, actively grip the floor with your toes and rotate your knees outward as you descend. Cue 'spread the floor.' The glute max fires in external rotation, which is what makes this count as direct training rather than just stabilization."
-  • "Spinal Extensors: during your Romanian Deadlift, set your back into hard extension before you start each rep and hold it actively under load — don't let the spine pass through neutral on autopilot. Held tension under bar load = direct stimulus."
+For every MAJOR joint action that scored 0 or half-credit, populate cueingTips[] (limit to the 4 most impactful tips) with concrete advice tying the under-trained action to a specific exercise the user already has. Each tip should explain HOW the user can intentionally engage that action via controlled movement, breath, or set-up — turning what was previously stabilizer work into a real training stimulus. Examples:
+  • "Spinal Extensors: during your Romanian Deadlift, set your back into hard extension before each rep and hold it actively under load — don't let the spine pass through neutral on autopilot. Held tension under bar load = direct stimulus."
   • "Scapular Upward Rotators: during your Machine Shoulder Press, deliberately let the shoulder blades rotate up and around the ribcage at lockout instead of shrugging straight up. The serratus and lower trap drive the motion when cued this way."
-  • "Shoulder External Rotators: if you don't already have face pulls or a dedicated rotator-cuff exercise, finish your last set of any rear-delt or rowing movement with 8–10 strict external rotations using a light dumbbell or band — adding it covers a chronically under-trained mover."
-  • "Spinal Rotators & Lateral Flexors: hold a single dumbbell on one side during your Walking Lunge — the obliques fire isometrically against the asymmetric load. Slow tempo amplifies the stimulus."
+  • "Shoulder External Rotators: if you don't have face pulls or a dedicated rotator-cuff exercise, finish your last set of any rear-delt or rowing movement with 8–10 strict external rotations using a light dumbbell or band."
+  • "Hip Adductors: switch your usual squat or leg press to a wider stance for one set per session — the adductors take over a meaningful share of the work as your knees track wider than your hips."
   • "Ankle Plantarflexors: at the bottom of your Barbell Squat, drive through the balls of your feet and feel the calves load up before standing — that's the difference between passive stretch and an actual stimulus."
 
-If a joint action is truly missing AND no exercise in the routine can plausibly train it via cueing (e.g. zero pulling movements but Scapular Downward Rotators missing), suggest a small substitute exercise instead — e.g. "Add a single set of Lat Pulldowns or Pull-Ups to cover Scapular Downward Rotators directly."
+If a MAJOR action is truly missing AND no exercise in the routine can plausibly train it via cueing, suggest a small substitute — e.g. "Add a single set of Lat Pulldowns to cover Scapular Downward Rotators."
 
-Skip cueingTips entirely (empty array) only if every action is at full credit.
+Skip cueingTips entirely (empty array) only if every MAJOR action is at full credit.
+
+═══ MINOR COVERAGE BONUS · up to +1.5 (separate from the 100) ═══
+The 5 MINOR / stabilizer actions are tracked here as bonus points awarded ON TOP of the 100. They are NEVER deducted — a routine that ignores all 5 still hits 100/100 if the majors are clean.
+
+5 MINOR actions, +0.30 each (full direct coverage by 2+ exercises) / +0.15 each (half-credit, 1 direct exercise) / +0 each (not directly covered):
+  - Scapular Elevators (upper trap, levator scapulae)
+  - Spinal Rotators & Lateral Flexors (obliques)
+  - Hip Flexors (iliopsoas, rectus femoris, TFL)
+  - Hip External Rotators (piriformis, glute max)
+  - Hip Internal Rotators (glute med/min, TFL)
+
+Maximum bonus: 5 × 0.30 = +1.5.
+
+For each minor action that is NOT at full credit, give an OPPORTUNITY TIP (separate field minorBonus.opportunityTips[]) — a short suggestion for how the user could grab the bonus by adding light direct work or cueing an existing exercise. Cap at 3 tips. Examples:
+  • "Spinal Rotators & Lateral Flexors: hold a single DB on one side during your Walking Lunge — the obliques fire isometrically against the asymmetric load."
+  • "Hip External Rotators: a single set of Clamshells or Banded Hip ER before squats both warms the cuff and grabs +0.30 bonus."
+  • "Scapular Elevators: light DB Shrugs once a week is enough to hit this minor at full credit."
+Skip the array (empty) only if all 5 minors are at full credit.
 
 SCAPULAR-DEPRESSION CUEING:
 If the pool contains pulldown movements (Lat Pulldown, Single-Arm Cable Pulldown, Pull-Up / Chin-Up, Lat Prayer, Pullover), populate scapularDepressionNote with: "Initiate the pull by depressing your scapulae (shoulder blades pull down first, then elbows pull down). This is what makes pulldowns a true scapular depressor exercise." Otherwise leave it empty.
@@ -141,10 +157,11 @@ Keep notes to 1–2 sentences. Skip generic "good job" — be specific.
 
 OUTPUT REQUIREMENTS:
 - All criterion scores are 0 to their respective max (no negatives anywhere).
-- Final "score" = sum of all 5 criterion scores. Cap at 100.
-- coverage.hit / coverage.missing arrays MUST use exact joint-action names from the taxonomy.
+- Final "score" = sum of all 5 criterion scores. Cap at 100. The minorBonus is tracked SEPARATELY and NOT included in "score".
+- minorBonus.score is 0 to 1.5, summed across the 5 minor actions at +0.30 each.
+- coverage.hit / coverage.missing arrays use exact taxonomy names; coverage tracks MAJORS only. minorBonus.hit / minorBonus.missing track the 5 minor actions only.
 - Every exercise in "optimizedRoutine" must include "jointActions" drawn from the canonical list.
-- "optimizedRoutine" should be a complete weekly rewrite that fills coverage gaps, eliminates redundancy, respects the 20–45% compound-isolation band, and would score 100/100 against this rubric.
+- "optimizedRoutine" should be a complete weekly rewrite that fills coverage gaps, eliminates redundancy, respects the 20–45% compound-isolation band, and would score 100/100 against this rubric (with bonus minorBonus on top wherever feasible).
 
 YOU MUST RESPOND WITH STRICT JSON matching the provided schema.`;
 
@@ -166,11 +183,12 @@ const ratingSchema = {
     "verdict",
     "selectionBreakdown",
     "coverageBreakdown",
+    "minorBonus",
     "scapularDepressionNote",
     "optimizedRoutine",
   ],
   properties: {
-    score: { type: "number", description: "Final score 0-100, summed from all 5 criteria" },
+    score: { type: "number", description: "Final score 0-100, summed from all 5 criteria. Does NOT include minorBonus." },
     verdict: { type: "string", description: "One-sentence verdict on the microcycle" },
     selectionBreakdown: {
       type: "object",
@@ -194,14 +212,30 @@ const ratingSchema = {
       additionalProperties: false,
       required: ["score", "hit", "missing", "notes", "cueingTips"],
       properties: {
-        score: { type: "number", description: "0-20. 85/15 split: 19 major movers up to 17 pts (~0.89 each); 8 minor movers up to 3 pts (~0.38 each)." },
-        hit: { type: "array", items: { type: "string" }, description: "Joint actions well covered (exact taxonomy names)." },
-        missing: { type: "array", items: { type: "string" }, description: "Joint actions missed or under-trained." },
+        score: { type: "number", description: "0-20. MAJORS only. 22 major movers, ~0.91 each (half-credit ~0.45)." },
+        hit: { type: "array", items: { type: "string" }, description: "MAJOR joint actions well covered (exact taxonomy names)." },
+        missing: { type: "array", items: { type: "string" }, description: "MAJOR joint actions missed or under-trained." },
         notes: { type: "string", description: "Tone-matched coaching comment (poor/medium/good per the score tier)." },
         cueingTips: {
           type: "array",
           items: { type: "string" },
-          description: "1-3 concrete cueing tips for under-trained joint actions, each naming a specific exercise the user already has and how to consciously engage the under-trained action via controlled movement. Empty if every action is well covered.",
+          description: "1-4 concrete cueing tips for under-trained MAJOR joint actions, each naming a specific exercise the user already has and how to consciously engage the under-trained action. Empty if every major action is at full credit.",
+        },
+      },
+    },
+    minorBonus: {
+      type: "object",
+      additionalProperties: false,
+      required: ["score", "hit", "missing", "notes", "opportunityTips"],
+      properties: {
+        score: { type: "number", description: "Bonus 0 to 1.5, summed across the 5 minor actions at +0.30 each (full) or +0.15 (half). Added on top of the 100." },
+        hit: { type: "array", items: { type: "string" }, description: "Minor joint actions covered directly (exact taxonomy names from the 5-minor list)." },
+        missing: { type: "array", items: { type: "string" }, description: "Minor joint actions not covered." },
+        notes: { type: "string", description: "Brief note on which minors were grabbed and which are easy bonus pickups." },
+        opportunityTips: {
+          type: "array",
+          items: { type: "string" },
+          description: "0-3 short suggestions for grabbing missed bonus points by adding light direct work or cueing existing exercises. Empty if all minors at full credit.",
         },
       },
     },
@@ -271,9 +305,9 @@ The 5 pool-stage criteria are compressed proportionally to 70 pts (14 each). Thr
    - 15–20% or 55–65%: −5 to −7
    - <10% or >75%: −10 to −12
 
-5. JOINT-ACTION COVERAGE (14 pts): Anatomically weighted, 85/15 split — 19 major movers up to ~11.9 pts (~0.63 each, half-credit ~0.31), 8 minor movers up to ~2.1 pts (~0.26 each, half-credit ~0.13). Missing a major costs ~2.4× missing a minor.
-   MAJOR (19): Knee Extensors, Knee Flexors, Hip Extensors, Hip Abductors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Shoulder External Rotators, Elbow Flexors, Elbow Extensors, Spinal Flexors, Spinal Extensors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators.
-   MINOR (8): Scapular Elevators, Scapular Depressors, Scapular Upward Rotators, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip Adductors, Hip External Rotators, Hip Internal Rotators.
+5. JOINT-ACTION COVERAGE (14 pts, MAJORS only): 22 major movers up to 14 pts (~0.64 each, half-credit ~0.32). The 5 minors are tracked separately as a bonus (max +1.05) and never deducted from the 100. Direct coverage only — same rule as the pool stage.
+   MAJOR (22): Knee Extensors, Knee Flexors, Hip Extensors, Hip Abductors, Hip Adductors, Shoulder Flexors, Shoulder Extensors, Shoulder Abductors, Shoulder Adductors, Shoulder Horizontal Adductors, Shoulder Horizontal Abductors, Shoulder External Rotators, Elbow Flexors, Elbow Extensors, Spinal Flexors, Spinal Extensors, Ankle Plantarflexors, Scapular Retractors, Scapular Protractors, Scapular Downward Rotators, Scapular Depressors, Scapular Upward Rotators.
+   MINOR (5, bonus track): Scapular Elevators, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip External Rotators, Hip Internal Rotators.
    DIRECT COVERAGE ONLY — same rule as the pool stage. Indirect involvement (squat-as-spinal-extensor, squat-as-hip-stabilizer, squat-as-ankle-PF-via-stretch, press-as-scapular-stabilizer beyond protraction) does NOT score points. The user can recover those points by following the cueingTips. Each action: +full (covered directly by 2+ exercises across the week) / +half (1 direct exercise) / +0 (not directly covered). Positive-only.
 
 ═══ POST-SPLIT ADD-ONS · 30 pts (3 × 10 each) ═══
@@ -302,16 +336,23 @@ For every criterion's "notes" field, match the tone to where the score lands rel
 - GOOD (≥80%): specific praise calling out what's strong.
 Keep notes to 1–2 sentences. Be specific.
 
-CUEING TIPS FOR UNDER-COVERED ACTIONS — bridge for indirect coverage (same rule as the pool prompt):
-Because indirect / stabilizer / stretch roles do NOT auto-credit, the user will lose points whenever an action is only indirectly involved. cueingTips[] is the recovery path: for every action that scored 0 or half-credit, give a concrete tip naming a specific exercise the user already has across the week and explaining HOW to consciously upgrade that stabilizer or stretch role into intentional direct training (e.g., "Hip External Rotators: during your Squat, grip the floor and rotate knees outward as you descend — that turns the glute max from a stabilizer into a direct trainee"). Cap at 4 tips so the list stays actionable. If an action is truly missing AND no plausible cue exists in the routine, suggest a small substitute exercise instead.
+CUEING TIPS FOR UNDER-COVERED MAJOR ACTIONS — recovery bridge for the 100-pt score (same rule as the pool prompt):
+For every MAJOR action that scored 0 or half-credit, give a concrete tip naming a specific exercise the user already has across the week and explaining HOW to consciously upgrade that stabilizer / stretch role into intentional direct training (e.g., "Spinal Extensors: during your RDL, set hard back extension before each rep and hold it under load — that turns a stabilizer role into a direct stimulus"). Cap at 4 tips. If an action is truly missing AND no plausible cue exists in the routine, suggest a small substitute exercise instead.
+
+═══ MINOR COVERAGE BONUS · up to +1.05 (separate from the 100) ═══
+The 5 MINOR actions are bonus points awarded ON TOP of the 100. Same direct-coverage rule.
++0.21 each (full direct coverage by 2+ exercises across the week) / +0.105 each (half) / +0 each (not directly covered). Maximum bonus: 5 × 0.21 = +1.05.
+The 5 MINOR actions: Scapular Elevators, Spinal Rotators & Lateral Flexors, Hip Flexors, Hip External Rotators, Hip Internal Rotators.
+Populate minorBonus.opportunityTips[] (cap 3) with short suggestions for grabbing missed bonus points by adding light direct work or cueing existing exercises. Skip (empty array) only if all 5 minors at full credit.
 
 SCAPULAR-DEPRESSION CUEING:
 If pulldown movements present (Lat Pulldown, Single-Arm Cable Pulldown, Pull-Up / Chin-Up, Lat Prayer, Pullover), populate scapularDepressionNote with the cueing reminder. Otherwise empty string.
 
 OUTPUT REQUIREMENTS:
-- Final "score" = sum of all 8 criterion scores (capped at 100).
-- coverage.hit / coverage.missing MUST use exact taxonomy names.
-- "optimizedDailyPlan" should re-write the entire week's split + sets/reps to score 100/100.
+- Final "score" = sum of all 8 criterion scores (capped at 100). Does NOT include minorBonus.
+- minorBonus.score is 0 to 1.05.
+- coverage.hit / coverage.missing track MAJORS only. minorBonus.hit / minorBonus.missing track the 5 minor actions only. All names must be exact taxonomy names.
+- "optimizedDailyPlan" should re-write the entire week's split + sets/reps to score 100/100 (with the +1.05 minor bonus where feasible).
 
 YOU MUST RESPOND WITH STRICT JSON matching the provided schema.`;
 
@@ -323,12 +364,13 @@ const postSplitRatingSchema = {
     "verdict",
     "selectionBreakdown",
     "coverageBreakdown",
+    "minorBonus",
     "postSplitAddOns",
     "scapularDepressionNote",
     "optimizedDailyPlan",
   ],
   properties: {
-    score: { type: "number", description: "Final score 0-100, summed from all 8 criteria" },
+    score: { type: "number", description: "Final score 0-100, summed from all 8 criteria. Does NOT include minorBonus." },
     verdict: { type: "string", description: "One-sentence verdict on the finalized week" },
     selectionBreakdown: {
       type: "object",
@@ -346,14 +388,30 @@ const postSplitRatingSchema = {
       additionalProperties: false,
       required: ["score", "hit", "missing", "notes", "cueingTips"],
       properties: {
-        score: { type: "number" },
-        hit: { type: "array", items: { type: "string" } },
-        missing: { type: "array", items: { type: "string" } },
+        score: { type: "number", description: "0-14. MAJORS only. 22 major movers, ~0.64 each (half ~0.32)." },
+        hit: { type: "array", items: { type: "string" }, description: "MAJOR joint actions covered directly across the week." },
+        missing: { type: "array", items: { type: "string" }, description: "MAJOR joint actions missed or under-trained." },
         notes: { type: "string" },
         cueingTips: {
           type: "array",
           items: { type: "string" },
-          description: "1-3 concrete cueing tips for under-trained joint actions, naming a specific exercise the user already has and how to engage the under-trained action via controlled movement.",
+          description: "1-4 concrete cueing tips for under-trained MAJOR joint actions, naming a specific exercise the user already has and how to engage the action via controlled movement. Empty if every major action is at full credit.",
+        },
+      },
+    },
+    minorBonus: {
+      type: "object",
+      additionalProperties: false,
+      required: ["score", "hit", "missing", "notes", "opportunityTips"],
+      properties: {
+        score: { type: "number", description: "Bonus 0 to 1.05, summed across the 5 minor actions at +0.21 each (full) or +0.105 (half). Added on top of the 100." },
+        hit: { type: "array", items: { type: "string" }, description: "Minor joint actions covered directly (exact taxonomy names from the 5-minor list)." },
+        missing: { type: "array", items: { type: "string" }, description: "Minor joint actions not covered." },
+        notes: { type: "string", description: "Brief note on which minors were grabbed and which are easy bonus pickups." },
+        opportunityTips: {
+          type: "array",
+          items: { type: "string" },
+          description: "0-3 short suggestions for grabbing missed bonus points by adding light direct work or cueing existing exercises. Empty if all minors at full credit.",
         },
       },
     },

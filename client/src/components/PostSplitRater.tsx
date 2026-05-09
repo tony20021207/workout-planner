@@ -193,7 +193,14 @@ export default function PostSplitRater() {
           >
             {/* Score + verdict */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-card rounded-sm border border-border">
-              <ScoreBadge score={result.score} />
+              <div className="flex flex-col items-center gap-1">
+                <ScoreBadge score={result.score} />
+                {result.minorBonus && result.minorBonus.score > 0 && (
+                  <div className="text-[10px] uppercase tracking-wider text-blue-300 font-semibold tabular-nums">
+                    +{result.minorBonus.score.toFixed(2)} bonus
+                  </div>
+                )}
+              </div>
               <p className="text-sm text-foreground leading-relaxed flex-1">{result.verdict}</p>
             </div>
 
@@ -263,6 +270,63 @@ export default function PostSplitRater() {
                 </div>
               )}
             </div>
+
+            {/* Minor coverage bonus */}
+            {result.minorBonus && (
+              <div className="p-4 bg-card rounded-sm border border-border space-y-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-blue-300" />
+                    Minor Coverage Bonus
+                  </h4>
+                  <div className="text-xs tabular-nums">
+                    <span className="text-blue-300 font-bold">+{result.minorBonus.score.toFixed(2)}</span>
+                    <span className="text-muted-foreground"> / +1.05</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Stabilizer actions tracked separately from the 100. Bonus points only — never deducted.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-blue-300 font-semibold mb-1">Grabbed ({result.minorBonus.hit.length})</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {result.minorBonus.hit.length === 0 ? (
+                        <span className="text-muted-foreground italic">None yet</span>
+                      ) : result.minorBonus.hit.map((h, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-blue-500/10 text-blue-300 rounded-sm border border-blue-500/30">{h}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Available ({result.minorBonus.missing.length})</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {result.minorBonus.missing.length === 0 ? (
+                        <span className="text-muted-foreground italic">All grabbed</span>
+                      ) : result.minorBonus.missing.map((m, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-secondary/40 text-muted-foreground rounded-sm border border-border">{m}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {result.minorBonus.notes && (
+                  <p className="text-xs text-muted-foreground leading-relaxed italic">{result.minorBonus.notes}</p>
+                )}
+                {result.minorBonus.opportunityTips && result.minorBonus.opportunityTips.length > 0 && (
+                  <div className="p-3 bg-blue-500/5 border border-blue-500/30 rounded-sm">
+                    <div className="flex items-center gap-1.5 mb-1.5 text-blue-300 font-semibold text-xs">
+                      <Info className="w-3.5 h-3.5" />
+                      Easy bonus pickups
+                    </div>
+                    <ul className="space-y-1.5 text-[11px] text-muted-foreground leading-relaxed list-disc pl-4">
+                      {result.minorBonus.opportunityTips.map((tip, i) => (
+                        <li key={i}>{tip}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Post-split add-ons */}
             <div className="p-4 bg-yellow-500/5 rounded-sm border-2 border-yellow-500/30 space-y-3">

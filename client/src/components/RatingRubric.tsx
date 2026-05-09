@@ -85,17 +85,36 @@ const POOL_CRITERIA: CriterionDoc[] = [
     num: 5,
     name: "Joint-Action Coverage",
     max: 20,
-    measures: "Anatomically weighted coverage of the 27-action kinesiology taxonomy. DIRECT coverage only — stabilizer roles, isometric bracing, and passive stretch do NOT score. When an action goes uncovered (or only indirectly covered), the rater drops cueing tips on how to upgrade the missing role into intentional direct training via exercises you already have.",
+    measures: "Anatomically weighted coverage of the MAJOR joint actions in the 27-action kinesiology taxonomy. DIRECT coverage only — stabilizer roles, isometric bracing, and passive stretch do NOT score. The 5 stabilizer/minor actions are not in this criterion at all; they live in a separate bonus pool (see below) that adds to the total without ever deducting.",
     calc:
-      "85/15 split between major and minor totals — missing a major mover costs ~2.4× what missing a minor costs.\n\n" +
-      "19 MAJOR movers up to 17 pts (~0.89 each, half-credit ~0.45): Knee Ext, Knee Flex, Hip Ext, Hip Abd, Sh Flex, Sh Ext, Sh Abd, Sh Add, Sh HAdd, Sh HAbd, Sh ER, Elb Flex, Elb Ext, Sp Flex, Sp Ext, Ank PF, Scap Retr, Scap Prot, Scap DR.\n\n" +
-      "8 MINOR / stabilizer movers up to 3 pts (~0.38 each, half-credit ~0.19): Scap Elev, Scap Dep, Scap UR, Sp Rot/LF, Hip Flex, Hip Add, Hip ER, Hip IR.\n\n" +
-      "Each action: +full (covered DIRECTLY by 2+ exercises) / +half (1 direct exercise) / +0 (not directly covered). Stabilizer-role coverage gets ZERO points by default — squat is NOT credited as a spinal extensor or hip stabilizer; passive stretch at the bottom of a squat is NOT credited as Ankle PF. To recover those points, follow the cueing tips: cue the hidden role into intentional direct work (e.g. 'spread the floor' on squats to actively train hip ER, or set the spine into hard extension on RDLs before each rep).",
+      "20 pts spread across 22 MAJOR actions only, ~0.91 each (half-credit ~0.45):\n" +
+      "Knee Ext, Knee Flex, Hip Ext, Hip Abd, Hip Add, Sh Flex, Sh Ext, Sh Abd, Sh Add, Sh HAdd, Sh HAbd, Sh ER, Elb Flex, Elb Ext, Sp Flex, Sp Ext, Ank PF, Scap Retr, Scap Prot, Scap DR, Scap Dep, Scap UR.\n\n" +
+      "Note: Scap Depressors (lower trap), Scap Upward Rotators (lower trap + serratus), and Hip Adductors are MAJOR — sizeable muscles that desk-bound lifters or those with hip/groin asymmetries chronically under-train.\n\n" +
+      "Each action: +full (covered DIRECTLY by 2+ exercises) / +half (1 direct exercise) / +0 (not directly covered). Stabilizer-role coverage gets ZERO points by default — squat is NOT credited as a spinal extensor or hip stabilizer; passive stretch at the bottom of a squat is NOT credited as Ankle PF. To recover those points, follow the cueing tips: cue the hidden role into intentional direct work (e.g. 'spread the floor' on squats to actively train hip Add, or set the spine into hard extension on RDLs before each rep).",
     poor: "Missing 3+ major movers entirely or relying on stabilizer roles for coverage.",
-    medium: "All majors hit directly but several minors missing.",
-    good: "All 27 actions covered with at least one direct training stimulus each.",
+    medium: "Most majors hit directly, a few cued stabilizer roles still missing.",
+    good: "All 22 major actions covered with at least one direct training stimulus each.",
   },
 ];
+
+const MINOR_BONUS_DOC: CriterionDoc = {
+  num: 6,
+  name: "Minor Coverage Bonus",
+  max: 1.5,
+  measures: "Stabilizer / minor joint actions tracked separately. Bonus points are added on top of the 100; they are NEVER deducted. Most lifters won't dedicate exercises to these, so penalizing them creates noise — but the lifter who does cover them earns recognition.",
+  calc:
+    "5 MINOR actions, +0.30 each in the pool stage (half-credit +0.15) for a max of +1.5. Post-split is proportionally compressed to +0.21 each (max +1.05).\n\n" +
+    "The 5 minors:\n" +
+    "  • Scapular Elevators (upper trap, levator scapulae)\n" +
+    "  • Spinal Rotators & Lateral Flexors (obliques)\n" +
+    "  • Hip Flexors\n" +
+    "  • Hip External Rotators\n" +
+    "  • Hip Internal Rotators\n\n" +
+    "Same direct-coverage rule as the main score. For minors not at full credit, the rater drops short OPPORTUNITY tips — quick suggestions for grabbing the bonus by adding light direct work (clamshells, light DB shrugs, side-loaded lunges) or cueing existing exercises.",
+  poor: "0 / 5 minors covered. Routine has zero stabilizer / oblique work.",
+  medium: "1–2 minors covered (typically obliques via planks, hip flexors via leg raises).",
+  good: "All 5 minors covered with dedicated direct work — full bonus.",
+};
 
 const POST_SPLIT_CORE: CriterionDoc[] = POOL_CRITERIA.map((c) => ({
   ...c,
@@ -218,11 +237,18 @@ export function RatingRubric() {
             <ScrollArea className="h-[60vh] pr-4">
               <div className="space-y-3">
                 <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-sm text-xs text-muted-foreground leading-relaxed">
-                  <strong className="text-foreground">Pool-stage rating</strong> grades the weekly exercise selection. 5 criteria × 20 pts each = 100. Sets, reps, weight, and split-day allocations don't exist yet at this stage; those score in the post-split rating.
+                  <strong className="text-foreground">Pool-stage rating</strong> grades the weekly exercise selection. 5 criteria × 20 pts each = 100. A separate <strong className="text-foreground">+1.5 bonus</strong> for stabilizer / minor coverage is added on top — never deducted. Sets, reps, weight, and split-day allocations don't exist yet at this stage; those score in the post-split rating.
                 </div>
                 {POOL_CRITERIA.map((c) => (
                   <CriterionCard key={c.num} c={c} />
                 ))}
+                <div className="pt-2">
+                  <h4 className="font-heading font-bold text-sm uppercase tracking-wider text-foreground flex items-center gap-2 mb-2">
+                    <Trophy className="w-4 h-4 text-blue-300" />
+                    Bonus · up to +1.5 (separate from the 100)
+                  </h4>
+                  <CriterionCard c={MINOR_BONUS_DOC} />
+                </div>
               </div>
             </ScrollArea>
           </TabsContent>
@@ -256,6 +282,14 @@ export function RatingRubric() {
                       <CriterionCard key={c.num} c={c} />
                     ))}
                   </div>
+                </div>
+
+                <div>
+                  <h4 className="font-heading font-bold text-sm uppercase tracking-wider text-foreground flex items-center gap-2 mb-2">
+                    <Trophy className="w-4 h-4 text-blue-300" />
+                    Bonus · up to +1.05 (separate from the 100)
+                  </h4>
+                  <CriterionCard c={{ ...MINOR_BONUS_DOC, max: 1.05 }} />
                 </div>
               </div>
             </ScrollArea>

@@ -20,13 +20,25 @@ export interface SelectionBreakdown {
 }
 
 export interface CoverageBreakdown {
-  /** Pool stage: 0-20. Post-split: 0-14. Anatomically weighted (75/25 major:minor). */
+  /** Pool stage: 0-20. Post-split: 0-14. MAJORS only — 22 major actions. */
   score: number;
   hit: string[];
   missing: string[];
   notes: string;
-  /** 1-3 cueing tips for under-trained joint actions, each tied to a specific exercise the user already has. Empty if every action is well covered. */
+  /** 1-4 cueing tips for under-trained MAJOR joint actions, each tied to a specific exercise the user already has. Empty if every major action is at full credit. */
   cueingTips: string[];
+}
+
+export interface MinorBonus {
+  /** Pool stage: 0 to 1.5 (5 minors × 0.30). Post-split: 0 to 1.05 (5 minors × 0.21). Added ON TOP of the 100, never deducted. */
+  score: number;
+  /** Minor joint actions covered directly across the week. */
+  hit: string[];
+  /** Minor joint actions not covered. */
+  missing: string[];
+  notes: string;
+  /** 0-3 short opportunity tips for grabbing missed bonus points. */
+  opportunityTips: string[];
 }
 
 export interface OptimizedExercise {
@@ -44,11 +56,12 @@ export interface OptimizedExercise {
 }
 
 export interface RatingResult {
-  /** Final score, 0-100. Sum of all 5 criteria. */
+  /** Final score, 0-100. Sum of all 5 criteria. Does NOT include minorBonus. */
   score: number;
   verdict: string;
   selectionBreakdown: SelectionBreakdown;
   coverageBreakdown: CoverageBreakdown;
+  minorBonus: MinorBonus;
   /** Empty string if no pulldowns; otherwise the scap-depression cueing reminder. */
   scapularDepressionNote: string;
   optimizedRoutine: OptimizedExercise[];
@@ -81,10 +94,12 @@ export interface OptimizedDay {
 }
 
 export interface PostSplitRatingResult {
+  /** Final score, 0-100. Does NOT include minorBonus. */
   score: number;
   verdict: string;
   selectionBreakdown: SelectionBreakdown;
   coverageBreakdown: CoverageBreakdown;
+  minorBonus: MinorBonus;
   postSplitAddOns: PostSplitAddOns;
   scapularDepressionNote: string;
   optimizedDailyPlan: OptimizedDay[];
