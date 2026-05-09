@@ -17,7 +17,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  Flame,
   Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -103,7 +102,7 @@ function BreakdownRow({ label, score, max, notes }: { label: string; score: numb
 }
 
 export default function PostSplitRater() {
-  const { routine, split, effort } = useWorkout();
+  const { routine, split } = useWorkout();
   const [result, setResult] = useState<PostSplitRatingResult | null>(null);
 
   const activePreset = useMemo(() => {
@@ -134,7 +133,7 @@ export default function PostSplitRater() {
   const handleRate = () => {
     if (!activePreset) return;
     const text = serializeFinalizedWeekToText(routine, activePreset.name, split.dayAssignments, activePreset.days);
-    rateMutation.mutate({ text, effort });
+    rateMutation.mutate({ text });
   };
 
   if (!activePreset || !hasAssignments || !hasSetData) {
@@ -157,8 +156,7 @@ export default function PostSplitRater() {
               Rate the Finalized Week
             </h3>
             <p className="text-xs text-muted-foreground">
-              Post-split rating: pool's 9 criteria (compressed to 82) + 3 add-ons (Session Caps,
-              Rep Ranges, Weekly Volume) — total 100.
+              Post-split: 5 selection criteria (14 each = 70) + 3 add-ons (10 each = 30) = 100.
             </p>
           </div>
         </div>
@@ -199,41 +197,25 @@ export default function PostSplitRater() {
               <p className="text-sm text-foreground leading-relaxed flex-1">{result.verdict}</p>
             </div>
 
-            {/* Compressed pool criteria + new add-ons in two columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="p-4 bg-card rounded-sm border border-border space-y-3">
-                <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">
-                  Selection · 33
-                </h4>
-                <BreakdownRow label="Stability" score={result.selectionBreakdown.stability.score} max={6.6} notes={result.selectionBreakdown.stability.notes} />
-                <BreakdownRow label="Deep Stretch" score={result.selectionBreakdown.stretch.score} max={6.6} notes={result.selectionBreakdown.stretch.notes} />
-                <BreakdownRow label="SFR" score={result.selectionBreakdown.sfr.score} max={6.6} notes={result.selectionBreakdown.sfr.notes} />
-                <BreakdownRow label="Angle Bias" score={result.selectionBreakdown.angles.score} max={6.6} notes={result.selectionBreakdown.angles.notes} />
-                <BreakdownRow label="Compound / Isolation Ratio" score={result.selectionBreakdown.compoundIsolationRatio.score} max={6.6} notes={result.selectionBreakdown.compoundIsolationRatio.notes} />
-              </div>
-              <div className="p-4 bg-card rounded-sm border border-border space-y-3">
-                <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">
-                  Intensity & Volume · 29
-                </h4>
-                <BreakdownRow label="RIR Calibration" score={result.intensityVolumeBreakdown.rirCalibration.score} max={12.4} notes={result.intensityVolumeBreakdown.rirCalibration.notes} />
-                <BreakdownRow label="Frequency" score={result.intensityVolumeBreakdown.frequency.score} max={8.3} notes={result.intensityVolumeBreakdown.frequency.notes} />
-                <BreakdownRow label="Volume Distribution" score={result.intensityVolumeBreakdown.volumeDistribution.score} max={8.3} notes={result.intensityVolumeBreakdown.volumeDistribution.notes} />
-              </div>
+            {/* 5 compressed selection criteria — 14 pts each = 70 pts */}
+            <div className="p-4 bg-card rounded-sm border border-border space-y-4">
+              <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">
+                Selection · 56
+              </h4>
+              <BreakdownRow label="Stability" score={result.selectionBreakdown.stability.score} max={14} notes={result.selectionBreakdown.stability.notes} />
+              <BreakdownRow label="Deep Stretch" score={result.selectionBreakdown.stretch.score} max={14} notes={result.selectionBreakdown.stretch.notes} />
+              <BreakdownRow label="SFR" score={result.selectionBreakdown.sfr.score} max={14} notes={result.selectionBreakdown.sfr.notes} />
+              <BreakdownRow label="Compound / Isolation Ratio" score={result.selectionBreakdown.compoundIsolationRatio.score} max={14} notes={result.selectionBreakdown.compoundIsolationRatio.notes} />
             </div>
 
-            {/* Coverage */}
+            {/* Coverage — 14 pts */}
             <div className="p-4 bg-card rounded-sm border border-border">
-              <div className="flex items-baseline justify-between mb-1">
-                <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">
-                  Joint-Action Coverage · 20
-                </h4>
-                <span className="text-sm font-mono tabular-nums text-muted-foreground">
-                  {result.coverageBreakdown.score.toFixed(1)} / 20
-                </span>
-              </div>
-              <div className="h-1.5 bg-secondary rounded-full overflow-hidden mb-3">
-                <div className="h-full bg-lime transition-all" style={{ width: `${Math.max(0, Math.min(1, result.coverageBreakdown.score / 20)) * 100}%` }} />
-              </div>
+              <BreakdownRow
+                label="Joint-Action Coverage"
+                score={result.coverageBreakdown.score}
+                max={14}
+                notes={result.coverageBreakdown.notes}
+              />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
                   <div className="flex items-center gap-1.5 text-lime mb-2 font-semibold">
@@ -270,27 +252,18 @@ export default function PostSplitRater() {
             <div className="p-4 bg-yellow-500/5 rounded-sm border-2 border-yellow-500/30 space-y-3">
               <div className="flex items-baseline justify-between">
                 <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">
-                  Post-Split Add-Ons · 18
+                  Post-Split Add-Ons · 30
                 </h4>
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
                   daily detail you couldn't score at the pool stage
                 </span>
               </div>
-              <BreakdownRow label="Session Caps" score={result.postSplitAddOns.sessionCaps.score} max={6} notes={result.postSplitAddOns.sessionCaps.notes} />
-              <BreakdownRow label="Rep Range Distribution" score={result.postSplitAddOns.repRangeDistribution.score} max={6} notes={result.postSplitAddOns.repRangeDistribution.notes} />
-              <BreakdownRow label="Total Weekly Volume vs MEV–MAV" score={result.postSplitAddOns.totalVolume.score} max={6} notes={result.postSplitAddOns.totalVolume.notes} />
+              <BreakdownRow label="Session Caps" score={result.postSplitAddOns.sessionCaps.score} max={10} notes={result.postSplitAddOns.sessionCaps.notes} />
+              <BreakdownRow label="Rep Range Distribution" score={result.postSplitAddOns.repRangeDistribution.score} max={10} notes={result.postSplitAddOns.repRangeDistribution.notes} />
+              <BreakdownRow label="Total Weekly Volume vs MEV–MAV" score={result.postSplitAddOns.totalVolume.score} max={10} notes={result.postSplitAddOns.totalVolume.notes} />
             </div>
 
             {/* Notes */}
-            {result.intensityNote && (
-              <div className="p-3 bg-orange-500/5 border border-orange-500/30 rounded-sm flex items-start gap-2 text-xs">
-                <Flame className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-foreground mb-0.5">RIR / Effort calibration</p>
-                  <p className="text-muted-foreground leading-relaxed">{result.intensityNote}</p>
-                </div>
-              </div>
-            )}
             {result.scapularDepressionNote && (
               <div className="p-3 bg-blue-500/5 border border-blue-500/30 rounded-sm flex items-start gap-2 text-xs">
                 <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />

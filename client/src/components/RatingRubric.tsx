@@ -2,13 +2,13 @@
  * RatingRubric — Reference content for the Hypertrophy Matrix scoring system.
  *
  * Two stages:
- *   Pool-stage (100 pts): the rubric the rater uses on the weekly microcycle
- *     (exercise selection only, no sets/reps/weight yet).
- *   Post-split (100 pts): identical 9 criteria compressed to 82 pts plus 3
- *     add-ons × 6 = 18 pts. Active after split + sets/reps are configured.
+ *   Pool-stage (100 pts): 5 criteria × 20 each. Scored on the weekly
+ *     microcycle (exercise selection only, no sets/reps/weight yet).
+ *   Post-split (100 pts): 5 criteria × 14 each (70) + 3 add-ons × 10
+ *     (30). Active after split + sets/reps are configured.
  *
- * Shown in a Dialog when the user clicks "View rubric" on the rater. The
- * default rating result panel only shows tone-matched comments (poor /
+ * Shown in a Dialog when the user clicks "View rubric" on the rater.
+ * The default rating result panel shows tone-matched comments (poor /
  * medium / good); the full descriptions live here.
  */
 import {
@@ -22,7 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Target, Flame, Layers, Trophy } from "lucide-react";
+import { BookOpen, Layers, Trophy } from "lucide-react";
 
 interface CriterionDoc {
   num: number;
@@ -35,169 +35,115 @@ interface CriterionDoc {
   good: string;
 }
 
-const POOL_RUBRIC: { bucket: string; total: number; criteria: CriterionDoc[] }[] = [
+const POOL_CRITERIA: CriterionDoc[] = [
   {
-    bucket: "Selection",
-    total: 40,
-    criteria: [
-      {
-        num: 1,
-        name: "Stability",
-        max: 8,
-        measures: "How safely you can push close to failure given the picks you made.",
-        calc: "Reward stable picks (machines, chest-supported, cables). Penalize over-reliance on highly unstable picks.",
-        poor: "Routine dominated by free-weight pressing/pulling with no machine alternates.",
-        medium: "Mix of stable and free-weight picks.",
-        good: "Machines and cables anchor the heavy work; free weights used where they have a real biomechanical advantage.",
-      },
-      {
-        num: 2,
-        name: "Deep Stretch",
-        max: 8,
-        measures: "How much of your training puts the muscle in its lengthened position under load — the variable with the strongest research backing for hypertrophy.",
-        calc: "Tier-weighted average. very-high (1.5×) > high (1×) > moderate (0.5×).",
-        poor: "Routine dominated by moderate-stretch picks (hip thrusts, contracted-bias laterals, hammer curls).",
-        medium: "Mostly high-tier stretch picks.",
-        good: "Heavy weighting toward very-high picks: Bayesian curl, lat prayer, RDL, sissy squat, deficit push-up, etc.",
-      },
-      {
-        num: 3,
-        name: "SFR (Stimulus-to-Fatigue Ratio)",
-        max: 8,
-        measures: "How much muscle disruption you generate per unit of recovery cost.",
-        calc: "Reward picks with high SFR tags. Penalize over-reliance on conventional / sumo deadlifts and other systemically taxing lifts for hypertrophy.",
-        poor: "Routine built around high-fatigue compounds (deadlifts, weighted dips, conventional barbell bench for everything).",
-        medium: "Balanced mix of compounds and isolations.",
-        good: "Machine + cable heavy; deadlifts used sparingly; isolation picks favor smooth force curves.",
-      },
-      {
-        num: 4,
-        name: "Angle Bias / Variety",
-        max: 8,
-        measures: "Whether your angle and grip choices cover the muscle proportions without redundancy.",
-        calc: "Verify angles vary the joint-action emphasis: flat + incline pressing for clavicular vs sternal pec; wide + neutral pulldown grips for lat width vs thickness; arm-position curls for biceps long-head stretch.",
-        poor: "Three different flat presses with the same angle bias; lat work but only one grip.",
-        medium: "Some angle variation across major movers.",
-        good: "Each major mover hit through multiple angles or grips.",
-      },
-      {
-        num: 5,
-        name: "Compound vs Isolation Ratio",
-        max: 8,
-        measures: "Whether your pool's compound/isolation balance lands in a healthy hypertrophy band. Real per-session counts of 3–5 exercises produce ratios like 25% (1/4), 33% (1/3), 40% (2/5). 50%+ patterns (3C+3I, 2C+2I) start being too CNS-heavy for hypertrophy.",
-        calc:
-          "Full credit for any compound share in the 20–45% band. Outside that:\n" +
-          "  • 45–55% compound: −1 to −2 (slightly CNS-heavy)\n" +
-          "  • 15–20% or 55–65%: −2 to −3\n" +
-          "  • 10–15% or 65–75%: −4 to −5\n" +
-          "  • <10% (almost no compound) or >75% (very CNS-heavy): −5 to −8",
-        poor: "80% compound (way over-stresses CNS) or routine with no compounds at all.",
-        medium: "Just over the 45% line — 50% compound (3C+3I or 2C+2I).",
-        good: "Anywhere in the 20–45% compound band: 25%, 33%, 40% all earn full credit.",
-      },
-    ],
+    num: 1,
+    name: "Stability",
+    max: 20,
+    measures: "How safely you can push close to failure given the picks you made.",
+    calc: "Reward stable picks (machines, chest-supported, cables). Penalize over-reliance on highly unstable picks. A pool dominated by stable picks earns full 20; mostly free-weight = 8–12; no stable picks at all = 4–8.",
+    poor: "Routine dominated by free-weight pressing/pulling with no machine alternates.",
+    medium: "Mix of stable and free-weight picks.",
+    good: "Machines and cables anchor the heavy work; free weights used where they have a real biomechanical advantage.",
   },
   {
-    bucket: "Intensity & Volume",
-    total: 35,
-    criteria: [
-      {
-        num: 6,
-        name: "RIR Calibration",
-        max: 15,
-        measures: "Whether your effort matches Nippard's targets — compound 1–2 RIR, isolation 0 RIR — assuming consistent movement quality.",
-        calc:
-          "Penalties from your two RIR self-reports (compound + isolation), stacked, floor at 0:\n" +
-          "  • Compound at 0 RIR → −3 (excessive fatigue cost)\n" +
-          "  • Compound at 3+ RIR → −7 (under-stimulus)\n" +
-          "  • Isolation at 1–2 RIR → −3 (push harder)\n" +
-          "  • Isolation at 3+ RIR → −7 (severely under-stimulus)",
-        poor: "Both off-target by the maximum.",
-        medium: "One off-target.",
-        good: "Both on Nippard-target.",
-      },
-      {
-        num: 7,
-        name: "Implied Frequency",
-        max: 10,
-        measures: "Whether each major joint action's prime mover would be hit 2–3×/wk given a typical 3–4 day split.",
-        calc: "Score the 2–3×/wk hit-ability of major movers given the count of relevant picks in the pool. Deduct if a major mover has only 1 exercise.",
-        poor: "Chest has 1 exercise (1×/wk) but glutes have 5 exercises clustered.",
-        medium: "Most majors at 2x/wk-ready.",
-        good: "Every major mover has 2–3 exercises supporting 2–3×/wk frequency.",
-      },
-      {
-        num: 8,
-        name: "Implied Volume Distribution",
-        max: 10,
-        measures: "Pool balance — at least 2 exercises per major mover, no clustering. Targets 10–20 working sets per mover per week (MEV to MAV).",
-        calc: "Score whether the pool covers each major mover with sufficient picks. Penalize clustering.",
-        poor: "Chest dominates the pool (10 chest exercises, 2 hamstring picks).",
-        medium: "Most majors covered with 1–2 exercises each.",
-        good: "Balanced 2–3 exercises per major mover.",
-      },
-    ],
+    num: 2,
+    name: "Deep Stretch",
+    max: 20,
+    measures: "How much of your training puts the muscle in its lengthened position under load — the variable with the strongest research backing for hypertrophy.",
+    calc: "Tier-weighted average per exercise. very-high (1.5×), high (1×), moderate (0.5×). Pool of all very-high = 20; all high = 14; all moderate = 7.",
+    poor: "Routine dominated by moderate-stretch picks (hip thrusts, contracted-bias laterals, hammer curls).",
+    medium: "Mostly high-tier stretch picks.",
+    good: "Heavy weighting toward very-high picks: Bayesian curl, lat prayer, RDL, sissy squat, deficit push-up, etc.",
   },
   {
-    bucket: "Joint-Action Coverage",
-    total: 25,
-    criteria: [
-      {
-        num: 9,
-        name: "Joint-Action Coverage",
-        max: 25,
-        measures: "Anatomically weighted coverage of the 27-action kinesiology taxonomy.",
-        calc:
-          "12 MAJOR movers up to 20 pts (~1.67 each): Knee Ext, Knee Flex, Hip Ext, Sh HAdd, Sh Add, Sh Ext, Sh Abd, Sh HAbd, Elb Flex, Elb Ext, Sp Flex, Ank PF.\n" +
-          "15 MINOR / stabilizers up to 5 pts (~0.33 each): Scap Retr/Prot/Elev/Dep/UR/DR, Sp Ext, Sp Rot/LF, Hip Flex/Abd/Add/ER/IR, Sh ER.\n" +
-          "Each action: +full / +half (only 1 exercise) / +0 (missing). Positive-only — you earn points for what's covered.",
-        poor: "Missing 2+ major movers.",
-        medium: "All majors hit but at least 2 minors missing.",
-        good: "All 27 actions covered, weighted properly.",
-      },
-    ],
+    num: 3,
+    name: "SFR (Stimulus-to-Fatigue Ratio)",
+    max: 20,
+    measures: "How much muscle disruption you generate per unit of recovery cost.",
+    calc: "Reward picks with high SFR tags. Penalize over-reliance on conventional / sumo deadlifts and other systemically taxing lifts for hypertrophy. Machine + cable heavy pool = 18–20; free-weight compound heavy = 8–12.",
+    poor: "Routine built around high-fatigue compounds (deadlifts, weighted dips, conventional barbell bench for everything).",
+    medium: "Balanced mix of compounds and isolations.",
+    good: "Machine + cable heavy; deadlifts used sparingly; isolation picks favor smooth force curves.",
+  },
+  {
+    num: 4,
+    name: "Compound vs Isolation Ratio",
+    max: 20,
+    measures: "Whether your pool's compound/isolation balance lands in a healthy hypertrophy band. Real per-session counts of 3–5 exercises produce ratios like 25% (1/4), 33% (1/3), 40% (2/5). 50%+ patterns (3C+3I, 2C+2I) start being too CNS-heavy for hypertrophy.",
+    calc:
+      "Full credit (20) for any compound share in the 20–45% band. Outside that:\n" +
+      "  • 45–55% compound: −2 to −5 (slightly CNS-heavy)\n" +
+      "  • 15–20% or 55–65%: −5 to −8\n" +
+      "  • 10–15% or 65–75%: −10 to −13\n" +
+      "  • <10% (almost none) or >75%: −13 to −18",
+    poor: "80% compound (way over-stresses CNS) or routine with no compounds at all.",
+    medium: "Just over the 45% line — 50% compound (3C+3I or 2C+2I).",
+    good: "Anywhere in the 20–45% compound band: 25%, 33%, 40% all earn full credit.",
+  },
+  {
+    num: 5,
+    name: "Joint-Action Coverage",
+    max: 20,
+    measures: "Anatomically weighted coverage of the 27-action kinesiology taxonomy.",
+    calc:
+      "12 MAJOR movers up to 16 pts (~1.33 each): Knee Ext, Knee Flex, Hip Ext, Sh HAdd, Sh Add, Sh Ext, Sh Abd, Sh HAbd, Elb Flex, Elb Ext, Sp Flex, Ank PF.\n" +
+      "15 MINOR / stabilizers up to 4 pts (~0.27 each): Scap Retr/Prot/Elev/Dep/UR/DR, Sp Ext, Sp Rot/LF, Hip Flex/Abd/Add/ER/IR, Sh ER.\n" +
+      "Each action: +full / +half (only 1 exercise) / +0 (missing). Positive-only — you earn points for what's covered.",
+    poor: "Missing 2+ major movers.",
+    medium: "All majors hit but at least 2 minors missing.",
+    good: "All 27 actions covered, weighted properly.",
   },
 ];
 
+const POST_SPLIT_CORE: CriterionDoc[] = POOL_CRITERIA.map((c) => ({
+  ...c,
+  max: c.num === 5 ? 14 : 14, // all 5 compressed to 14 each
+}));
+
 const POST_SPLIT_ADDONS: CriterionDoc[] = [
   {
-    num: 10,
+    num: 6,
     name: "Session Caps",
-    max: 6,
+    max: 10,
     measures: "Avoiding junk volume — too many sets of one joint action in a single session.",
-    calc: "Deduct for any joint-action prime mover that exceeds 6–8 sets in a single training session.",
+    calc:
+      "Each joint-action prime mover should get ≤6–8 working sets per session.\n" +
+      "  • All sessions ≤6 sets per mover: full 10\n" +
+      "  • Occasional 7–8 set sessions: −1 to −3\n" +
+      "  • Multiple sessions at 9–12: −4 to −7\n" +
+      "  • Any session at 13+ sets for one mover: −7 to −10",
     poor: "12 sets of chest in one session.",
     medium: "Occasional 9-set days.",
     good: "Every session at 6–8 sets per mover or less.",
   },
   {
-    num: 11,
+    num: 7,
     name: "Rep Range Distribution",
-    max: 6,
+    max: 10,
     measures: "Whether ~80% of working-set volume falls in 8–15 reps with the remaining 20% in heavy (5–8) or metabolic (20–30) ranges.",
-    calc: "Score the actual rep-range mix.",
+    calc:
+      "  • 80%+ in 8–15 with sensible heavy/metabolic mix: full 10\n" +
+      "  • 60–80% in target range: −2 to −4\n" +
+      "  • All sets at 5 reps (powerlifting bias) or all at 25+ (no heavy stimulus): −5 to −9",
     poor: "All sets at 5 reps (powerlifting bias) or all at 25 reps (lacking heavy stimulus).",
     medium: "60–80% in target range.",
     good: "80%+ in 8–15 with a sensible heavy/metabolic mix.",
   },
   {
-    num: 12,
+    num: 8,
     name: "Total Weekly Volume vs MEV–MAV",
-    max: 6,
+    max: 10,
     measures: "Whether each major mover lands in the 10–20 working-set MEV–MAV window per week.",
-    calc: "Score actual per-mover weekly sets.",
+    calc:
+      "  • All majors at 10–20 sets/wk: full 10\n" +
+      "  • Some near target, others off: −2 to −5\n" +
+      "  • Major movers <10 sets/wk (under-MEV) or >25 sets/wk (over-MRV): −6 to −10",
     poor: "Chest at 6 sets/wk (under MEV) or 30 sets/wk (over MRV → injury risk).",
     medium: "Some movers near target, others off.",
     good: "Every major mover at 10–20 sets/wk.",
   },
 ];
-
-function bucketIcon(name: string) {
-  if (name === "Selection") return <Target className="w-4 h-4 text-lime" />;
-  if (name === "Intensity & Volume") return <Flame className="w-4 h-4 text-orange-400" />;
-  if (name === "Joint-Action Coverage") return <Layers className="w-4 h-4 text-purple-300" />;
-  return <Trophy className="w-4 h-4 text-yellow-400" />;
-}
 
 function CriterionCard({ c }: { c: CriterionDoc }) {
   return (
@@ -257,7 +203,7 @@ export function RatingRubric() {
             Hypertrophy Matrix Rubric
           </DialogTitle>
           <DialogDescription>
-            How the score is calculated. The result panel shows tone-matched feedback (poor / medium / good) per criterion — the full descriptions and tier examples live here.
+            How the score is calculated. The result panel shows tone-matched feedback (poor / medium / good) per criterion — full descriptions and tier examples live here.
           </DialogDescription>
         </DialogHeader>
 
@@ -269,24 +215,12 @@ export function RatingRubric() {
 
           <TabsContent value="pool" className="flex-1 min-h-0 mt-3">
             <ScrollArea className="h-[60vh] pr-4">
-              <div className="space-y-5">
-                {POOL_RUBRIC.map((bucket) => (
-                  <div key={bucket.bucket} className="space-y-3">
-                    <div className="flex items-baseline justify-between">
-                      <h4 className="font-heading font-bold text-sm uppercase tracking-wider text-foreground flex items-center gap-2">
-                        {bucketIcon(bucket.bucket)}
-                        {bucket.bucket}
-                      </h4>
-                      <span className="text-xs font-mono tabular-nums text-muted-foreground">
-                        {bucket.total} pts
-                      </span>
-                    </div>
-                    <div className="space-y-2">
-                      {bucket.criteria.map((c) => (
-                        <CriterionCard key={c.num} c={c} />
-                      ))}
-                    </div>
-                  </div>
+              <div className="space-y-3">
+                <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-sm text-xs text-muted-foreground leading-relaxed">
+                  <strong className="text-foreground">Pool-stage rating</strong> grades the weekly exercise selection. 5 criteria × 20 pts each = 100. Sets, reps, weight, and split-day allocations don't exist yet at this stage; those score in the post-split rating.
+                </div>
+                {POOL_CRITERIA.map((c) => (
+                  <CriterionCard key={c.num} c={c} />
                 ))}
               </div>
             </ScrollArea>
@@ -295,20 +229,32 @@ export function RatingRubric() {
           <TabsContent value="post-split" className="flex-1 min-h-0 mt-3">
             <ScrollArea className="h-[60vh] pr-4">
               <div className="space-y-5">
-                <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-sm text-xs text-muted-foreground leading-relaxed">
-                  <strong className="text-foreground">Post-split rating</strong> kicks in after you've assigned exercises to days and set sets/reps/weight. The 9 pool-stage criteria compress proportionally to <strong className="text-foreground">82 pts</strong> (Selection 33, Intensity & Volume 29, Coverage 20), and 3 new criteria worth <strong className="text-foreground">18 pts</strong> total are added below — graded against the full daily picture.
+                <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-sm text-xs text-muted-foreground leading-relaxed">
+                  <strong className="text-foreground">Post-split rating</strong> kicks in after you've assigned exercises to days and set sets/reps/weight. The 5 pool-stage criteria compress proportionally to <strong className="text-foreground">70 pts</strong> (14 each) and 3 new criteria worth <strong className="text-foreground">30 pts</strong> total are added below — graded against the full daily picture.
                 </div>
-                <div className="flex items-baseline justify-between">
-                  <h4 className="font-heading font-bold text-sm uppercase tracking-wider text-foreground flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-yellow-400" />
-                    Post-Split Add-Ons
+
+                <div>
+                  <h4 className="font-heading font-bold text-sm uppercase tracking-wider text-foreground flex items-center gap-2 mb-2">
+                    <Layers className="w-4 h-4 text-lime" />
+                    Compressed Pool Criteria · 70
                   </h4>
-                  <span className="text-xs font-mono tabular-nums text-muted-foreground">18 pts</span>
+                  <div className="space-y-2">
+                    {POST_SPLIT_CORE.map((c) => (
+                      <CriterionCard key={c.num} c={c} />
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {POST_SPLIT_ADDONS.map((c) => (
-                    <CriterionCard key={c.num} c={c} />
-                  ))}
+
+                <div>
+                  <h4 className="font-heading font-bold text-sm uppercase tracking-wider text-foreground flex items-center gap-2 mb-2">
+                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    Post-Split Add-Ons · 30
+                  </h4>
+                  <div className="space-y-2">
+                    {POST_SPLIT_ADDONS.map((c) => (
+                      <CriterionCard key={c.num} c={c} />
+                    ))}
+                  </div>
                 </div>
               </div>
             </ScrollArea>

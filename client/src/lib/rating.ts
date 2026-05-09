@@ -15,25 +15,16 @@ export interface SelectionBreakdown {
   stability: BreakdownEntry;
   stretch: BreakdownEntry;
   sfr: BreakdownEntry;
-  angles: BreakdownEntry;
-  /** Compound-vs-isolation ratio (40/60 target). Pool-stage selection criterion. */
+  /** Compound-vs-isolation ratio (20-45% band). */
   compoundIsolationRatio: BreakdownEntry;
 }
 
-export interface IntensityVolumeBreakdown {
-  /** RIR mismatch from user self-report. Max 15. */
-  rirCalibration: BreakdownEntry;
-  /** Implied weekly frequency given a default 3-4 day split. Max 10. */
-  impliedFrequency: BreakdownEntry;
-  /** Pool balance — exercises per major mover. Max 10. */
-  impliedVolume: BreakdownEntry;
-}
-
 export interface CoverageBreakdown {
-  /** 0-25, anatomically weighted across 12 major + 15 minor joint actions. */
+  /** Pool stage: 0-20. Post-split: 0-14. Anatomically weighted. */
   score: number;
   hit: string[];
   missing: string[];
+  notes: string;
 }
 
 export interface OptimizedExercise {
@@ -51,14 +42,11 @@ export interface OptimizedExercise {
 }
 
 export interface RatingResult {
-  /** Final score, 0-100. Sum of all 9 criteria. */
+  /** Final score, 0-100. Sum of all 5 criteria. */
   score: number;
   verdict: string;
   selectionBreakdown: SelectionBreakdown;
-  intensityVolumeBreakdown: IntensityVolumeBreakdown;
   coverageBreakdown: CoverageBreakdown;
-  /** Educational text on the user's RIR alignment with the targets. */
-  intensityNote: string;
   /** Empty string if no pulldowns; otherwise the scap-depression cueing reminder. */
   scapularDepressionNote: string;
   optimizedRoutine: OptimizedExercise[];
@@ -67,12 +55,6 @@ export interface RatingResult {
 // ============================================================
 // POST-SPLIT RATING TYPES
 // ============================================================
-
-export interface PostSplitIntensityVolumeBreakdown {
-  rirCalibration: BreakdownEntry;
-  frequency: BreakdownEntry;
-  volumeDistribution: BreakdownEntry;
-}
 
 export interface PostSplitAddOns {
   sessionCaps: BreakdownEntry;
@@ -100,10 +82,8 @@ export interface PostSplitRatingResult {
   score: number;
   verdict: string;
   selectionBreakdown: SelectionBreakdown;
-  intensityVolumeBreakdown: PostSplitIntensityVolumeBreakdown;
   coverageBreakdown: CoverageBreakdown;
   postSplitAddOns: PostSplitAddOns;
-  intensityNote: string;
   scapularDepressionNote: string;
   optimizedDailyPlan: OptimizedDay[];
 }

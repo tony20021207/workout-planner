@@ -20,13 +20,12 @@ import {
   Replace,
   AlertTriangle,
   X,
-  Flame,
   Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useWorkout, type RIRChoice } from "@/contexts/WorkoutContext";
+import { useWorkout } from "@/contexts/WorkoutContext";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
@@ -111,85 +110,8 @@ function BreakdownRow({ label, score, max, notes }: { label: string; score: numb
   );
 }
 
-function EffortPanel({
-  compoundRIR,
-  isolationRIR,
-  onChange,
-}: {
-  compoundRIR: RIRChoice;
-  isolationRIR: RIRChoice;
-  onChange: (next: { compoundRIR: RIRChoice; isolationRIR: RIRChoice }) => void;
-}) {
-  const choices: { value: RIRChoice; label: string }[] = [
-    { value: "0", label: "0 RIR" },
-    { value: "1-2", label: "1–2 RIR" },
-    { value: "3+", label: "3+ RIR" },
-  ];
-
-  const renderRow = (
-    title: string,
-    target: RIRChoice,
-    current: RIRChoice,
-    setCurrent: (v: RIRChoice) => void,
-  ) => (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-xs font-semibold text-foreground">{title}</span>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          target: {target} RIR
-        </span>
-      </div>
-      <div className="grid grid-cols-3 gap-1">
-        {choices.map((c) => (
-          <button
-            key={c.value}
-            onClick={() => setCurrent(c.value)}
-            className={`text-xs px-2 py-1.5 rounded border transition-colors ${
-              current === c.value
-                ? c.value === target
-                  ? "bg-lime/20 border-lime text-lime"
-                  : "bg-yellow-500/10 border-yellow-500/50 text-yellow-300"
-                : "bg-secondary border-border text-muted-foreground hover:border-lime/40"
-            }`}
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="p-4 bg-secondary/30 border border-border rounded-sm space-y-4">
-      <div className="flex items-start gap-2">
-        <Flame className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-        <div>
-          <h4 className="text-sm font-semibold text-foreground">Effort calibration</h4>
-          <p className="text-[11px] text-muted-foreground italic mt-0.5 leading-snug">
-            On the last rep of a working set — assuming you keep the same form, ROM, and tempo —
-            how many more reps could you do? <strong>Nippard's million-dollar test:</strong> if
-            someone offered you $1M to do one more clean rep, could you?
-          </p>
-        </div>
-      </div>
-      {renderRow(
-        "Compound / multi-joint sets",
-        "1-2",
-        compoundRIR,
-        (v) => onChange({ compoundRIR: v, isolationRIR }),
-      )}
-      {renderRow(
-        "Isolation / single-joint sets",
-        "0",
-        isolationRIR,
-        (v) => onChange({ compoundRIR, isolationRIR: v }),
-      )}
-    </div>
-  );
-}
-
 export default function WorkoutRater() {
-  const { routine, replaceRoutine, addRoutineItem, effort, setEffort } = useWorkout();
+  const { routine, replaceRoutine, addRoutineItem } = useWorkout();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<SourceMode>("routine");
   const [pastedText, setPastedText] = useState("");
@@ -220,12 +142,11 @@ export default function WorkoutRater() {
       rateMutation.mutate({
         source: "routine",
         text: serializeRoutineToText(routine),
-        effort,
       });
     } else if (mode === "text") {
-      rateMutation.mutate({ source: "text", text: pastedText, effort });
+      rateMutation.mutate({ source: "text", text: pastedText });
     } else if (imageDataUrl) {
-      rateMutation.mutate({ source: "image", imageDataUrl, effort });
+      rateMutation.mutate({ source: "image", imageDataUrl });
     }
   };
 
@@ -326,7 +247,7 @@ export default function WorkoutRater() {
           <div>
             <h3 className="font-heading text-xl font-bold text-foreground">Hypertrophy Matrix Rating</h3>
             <p className="text-xs text-muted-foreground">
-              Microcycle scored out of 100. Powered by AI.
+              Microcycle scored out of 100. 5 criteria × 20 pts each.
             </p>
           </div>
         </div>
@@ -423,15 +344,6 @@ Tue - Pull
         </Tabs>
       )}
 
-      {/* Effort calibration — always visible before result */}
-      {!result && (
-        <EffortPanel
-          compoundRIR={effort.compoundRIR}
-          isolationRIR={effort.isolationRIR}
-          onChange={setEffort}
-        />
-      )}
-
       {/* Submit button */}
       {!result && (
         <Button
@@ -468,34 +380,16 @@ Tue - Pull
               <p className="text-sm text-foreground leading-relaxed flex-1">{result.verdict}</p>
             </div>
 
-            {/* Breakdowns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="p-4 bg-card rounded-sm border border-border space-y-3">
-                <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">Selection · 40</h4>
-                <BreakdownRow label="Stability" score={result.selectionBreakdown.stability.score} max={8} notes={result.selectionBreakdown.stability.notes} />
-                <BreakdownRow label="Deep Stretch" score={result.selectionBreakdown.stretch.score} max={8} notes={result.selectionBreakdown.stretch.notes} />
-                <BreakdownRow label="SFR" score={result.selectionBreakdown.sfr.score} max={8} notes={result.selectionBreakdown.sfr.notes} />
-                <BreakdownRow label="Angle Bias" score={result.selectionBreakdown.angles.score} max={8} notes={result.selectionBreakdown.angles.notes} />
-                <BreakdownRow label="Compound / Isolation Ratio" score={result.selectionBreakdown.compoundIsolationRatio.score} max={8} notes={result.selectionBreakdown.compoundIsolationRatio.notes} />
-              </div>
-              <div className="p-4 bg-card rounded-sm border border-border space-y-3">
-                <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">Intensity & Volume · 35</h4>
-                <BreakdownRow label="RIR Calibration" score={result.intensityVolumeBreakdown.rirCalibration.score} max={15} notes={result.intensityVolumeBreakdown.rirCalibration.notes} />
-                <BreakdownRow label="Implied Frequency" score={result.intensityVolumeBreakdown.impliedFrequency.score} max={10} notes={result.intensityVolumeBreakdown.impliedFrequency.notes} />
-                <BreakdownRow label="Implied Volume" score={result.intensityVolumeBreakdown.impliedVolume.score} max={10} notes={result.intensityVolumeBreakdown.impliedVolume.notes} />
-              </div>
+            {/* Breakdowns — 4 selection criteria, all at 20 pts each */}
+            <div className="p-4 bg-card rounded-sm border border-border space-y-4">
+              <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">
+                Selection · 80
+              </h4>
+              <BreakdownRow label="Stability" score={result.selectionBreakdown.stability.score} max={20} notes={result.selectionBreakdown.stability.notes} />
+              <BreakdownRow label="Deep Stretch" score={result.selectionBreakdown.stretch.score} max={20} notes={result.selectionBreakdown.stretch.notes} />
+              <BreakdownRow label="SFR" score={result.selectionBreakdown.sfr.score} max={20} notes={result.selectionBreakdown.sfr.notes} />
+              <BreakdownRow label="Compound / Isolation Ratio" score={result.selectionBreakdown.compoundIsolationRatio.score} max={20} notes={result.selectionBreakdown.compoundIsolationRatio.notes} />
             </div>
-
-            {/* Intensity calibration note */}
-            {result.intensityNote && (
-              <div className="p-3 bg-orange-500/5 border border-orange-500/30 rounded-sm flex items-start gap-2 text-xs">
-                <Flame className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-foreground mb-0.5">RIR / Effort calibration</p>
-                  <p className="text-muted-foreground leading-relaxed">{result.intensityNote}</p>
-                </div>
-              </div>
-            )}
 
             {/* Scap-depression cueing note (only if pulldown movements present) */}
             {result.scapularDepressionNote && (
@@ -508,22 +402,16 @@ Tue - Pull
               </div>
             )}
 
-            {/* Coverage — joint-action level */}
+            {/* Coverage — joint-action level (20 pts) */}
             <div className="p-4 bg-card rounded-sm border border-border">
-              <div className="flex items-baseline justify-between mb-1">
-                <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">Joint-Action Coverage · 25</h4>
-                <span className="text-sm font-mono tabular-nums text-muted-foreground">
-                  {result.coverageBreakdown.score.toFixed(1)} / 25
-                </span>
-              </div>
-              <div className="h-1.5 bg-secondary rounded-full overflow-hidden mb-3">
-                <div
-                  className="h-full bg-lime transition-all"
-                  style={{ width: `${Math.max(0, Math.min(1, result.coverageBreakdown.score / 25)) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                Anatomically weighted across the 27-action kinesiology taxonomy. 12 major movers up to 20 pts, 15 minor stabilizers up to 5 pts. You earn points for what's covered.
+              <BreakdownRow
+                label="Joint-Action Coverage"
+                score={result.coverageBreakdown.score}
+                max={20}
+                notes={result.coverageBreakdown.notes}
+              />
+              <p className="text-xs text-muted-foreground mt-3 mb-3">
+                Anatomically weighted across the 27-action kinesiology taxonomy. 12 major movers up to 16 pts, 15 minor stabilizers up to 4 pts. Positive-only — you earn points for what's covered.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div>
