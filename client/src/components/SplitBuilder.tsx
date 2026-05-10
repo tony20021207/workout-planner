@@ -289,17 +289,18 @@ export default function SplitBuilder() {
       return;
     }
     const preset = SPLIT_PRESETS[id];
-    const allocation = allocatePoolToSplit(routine, preset);
+    const allocation = allocatePoolToSplit(routine, preset, { experience });
     setSplit({ splitId: id, dayAssignments: allocation.byDay });
     // setSplit flips the plan-modified flag; auto-allocate is the canonical
     // "fresh" state, so flip back. This runs after setSplit's state update.
     markAutoPlanFresh();
-    toast.success(`Allocated ${routine.length} exercises across ${preset.daysPerWeek} days`);
+    const totalSlots = Object.values(allocation.byDay).reduce((n, ids) => n + ids.length, 0);
+    toast.success(`Allocated ${totalSlots} session slots across ${preset.daysPerWeek} days (${routine.length} unique exercises, repeats included)`);
   };
 
   const handleReallocate = () => {
     if (!activePreset) return;
-    const allocation = allocatePoolToSplit(routine, activePreset);
+    const allocation = allocatePoolToSplit(routine, activePreset, { experience });
     setSplit({ splitId: activePreset.id, dayAssignments: allocation.byDay });
     markAutoPlanFresh();
     toast.success("Re-allocated using the auto-allocator");
