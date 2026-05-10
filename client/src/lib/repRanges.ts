@@ -98,7 +98,7 @@ const RANGE_TIER: Record<RepRangeId, number> = { low: 0, medium: 1, high: 2 };
 const TIER_TO_RANGE: RepRangeId[] = ["low", "medium", "high"];
 
 /**
- * Smart Fill rep range with experience adjustment:
+ * OptiFill rep range with experience adjustment:
  *   - Beginner: shifts the matrix bucket UP one tier (more reps for skill
  *     mastery) — Low→Med, Med→High, High→High.
  *   - Foot in the Door: matrix as-is.
@@ -123,7 +123,7 @@ export function smartFillRangeForExperience(
   return baseRange;
 }
 
-// Pattern matches for the Smart Fill matrix.
+// Pattern matches for the OptiFill matrix.
 const DEADLIFT_PATTERN =
   /\bdeadlift\b/i; // matches "Conventional Deadlift", "Sumo Deadlift", "Trap Bar Deadlift", "Deadlift"
 const NOT_CNS_DEADLIFT_PATTERN =
@@ -134,7 +134,7 @@ const ENDURANCE_MUSCLE_PATTERN =
   /soleus|abdomin|oblique|posterior delt|rear delt|forearm|rotator cuff|infraspinatus|teres minor|supraspinatus/i;
 
 /**
- * Smart Fill matrix — pick a rep range for a routine item given its
+ * OptiFill matrix — pick a rep range for a routine item given its
  * resolved tags and name. The matrix collapses to three rules in our
  * three-bucket world:
  *

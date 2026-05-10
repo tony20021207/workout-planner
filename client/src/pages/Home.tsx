@@ -30,7 +30,7 @@ export default function Home() {
             <div className="p-1.5 bg-lime rounded-sm">
               <Dumbbell className="w-4 h-4 text-lime-foreground" />
             </div>
-            <span className="font-heading font-bold text-sm text-foreground">KineticBuilder</span>
+            <span className="font-heading font-bold text-sm text-foreground">OptiMass</span>
           </div>
           <div className="flex items-center gap-3">
             {isAuthenticated && (
@@ -87,8 +87,9 @@ export default function Home() {
               </span>
             </div>
             <h1 className="font-heading text-4xl md:text-6xl font-bold text-foreground leading-tight mb-4">
-              Build a Hypertrophy Week<br />
-              <span className="text-lime">By Joint Function</span>
+              <span className="text-lime">OptiSplit</span>, <span className="text-lime">OptiFill</span>
+              <br />
+              make <span className="text-lime">OptiMass</span>.
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
               Pick the exercises you want this week. Rate the selection out of 100 against the
@@ -111,7 +112,7 @@ export default function Home() {
                       Build one now
                     </h3>
                     <p className="text-sm opacity-80 mt-0.5 leading-snug">
-                      Step through the kinesiology builder, get Smart Split + Smart Fill tuned for your level.
+                      Step through the kinesiology builder, get OptiSplit + OptiFill tuned for your level.
                     </p>
                   </div>
                 </div>
@@ -192,7 +193,7 @@ export default function Home() {
       <footer className="border-t border-border py-8">
         <div className="container text-center text-sm text-muted-foreground">
           <p>
-            Kinesiology Workout Builder — Programming based on biomechanical joint functions
+            OptiMass — Kinesiology-based hypertrophy programming
           </p>
         </div>
       </footer>

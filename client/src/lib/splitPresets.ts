@@ -1,8 +1,8 @@
 /**
- * Weekly split presets + Smart Split engine.
+ * Weekly split presets + OptiSplit engine.
  *
  * Five preset splits (FB3 / UL4 / PPL6 / Bro5 / UL+PPL5) plus a custom
- * mode. Smart Split distributes a microcycle's exercise pool across the
+ * mode. OptiSplit distributes a microcycle's exercise pool across the
  * chosen split's days following these rules:
  *
  *   1. Muscle-group day-intent matching. Each day declares the major
@@ -669,7 +669,7 @@ export function allocatePoolToSplit(
 
 /**
  * Compute how many sets per session a given routine item should get when
- * Smart Fill runs. Sets come from the experience profile's per-muscle
+ * OptiFill runs. Sets come from the experience profile's per-muscle
  * weekly volume target (10 / 15 / 20 sets/wk for beginner / foot-in-door
  * / experienced), scaled by anatomical mass weight, then divided across
  * all session-instances of all exercises hitting that muscle. We round

@@ -216,7 +216,7 @@ function DayCard({
         </div>
       </div>
 
-      {/* Day-wide rep-range — Pre-Set or Smart Fill via one dropdown */}
+      {/* Day-wide rep-range — Pre-Set or OptiFill via one dropdown */}
       {items.length > 0 && (
         <div className="px-3 py-2 border-b border-border bg-secondary/15 flex items-center gap-2 flex-wrap">
           <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
@@ -240,7 +240,7 @@ function DayCard({
               ))}
               <SelectItem value="smart-fill" className="text-xs text-purple-300">
                 <Wand2 className="w-3 h-3 inline mr-1" />
-                Smart Fill — pick per exercise
+                OptiFill — pick per exercise
               </SelectItem>
             </SelectContent>
           </Select>
@@ -355,7 +355,7 @@ export default function SplitBuilder() {
     const allocation = allocatePoolToSplit(routine, activePreset, { experience, favoriteIds: favorites });
     setSplit({ splitId: activePreset.id, dayAssignments: allocation.byDay });
     markAutoPlanFresh();
-    toast.success("Re-allocated using Smart Split");
+    toast.success("Re-allocated using OptiSplit");
   };
 
   const handleMoveExercise = (exerciseId: string, fromDayId: string, toDayId: string) => {
@@ -365,7 +365,7 @@ export default function SplitBuilder() {
     setSplit({ ...split, dayAssignments: next });
   };
 
-  // Smart Fill resolves an experience-aware rep range AND a sets count
+  // OptiFill resolves an experience-aware rep range AND a sets count
   // computed from per-muscle weekly volume targets divided by total
   // session-instances of all exercises hitting that muscle. Beginner
   // shifts the range UP (more reps, skill bias); experienced shifts DOWN
@@ -383,7 +383,7 @@ export default function SplitBuilder() {
     toast.success(`Pre-Set: all exercises to ${REP_RANGE_BY_ID[rangeId].shortLabel} reps`);
   };
 
-  // Smart Fill: each exercise gets its own range from the matrix
+  // OptiFill: each exercise gets its own range from the matrix
   // (experience-shifted) AND a sets count from per-muscle volume math.
   const handleAutoBucket = () => {
     for (const item of routine) {
@@ -394,7 +394,7 @@ export default function SplitBuilder() {
     }
     markAutoPlanFresh();
     toast.success(
-      `Smart Fill applied — sets distributed to hit ${expProfile.weeklyVolumePerMajor} weekly per major mover (${expProfile.name})`,
+      `OptiFill applied — sets distributed to hit ${expProfile.weeklyVolumePerMajor} weekly per major mover (${expProfile.name})`,
     );
   };
 
@@ -417,7 +417,7 @@ export default function SplitBuilder() {
     }
   };
 
-  // Smart Fill day-scoped: each exercise on this day gets its own range
+  // OptiFill day-scoped: each exercise on this day gets its own range
   // via the experience-shifted matrix; sets count from per-muscle math.
   const handleAutoBucketDay = (dayId: string) => {
     const ids = split.dayAssignments[dayId] ?? [];
@@ -433,7 +433,7 @@ export default function SplitBuilder() {
     }
     markAutoPlanFresh();
     if (n > 0) {
-      toast.success(`Smart Fill applied to ${n} exercise${n === 1 ? "" : "s"} on this day`);
+      toast.success(`OptiFill applied to ${n} exercise${n === 1 ? "" : "s"} on this day`);
     }
   };
 
@@ -470,11 +470,11 @@ export default function SplitBuilder() {
           </div>
           <div>
             <h3 className="font-heading font-bold text-foreground text-base">
-              Smart Split
+              OptiSplit
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
               Distribute your {routine.length} exercise{routine.length !== 1 ? "s" : ""} across the week.
-              Smart Split handles joint-function synergy on each day, leg vs lower-body routing, and weekly-volume targeting.
+              OptiSplit handles joint-function synergy on each day, leg vs lower-body routing, and weekly-volume targeting.
             </p>
           </div>
         </div>
@@ -484,7 +484,7 @@ export default function SplitBuilder() {
           className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold shrink-0"
         >
           <Sparkles className="w-4 h-4 mr-1.5" />
-          Start Smart Split
+          Start OptiSplit
         </Button>
       </div>
     );
@@ -517,7 +517,7 @@ export default function SplitBuilder() {
                 variant="outline"
                 size="sm"
                 onClick={handleReallocate}
-                title="Re-run Smart Split (re-distributes exercises across days)"
+                title="Re-run OptiSplit (re-distributes exercises across days)"
               >
                 <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
                 Re-allocate
@@ -588,7 +588,7 @@ export default function SplitBuilder() {
                     Rep-Range for the Mesocycle
                   </h5>
                   <p className="text-[11px] text-muted-foreground leading-snug">
-                    Pre-Set stamps every exercise to one rep range. Smart Fill picks a different range per exercise (calves &amp; abs high reps, deadlifts low reps, everything else medium).
+                    Pre-Set stamps every exercise to one rep range. OptiFill picks a different range per exercise (calves &amp; abs high reps, deadlifts low reps, everything else medium).
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -613,7 +613,7 @@ export default function SplitBuilder() {
                       ))}
                       <SelectItem value="smart-fill" className="text-xs text-purple-300">
                         <Wand2 className="w-3 h-3 inline mr-1" />
-                        Smart Fill — pick per exercise
+                        OptiFill — pick per exercise
                       </SelectItem>
                     </SelectContent>
                   </Select>

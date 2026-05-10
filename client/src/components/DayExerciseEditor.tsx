@@ -5,7 +5,7 @@
  * Granular per-set sets/reps/weight editing lives on the calendar (where
  * users plan a specific training day). Here the user picks one of:
  *   - Low / Medium / High pre-set (one of the three rep ranges)
- *   - Smart Fill (matrix-driven pick based on the exercise's tags)
+ *   - OptiFill (matrix-driven pick based on the exercise's tags)
  *   - Customize (free-form reps + sets inputs)
  *
  * Move-to-day popover stays available.
@@ -293,7 +293,7 @@ export default function DayExerciseEditor({
                     ))}
                     <SelectItem value="smart-fill" className="text-xs text-purple-300">
                       <Sparkles className="w-3 h-3 inline mr-1" />
-                      Smart Fill — pick by exercise
+                      OptiFill — pick by exercise
                     </SelectItem>
                     <SelectItem value="custom" className="text-xs">
                       Customize — free-form reps & sets
