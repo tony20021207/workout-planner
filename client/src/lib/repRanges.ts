@@ -93,6 +93,36 @@ export function inferRangeFromReps(reps: number): RepRangeId {
   return "high";
 }
 
+/** Tier index for shifting rep ranges by experience. 0=low, 1=medium, 2=high. */
+const RANGE_TIER: Record<RepRangeId, number> = { low: 0, medium: 1, high: 2 };
+const TIER_TO_RANGE: RepRangeId[] = ["low", "medium", "high"];
+
+/**
+ * Smart Fill rep range with experience adjustment:
+ *   - Beginner: shifts the matrix bucket UP one tier (more reps for skill
+ *     mastery) — Low→Med, Med→High, High→High.
+ *   - Foot in the Door: matrix as-is.
+ *   - Experienced: shifts DOWN one tier (heavier loads, fewer reps) —
+ *     Low→Low, Med→Low, High→Med.
+ *
+ * The matrix's anatomy logic (calves/abs always start higher than
+ * deadlift) is preserved; experience just nudges the result up or down.
+ */
+export function smartFillRangeForExperience(
+  item: SmartFillInput,
+  experienceId: "beginner" | "foot-in-door" | "experienced" | null | undefined,
+): RepRangeId {
+  const baseRange = smartFillRange(item);
+  const baseTier = RANGE_TIER[baseRange];
+  if (experienceId === "beginner") {
+    return TIER_TO_RANGE[Math.min(2, baseTier + 1)];
+  }
+  if (experienceId === "experienced") {
+    return TIER_TO_RANGE[Math.max(0, baseTier - 1)];
+  }
+  return baseRange;
+}
+
 // Pattern matches for the Smart Fill matrix.
 const DEADLIFT_PATTERN =
   /\bdeadlift\b/i; // matches "Conventional Deadlift", "Sumo Deadlift", "Trap Bar Deadlift", "Deadlift"
@@ -208,10 +238,11 @@ export function applyDayWidePreset<T extends RepRangePatchInput>(
  * resized slots — so a user who already filled in 135 lbs doesn't lose
  * it when toggling rep ranges.
  *
- * `overrideSetsCount` lets callers provide a split-aware sets target
- * (Smart Fill at the mesocycle / day level uses the SplitPreset's
- * setsPerExerciseSmartFill so FB3 picks 3 sets and UL4 picks 4 sets
- * regardless of the rep-range bucket's natural default).
+ * `overrideSetsCount` lets callers provide a custom sets target. Smart
+ * Fill at the mesocycle / day / per-exercise scope passes the result of
+ * computeSmartFillSets (per-muscle weekly volume target divided by
+ * total session-instances). Pre-Set callers omit the override and use
+ * the rep-range bucket's natural defaultSets.
  */
 export interface RoutineItemLike {
   sets: { reps: number; weight: number }[];

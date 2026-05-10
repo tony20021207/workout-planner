@@ -39,10 +39,11 @@ import {
   REP_RANGE_BY_ID,
   applyRangeToRoutineSets,
   inferRangeFromReps,
-  smartFillRange,
+  smartFillRangeForExperience,
   type RepRangeId,
 } from "@/lib/repRanges";
-import { SPLIT_PRESETS } from "@/lib/splitPresets";
+import { computeSmartFillSets } from "@/lib/splitPresets";
+import { getExperience } from "@/lib/experience";
 
 function NumberInput({
   value,
@@ -107,7 +108,7 @@ export default function DayExerciseEditor({
   allDays,
   onMoveExercise,
 }: DayExerciseEditorProps) {
-  const { updateRoutineItem, split, favorites, toggleFavorite, isFavorite } = useWorkout();
+  const { updateRoutineItem, routine, split, experience, favorites, toggleFavorite, isFavorite } = useWorkout();
   const [expanded, setExpanded] = useState(false);
   const [customMode, setCustomMode] = useState(false);
   const starred = isFavorite(item.id);
@@ -120,13 +121,7 @@ export default function DayExerciseEditor({
     toggleFavorite(item.id);
   };
 
-  // Sets count for Smart Fill comes from the active split's preset.
-  // Pre-Set keeps the rep-range's natural defaultSets so you don't get
-  // 4 metabolic sets just because the split's setsPerExerciseSmartFill is 4.
-  const splitSetsCount =
-    split.splitId && split.splitId !== "custom"
-      ? SPLIT_PRESETS[split.splitId].setsPerExerciseSmartFill
-      : undefined;
+  const expProfile = getExperience(experience) ?? getExperience("foot-in-door")!;
 
   // Which rep-range bucket the current sets fall into.
   const currentRange: RepRangeId =
@@ -139,8 +134,9 @@ export default function DayExerciseEditor({
 
   const applySmartFill = () => {
     setCustomMode(false);
-    const rangeId = smartFillRange(item);
-    updateRoutineItem(item.id, { sets: applyRangeToRoutineSets(item, rangeId, splitSetsCount) });
+    const rangeId = smartFillRangeForExperience(item, experience);
+    const setsCount = computeSmartFillSets(item, routine, split.dayAssignments, expProfile);
+    updateRoutineItem(item.id, { sets: applyRangeToRoutineSets(item, rangeId, setsCount) });
   };
 
   const handleSelectChange = (value: string) => {
@@ -157,7 +153,7 @@ export default function DayExerciseEditor({
   // When sets[] is empty (the default after add), seed with split-aware
   // defaults so the user starts from a reasonable place.
   const customReps = item.sets[0]?.reps ?? 12;
-  const customSetsCount = item.sets.length || splitSetsCount || 3;
+  const customSetsCount = item.sets.length || expProfile.setsPerExercise.compound;
   const customWeight = item.sets[0]?.weight ?? 0;
 
   const updateCustomReps = (reps: number) => {

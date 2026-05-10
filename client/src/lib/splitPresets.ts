@@ -133,23 +133,6 @@ export interface SplitPreset {
   description: string;
   daysPerWeek: number;
   days: SplitDay[];
-  /**
-   * Default number of working sets per exercise that Smart Fill will use
-   * when the user clicks Smart Fill at any scope (mesocycle / day / per-
-   * exercise) on a routine that's been allocated to this split.
-   *
-   * Logic: fewer training days per week → more exercises per day to cover
-   * the body → keep sets per exercise lower so total session volume stays
-   * manageable. More training days per week → fewer exercises per day →
-   * push sets per exercise higher to drive weekly volume.
-   *
-   *   FB3 (3 days)        → 3 sets
-   *   Bro split (5 days)  → 3 sets (still mostly one body part / day)
-   *   UL+PPL (5 days)     → 3 sets (hybrid pacing)
-   *   UL4 (4 days)        → 4 sets
-   *   PPL6 (6 days)       → 4 sets
-   */
-  setsPerExerciseSmartFill: number;
 }
 
 export type SplitId = "fb3" | "ul4" | "ppl6" | "bro5" | "ulppl5" | "custom";
@@ -166,7 +149,6 @@ export const FULL_BODY_3: SplitPreset = {
   description:
     "Mon / Wed / Fri (or every-other-day). Each day touches chest, back, shoulders, and legs + core; biceps and triceps rotate across days for balanced arm volume.",
   daysPerWeek: 3,
-  setsPerExerciseSmartFill: 3,
   days: [
     {
       id: "fb-a",
@@ -196,7 +178,6 @@ export const UPPER_LOWER_4: SplitPreset = {
   description:
     "Mon Upper / Tue Lower / Thu Upper / Fri Lower. Splits the body into upper and lower hemispheres twice per week — strong frequency for both with reasonable recovery.",
   daysPerWeek: 4,
-  setsPerExerciseSmartFill: 4,
   days: [
     {
       id: "ul-u1",
@@ -232,7 +213,6 @@ export const PUSH_PULL_LEGS_6: SplitPreset = {
   description:
     "Mon Push / Tue Pull / Wed Legs / Thu Push / Fri Pull / Sat Legs / Sun rest. Twice-per-week frequency on each pattern with one rest day.",
   daysPerWeek: 6,
-  setsPerExerciseSmartFill: 4,
   days: [
     { id: "ppl-p1", name: "Push 1", tags: ["chest", "shoulders", "triceps"], scheduleHint: "Mon" },
     { id: "ppl-pl1", name: "Pull 1", tags: ["back", "biceps"], scheduleHint: "Tue" },
@@ -255,7 +235,6 @@ export const BRO_SPLIT_5: SplitPreset = {
   description:
     "Mon Chest / Tue Back / Wed Shoulders / Thu Arms / Fri Legs. Sat-Sun rest. One body part per day, hit once a week with higher session volume.",
   daysPerWeek: 5,
-  setsPerExerciseSmartFill: 3,
   days: [
     { id: "bro-chest", name: "Chest", tags: ["chest"], scheduleHint: "Mon" },
     { id: "bro-back", name: "Back", tags: ["back"], scheduleHint: "Tue" },
@@ -278,7 +257,6 @@ export const UL_PPL_5: SplitPreset = {
   description:
     "Mon Upper / Tue Lower / Wed rest / Thu Push / Fri Pull / Sat Legs / Sun rest. Hybrid pacing — full-body coverage early in the week, push/pull/legs split later.",
   daysPerWeek: 5,
-  setsPerExerciseSmartFill: 3,
   days: [
     {
       id: "ulppl-u1",
@@ -620,6 +598,70 @@ export function allocatePoolToSplit(
     weeklyVolume: ctx.volumeByMuscle,
     weeklyVolumeTargets: targets,
   };
+}
+
+// ============================================================
+// SMART FILL — SETS PER INSTANCE FROM PER-MUSCLE WEEKLY TARGETS
+// ============================================================
+
+/**
+ * Compute how many sets per session a given routine item should get when
+ * Smart Fill runs. Sets come from the experience profile's per-muscle
+ * weekly volume target (10 / 15 / 20 sets/wk for beginner / foot-in-door
+ * / experienced), scaled by anatomical mass weight, then divided across
+ * all session-instances of all exercises hitting that muscle. We round
+ * UP per the user's preference: when the math is uneven, give MORE sets
+ * rather than under-target.
+ *
+ * For exercises that train multiple muscle groups, take the MAX
+ * "need" across all tags — that guarantees every muscle hits its
+ * target even if the others over-shoot slightly.
+ *
+ * Returns 1 as a floor (always produce at least one working set).
+ */
+export function computeSmartFillSets(
+  item: RoutineItem,
+  routine: RoutineItem[],
+  dayAssignments: Record<string, string[]>,
+  experience: ExperienceProfile,
+): number {
+  const itemTags = getMuscleTagsForItem(item);
+  if (itemTags.length === 0) return 1;
+
+  // Cache instance counts per RoutineItem id.
+  const instanceCount: Record<string, number> = {};
+  for (const ids of Object.values(dayAssignments)) {
+    for (const id of ids) {
+      instanceCount[id] = (instanceCount[id] ?? 0) + 1;
+    }
+  }
+  const itemInstances = instanceCount[item.id] ?? 0;
+  if (itemInstances === 0) {
+    // Not yet assigned to any day — fall back to a single instance.
+    return 1;
+  }
+
+  let maxNeed = 1;
+  for (const tag of itemTags) {
+    // Mass-weighted target for this muscle.
+    const target = Math.round(experience.weeklyVolumePerMajor * MUSCLE_MASS_WEIGHT[tag]);
+
+    // Total session-instances across ALL exercises that hit this muscle.
+    let totalInstancesForTag = 0;
+    for (const r of routine) {
+      const rInstances = instanceCount[r.id] ?? 0;
+      if (rInstances === 0) continue;
+      const rTags = getMuscleTagsForItem(r);
+      if (rTags.includes(tag)) totalInstancesForTag += rInstances;
+    }
+    if (totalInstancesForTag === 0) continue;
+
+    // Each instance shoulders an equal share, rounded UP.
+    const need = Math.ceil(target / totalInstancesForTag);
+    if (need > maxNeed) maxNeed = need;
+  }
+
+  return maxNeed;
 }
 
 // ============================================================

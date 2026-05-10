@@ -40,12 +40,14 @@ import {
   ALL_PRESETS,
   SPLIT_PRESETS,
   allocatePoolToSplit,
+  computeSmartFillSets,
   isCompoundRatioOnTarget,
   COMPOUND_PCT_GOOD_MIN,
   COMPOUND_PCT_GOOD_MAX,
   type SplitId,
   type SplitPreset,
 } from "@/lib/splitPresets";
+import { getExperience } from "@/lib/experience";
 import { trpc } from "@/lib/trpc";
 import { LIFESTYLE_PROFILES } from "@/lib/lifestyle";
 import {
@@ -53,7 +55,7 @@ import {
   REP_RANGE_BY_ID,
   applyRangeToRoutineSets,
   inferRangeFromReps,
-  smartFillRange,
+  smartFillRangeForExperience,
   type RepRangeId,
 } from "@/lib/repRanges";
 import { toast } from "sonner";
@@ -363,11 +365,12 @@ export default function SplitBuilder() {
     setSplit({ ...split, dayAssignments: next });
   };
 
-  // Sets count for Smart Fill comes from the active split's preset (FB3=3,
-  // UL4=4, PPL6=4, Bro5=3, UL+PPL=3). Falls back to range default when no
-  // split is picked yet (shouldn't happen for the SplitBuilder buttons
-  // since they only render after activePreset is set).
-  const splitSetsCount = activePreset?.setsPerExerciseSmartFill;
+  // Smart Fill resolves an experience-aware rep range AND a sets count
+  // computed from per-muscle weekly volume targets divided by total
+  // session-instances of all exercises hitting that muscle. Beginner
+  // shifts the range UP (more reps, skill bias); experienced shifts DOWN
+  // (fewer reps, push-to-failure bias); foot-in-door uses matrix as-is.
+  const expProfile = getExperience(experience) ?? getExperience("foot-in-door")!;
 
   // Pre-Set: stamp every exercise in the routine with the same range.
   // Uses the rep-range's natural defaultSets (4/3/2 for Low/Med/High).
@@ -381,18 +384,17 @@ export default function SplitBuilder() {
   };
 
   // Smart Fill: each exercise gets its own range from the matrix
-  // (CNS deadlift -> Low; endurance class -> High; default -> Medium).
-  // Sets count comes from the split's setsPerExerciseSmartFill so FB3
-  // gets 3 sets/exercise and UL4 / PPL6 get 4 sets/exercise.
+  // (experience-shifted) AND a sets count from per-muscle volume math.
   const handleAutoBucket = () => {
     for (const item of routine) {
-      const rangeId = smartFillRange(item);
-      const newSets = applyRangeToRoutineSets(item, rangeId, splitSetsCount);
+      const rangeId = smartFillRangeForExperience(item, experience);
+      const setsCount = computeSmartFillSets(item, routine, split.dayAssignments, expProfile);
+      const newSets = applyRangeToRoutineSets(item, rangeId, setsCount);
       updateRoutineItem(item.id, { sets: newSets });
     }
     markAutoPlanFresh();
     toast.success(
-      `Smart Fill applied — ${splitSetsCount ?? "default"} sets/exercise (per ${activePreset?.shortLabel ?? "split"})`,
+      `Smart Fill applied — sets distributed to hit ${expProfile.weeklyVolumePerMajor} weekly per major mover (${expProfile.name})`,
     );
   };
 
@@ -416,15 +418,16 @@ export default function SplitBuilder() {
   };
 
   // Smart Fill day-scoped: each exercise on this day gets its own range
-  // via the matrix; sets count from active split.
+  // via the experience-shifted matrix; sets count from per-muscle math.
   const handleAutoBucketDay = (dayId: string) => {
     const ids = split.dayAssignments[dayId] ?? [];
     let n = 0;
     for (const id of ids) {
       const item = itemsById.get(id);
       if (!item) continue;
-      const rangeId = smartFillRange(item);
-      const newSets = applyRangeToRoutineSets(item, rangeId, splitSetsCount);
+      const rangeId = smartFillRangeForExperience(item, experience);
+      const setsCount = computeSmartFillSets(item, routine, split.dayAssignments, expProfile);
+      const newSets = applyRangeToRoutineSets(item, rangeId, setsCount);
       updateRoutineItem(id, { sets: newSets });
       n += 1;
     }
