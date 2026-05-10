@@ -133,9 +133,26 @@ export interface SplitPreset {
   description: string;
   daysPerWeek: number;
   days: SplitDay[];
+  /**
+   * Default number of working sets per exercise that Smart Fill will use
+   * when the user clicks Smart Fill at any scope (mesocycle / day / per-
+   * exercise) on a routine that's been allocated to this split.
+   *
+   * Logic: fewer training days per week → more exercises per day to cover
+   * the body → keep sets per exercise lower so total session volume stays
+   * manageable. More training days per week → fewer exercises per day →
+   * push sets per exercise higher to drive weekly volume.
+   *
+   *   FB3 (3 days)        → 3 sets
+   *   Bro split (5 days)  → 3 sets (still mostly one body part / day)
+   *   UL+PPL (5 days)     → 3 sets (hybrid pacing)
+   *   UL4 (4 days)        → 4 sets
+   *   PPL6 (6 days)       → 4 sets
+   */
+  setsPerExerciseSmartFill: number;
 }
 
-export type SplitId = "fb3" | "ul4" | "ppl6" | "custom";
+export type SplitId = "fb3" | "ul4" | "ppl6" | "bro5" | "ulppl5" | "custom";
 
 /**
  * Full-body 3 days a week. Each day touches every major upper + lower
@@ -149,6 +166,7 @@ export const FULL_BODY_3: SplitPreset = {
   description:
     "Mon / Wed / Fri (or every-other-day). Each day touches chest, back, shoulders, and legs + core; biceps and triceps rotate across days for balanced arm volume.",
   daysPerWeek: 3,
+  setsPerExerciseSmartFill: 3,
   days: [
     {
       id: "fb-a",
@@ -178,6 +196,7 @@ export const UPPER_LOWER_4: SplitPreset = {
   description:
     "Mon Upper / Tue Lower / Thu Upper / Fri Lower. Splits the body into upper and lower hemispheres twice per week — strong frequency for both with reasonable recovery.",
   daysPerWeek: 4,
+  setsPerExerciseSmartFill: 4,
   days: [
     {
       id: "ul-u1",
@@ -213,6 +232,7 @@ export const PUSH_PULL_LEGS_6: SplitPreset = {
   description:
     "Mon Push / Tue Pull / Wed Legs / Thu Push / Fri Pull / Sat Legs / Sun rest. Twice-per-week frequency on each pattern with one rest day.",
   daysPerWeek: 6,
+  setsPerExerciseSmartFill: 4,
   days: [
     { id: "ppl-p1", name: "Push 1", tags: ["chest", "shoulders", "triceps"], scheduleHint: "Mon" },
     { id: "ppl-pl1", name: "Pull 1", tags: ["back", "biceps"], scheduleHint: "Tue" },
@@ -223,13 +243,91 @@ export const PUSH_PULL_LEGS_6: SplitPreset = {
   ],
 };
 
+/**
+ * Classic 5-day body-part 'bro' split. One muscle group focus per day,
+ * once per week each. Higher per-session exercise count compensates for
+ * the once/week frequency.
+ */
+export const BRO_SPLIT_5: SplitPreset = {
+  id: "bro5",
+  name: "Bro Split — 5 days / week",
+  shortLabel: "Bro5",
+  description:
+    "Mon Chest / Tue Back / Wed Shoulders / Thu Arms / Fri Legs. Sat-Sun rest. One body part per day, hit once a week with higher session volume.",
+  daysPerWeek: 5,
+  setsPerExerciseSmartFill: 3,
+  days: [
+    { id: "bro-chest", name: "Chest", tags: ["chest"], scheduleHint: "Mon" },
+    { id: "bro-back", name: "Back", tags: ["back"], scheduleHint: "Tue" },
+    { id: "bro-shoulders", name: "Shoulders", tags: ["shoulders", "core"], scheduleHint: "Wed" },
+    { id: "bro-arms", name: "Arms", tags: ["biceps", "triceps", "core"], scheduleHint: "Thu" },
+    { id: "bro-legs", name: "Legs", tags: ["quads", "hams", "glutes", "calves", "core"], scheduleHint: "Fri" },
+  ],
+};
+
+/**
+ * Hybrid Upper-Lower / Push-Pull-Legs split. 5 training days with 2 rest
+ * days woven in (one mid-week, one weekend). Each major pattern hit
+ * 1.5–2x per week — more recovery margin than PPL6 with more frequency
+ * than the bro split.
+ */
+export const UL_PPL_5: SplitPreset = {
+  id: "ulppl5",
+  name: "Upper-Lower + PPL — 5 days / week",
+  shortLabel: "UL+PPL",
+  description:
+    "Mon Upper / Tue Lower / Wed rest / Thu Push / Fri Pull / Sat Legs / Sun rest. Hybrid pacing — full-body coverage early in the week, push/pull/legs split later.",
+  daysPerWeek: 5,
+  setsPerExerciseSmartFill: 3,
+  days: [
+    {
+      id: "ulppl-u1",
+      name: "Upper",
+      tags: ["chest", "back", "shoulders", "biceps", "triceps"],
+      scheduleHint: "Mon",
+    },
+    {
+      id: "ulppl-l1",
+      name: "Lower",
+      tags: ["quads", "hams", "glutes", "calves", "core"],
+      scheduleHint: "Tue",
+    },
+    {
+      id: "ulppl-push",
+      name: "Push",
+      tags: ["chest", "shoulders", "triceps"],
+      scheduleHint: "Thu",
+    },
+    {
+      id: "ulppl-pull",
+      name: "Pull",
+      tags: ["back", "biceps"],
+      scheduleHint: "Fri",
+    },
+    {
+      id: "ulppl-legs",
+      name: "Legs",
+      tags: ["quads", "hams", "glutes", "calves", "core"],
+      scheduleHint: "Sat",
+    },
+  ],
+};
+
 export const SPLIT_PRESETS: Record<Exclude<SplitId, "custom">, SplitPreset> = {
   fb3: FULL_BODY_3,
   ul4: UPPER_LOWER_4,
   ppl6: PUSH_PULL_LEGS_6,
+  bro5: BRO_SPLIT_5,
+  ulppl5: UL_PPL_5,
 };
 
-export const ALL_PRESETS: SplitPreset[] = [FULL_BODY_3, UPPER_LOWER_4, PUSH_PULL_LEGS_6];
+export const ALL_PRESETS: SplitPreset[] = [
+  FULL_BODY_3,
+  UPPER_LOWER_4,
+  PUSH_PULL_LEGS_6,
+  BRO_SPLIT_5,
+  UL_PPL_5,
+];
 
 // ============================================================
 // AUTO-ALLOCATOR

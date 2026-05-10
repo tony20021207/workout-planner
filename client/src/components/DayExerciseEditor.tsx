@@ -40,6 +40,7 @@ import {
   smartFillRange,
   type RepRangeId,
 } from "@/lib/repRanges";
+import { SPLIT_PRESETS } from "@/lib/splitPresets";
 
 function NumberInput({
   value,
@@ -104,9 +105,17 @@ export default function DayExerciseEditor({
   allDays,
   onMoveExercise,
 }: DayExerciseEditorProps) {
-  const { updateRoutineItem } = useWorkout();
+  const { updateRoutineItem, split } = useWorkout();
   const [expanded, setExpanded] = useState(false);
   const [customMode, setCustomMode] = useState(false);
+
+  // Sets count for Smart Fill comes from the active split's preset.
+  // Pre-Set keeps the rep-range's natural defaultSets so you don't get
+  // 4 metabolic sets just because the split's setsPerExerciseSmartFill is 4.
+  const splitSetsCount =
+    split.splitId && split.splitId !== "custom"
+      ? SPLIT_PRESETS[split.splitId].setsPerExerciseSmartFill
+      : undefined;
 
   // Which rep-range bucket the current sets fall into.
   const currentRange: RepRangeId =
@@ -120,7 +129,7 @@ export default function DayExerciseEditor({
   const applySmartFill = () => {
     setCustomMode(false);
     const rangeId = smartFillRange(item);
-    updateRoutineItem(item.id, { sets: applyRangeToRoutineSets(item, rangeId) });
+    updateRoutineItem(item.id, { sets: applyRangeToRoutineSets(item, rangeId, splitSetsCount) });
   };
 
   const handleSelectChange = (value: string) => {
@@ -134,8 +143,10 @@ export default function DayExerciseEditor({
   };
 
   // Customize handlers: edit a single reps value + sets count uniformly.
+  // When sets[] is empty (the default after add), seed with split-aware
+  // defaults so the user starts from a reasonable place.
   const customReps = item.sets[0]?.reps ?? 12;
-  const customSetsCount = item.sets.length || 3;
+  const customSetsCount = item.sets.length || splitSetsCount || 3;
   const customWeight = item.sets[0]?.weight ?? 0;
 
   const updateCustomReps = (reps: number) => {
@@ -156,7 +167,10 @@ export default function DayExerciseEditor({
   };
 
   // Compact summary for the collapsed row.
-  const summary = `${item.sets.length} × ${customReps} reps`;
+  const summary =
+    item.sets.length === 0
+      ? "Reps not set yet"
+      : `${item.sets.length} × ${customReps} reps`;
   const currentLabel = REP_RANGE_BY_ID[currentRange].shortLabel;
 
   return (
@@ -173,10 +187,12 @@ export default function DayExerciseEditor({
             {item.targetedMuscles.join(", ")}
           </div>
           <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
-            {summary}{" "}
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
-              · {currentLabel}
-            </span>
+            {summary}
+            {item.sets.length > 0 && (
+              <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
+                {" "}· {currentLabel}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex flex-col gap-0.5 shrink-0">

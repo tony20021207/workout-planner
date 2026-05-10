@@ -207,6 +207,11 @@ export function applyDayWidePreset<T extends RepRangePatchInput>(
  * The new sets[] preserves the FIRST existing set's weight across all
  * resized slots — so a user who already filled in 135 lbs doesn't lose
  * it when toggling rep ranges.
+ *
+ * `overrideSetsCount` lets callers provide a split-aware sets target
+ * (Smart Fill at the mesocycle / day level uses the SplitPreset's
+ * setsPerExerciseSmartFill so FB3 picks 3 sets and UL4 picks 4 sets
+ * regardless of the rep-range bucket's natural default).
  */
 export interface RoutineItemLike {
   sets: { reps: number; weight: number }[];
@@ -215,10 +220,12 @@ export interface RoutineItemLike {
 export function applyRangeToRoutineSets(
   item: RoutineItemLike,
   rangeId: RepRangeId,
+  overrideSetsCount?: number,
 ): { reps: number; weight: number }[] {
   const range = REP_RANGE_BY_ID[rangeId];
   const preservedWeight = item.sets[0]?.weight ?? 0;
-  return Array.from({ length: range.defaultSets }, () => ({
+  const setsCount = overrideSetsCount ?? range.defaultSets;
+  return Array.from({ length: setsCount }, () => ({
     reps: range.defaultReps,
     weight: preservedWeight,
   }));

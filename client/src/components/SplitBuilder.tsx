@@ -362,7 +362,14 @@ export default function SplitBuilder() {
     setSplit({ ...split, dayAssignments: next });
   };
 
+  // Sets count for Smart Fill comes from the active split's preset (FB3=3,
+  // UL4=4, PPL6=4, Bro5=3, UL+PPL=3). Falls back to range default when no
+  // split is picked yet (shouldn't happen for the SplitBuilder buttons
+  // since they only render after activePreset is set).
+  const splitSetsCount = activePreset?.setsPerExerciseSmartFill;
+
   // Pre-Set: stamp every exercise in the routine with the same range.
+  // Uses the rep-range's natural defaultSets (4/3/2 for Low/Med/High).
   const handleApplyRangeAll = (rangeId: RepRangeId) => {
     for (const item of routine) {
       const newSets = applyRangeToRoutineSets(item, rangeId);
@@ -374,14 +381,18 @@ export default function SplitBuilder() {
 
   // Smart Fill: each exercise gets its own range from the matrix
   // (CNS deadlift -> Low; endurance class -> High; default -> Medium).
+  // Sets count comes from the split's setsPerExerciseSmartFill so FB3
+  // gets 3 sets/exercise and UL4 / PPL6 get 4 sets/exercise.
   const handleAutoBucket = () => {
     for (const item of routine) {
       const rangeId = smartFillRange(item);
-      const newSets = applyRangeToRoutineSets(item, rangeId);
+      const newSets = applyRangeToRoutineSets(item, rangeId, splitSetsCount);
       updateRoutineItem(item.id, { sets: newSets });
     }
     markAutoPlanFresh();
-    toast.success("Smart Fill applied across mesocycle");
+    toast.success(
+      `Smart Fill applied — ${splitSetsCount ?? "default"} sets/exercise (per ${activePreset?.shortLabel ?? "split"})`,
+    );
   };
 
   // Pre-Set day-scoped: stamp every exercise on this day with one range.
@@ -404,7 +415,7 @@ export default function SplitBuilder() {
   };
 
   // Smart Fill day-scoped: each exercise on this day gets its own range
-  // via the matrix.
+  // via the matrix; sets count from active split.
   const handleAutoBucketDay = (dayId: string) => {
     const ids = split.dayAssignments[dayId] ?? [];
     let n = 0;
@@ -412,7 +423,7 @@ export default function SplitBuilder() {
       const item = itemsById.get(id);
       if (!item) continue;
       const rangeId = smartFillRange(item);
-      const newSets = applyRangeToRoutineSets(item, rangeId);
+      const newSets = applyRangeToRoutineSets(item, rangeId, splitSetsCount);
       updateRoutineItem(id, { sets: newSets });
       n += 1;
     }

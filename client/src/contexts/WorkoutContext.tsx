@@ -10,7 +10,6 @@ import {
 } from "@/lib/data";
 import { type LifestyleId } from "@/lib/lifestyle";
 import { type ExperienceId } from "@/lib/experience";
-import { REP_RANGE_BY_ID, smartFillRange } from "@/lib/repRanges";
 
 export interface SetDetail {
   reps: number;
@@ -387,28 +386,19 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
 
   const addToRoutine = useCallback((params: AddExerciseParams) => {
     const parameters = getProgrammingParameters(params.category);
-    // Use the Smart Fill matrix to seed initial sets / reps so a Calf
-    // Raise lands at 2x20 (High) and a Conventional Deadlift at 4x6
-    // (Low) right out of the gate, instead of the generic compound /
-    // isolation defaults. Caller can still override via numSets +
-    // defaultReps when those are explicitly provided.
-    const matrixRange = REP_RANGE_BY_ID[
-      smartFillRange({
-        exercise: params.exercise,
-        targetedMuscles: params.targetedMuscles,
-        category: params.category,
-        stretchLevel: params.stretchLevel,
-        stability: params.stability,
-      })
-    ];
-    const numSets = params.numSets ?? matrixRange.defaultSets;
-    const defaultReps = params.defaultReps ?? matrixRange.defaultReps;
-    const defaultWeight = params.defaultWeight ?? 0;
-
-    const sets: SetDetail[] = Array.from({ length: numSets }, () => ({
-      reps: defaultReps,
-      weight: defaultWeight,
-    }));
+    // Sets / reps are intentionally empty until the user applies a
+    // Pre-Set or Smart Fill. Initializing with placeholder sets is
+    // misleading because rep range isn't a rated criterion on its own —
+    // the rating engine cares about volume (sets x reps) downstream of
+    // user choice. If callers explicitly pass numSets + defaultReps
+    // (e.g. when adopting an LLM-optimized routine), honor those.
+    const sets: SetDetail[] =
+      params.numSets !== undefined && params.defaultReps !== undefined
+        ? Array.from({ length: params.numSets }, () => ({
+            reps: params.defaultReps as number,
+            weight: params.defaultWeight ?? 0,
+          }))
+        : [];
 
     const newItem: RoutineItem = {
       id: generateId(),
