@@ -156,6 +156,8 @@ function DayCard({
   items,
   allDays,
   onMoveExercise,
+  onApplyDayRange,
+  onAutoBucketDay,
   stats,
   warmups,
 }: {
@@ -163,6 +165,8 @@ function DayCard({
   items: RoutineItem[];
   allDays: { id: string; name: string }[];
   onMoveExercise: (exerciseId: string, fromDayId: string, toDayId: string) => void;
+  onApplyDayRange: (dayId: string, rangeId: RepRangeId) => void;
+  onAutoBucketDay: (dayId: string) => void;
   stats: { compounds: number; isolations: number; total: number; compoundPct: number };
   warmups?: SessionWarmup[];
 }) {
@@ -203,6 +207,33 @@ function DayCard({
           )}
         </div>
       </div>
+
+      {/* Day-wide rep-range presets — applies to every exercise on this day */}
+      {items.length > 0 && (
+        <div className="px-3 py-2 border-b border-border bg-secondary/15 flex items-center gap-1.5 flex-wrap">
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold mr-1">
+            Day reps:
+          </span>
+          {REP_RANGES.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => onApplyDayRange(day.id, r.id)}
+              className="text-[10px] py-0.5 px-1.5 rounded bg-background text-muted-foreground hover:bg-secondary border border-border tabular-nums"
+              title={`Apply ${r.label} (${r.shortLabel}) to every exercise on this day`}
+            >
+              {r.shortLabel}
+            </button>
+          ))}
+          <button
+            onClick={() => onAutoBucketDay(day.id)}
+            className="text-[10px] py-0.5 px-1.5 rounded text-lime border border-lime/40 hover:bg-lime/10"
+            title="Auto-bucket each exercise on this day by name heuristic"
+          >
+            <Wand2 className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />
+            Auto
+          </button>
+        </div>
+      )}
 
       {/* Session warmups (lifestyle-aware, 3 per day) */}
       {warmups && warmups.length > 0 && <WarmupBlock warmups={warmups} />}
@@ -365,6 +396,42 @@ export default function SplitBuilder() {
     if (!item) return;
     const newSets = applyRangeToRoutineSets(item, rangeId);
     updateRoutineItem(id, { sets: newSets });
+  };
+
+  // Apply preset to every exercise assigned to one day. Note: because
+  // a RoutineItem is shared across days when an exercise repeats, this
+  // also retunes the exercise on its other day(s).
+  const handleApplyDayRange = (dayId: string, rangeId: RepRangeId) => {
+    const ids = split.dayAssignments[dayId] ?? [];
+    let n = 0;
+    for (const id of ids) {
+      const item = itemsById.get(id);
+      if (!item) continue;
+      const newSets = applyRangeToRoutineSets(item, rangeId);
+      updateRoutineItem(id, { sets: newSets });
+      n += 1;
+    }
+    markAutoPlanFresh();
+    if (n > 0) {
+      toast.success(`Day set to ${REP_RANGE_BY_ID[rangeId].shortLabel} reps (${n} exercise${n === 1 ? "" : "s"})`);
+    }
+  };
+
+  const handleAutoBucketDay = (dayId: string) => {
+    const ids = split.dayAssignments[dayId] ?? [];
+    let n = 0;
+    for (const id of ids) {
+      const item = itemsById.get(id);
+      if (!item) continue;
+      const rangeId = suggestRangeForExercise(item.exercise, item.category);
+      const newSets = applyRangeToRoutineSets(item, rangeId);
+      updateRoutineItem(id, { sets: newSets });
+      n += 1;
+    }
+    markAutoPlanFresh();
+    if (n > 0) {
+      toast.success(`Auto-bucketed ${n} exercise${n === 1 ? "" : "s"} on this day`);
+    }
   };
 
   const handleGenerateWarmups = () => {
@@ -632,6 +699,8 @@ export default function SplitBuilder() {
                     items={items}
                     allDays={activePreset.days}
                     onMoveExercise={handleMoveExercise}
+                    onApplyDayRange={handleApplyDayRange}
+                    onAutoBucketDay={handleAutoBucketDay}
                     stats={dayStats[day.id] ?? { compounds: 0, isolations: 0, total: 0, compoundPct: 0 }}
                     warmups={sessionWarmups?.[day.id]}
                   />
