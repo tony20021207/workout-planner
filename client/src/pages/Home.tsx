@@ -87,9 +87,8 @@ export default function Home() {
               </span>
             </div>
             <h1 className="font-heading text-4xl md:text-6xl font-bold text-foreground leading-tight mb-4">
-              <span className="text-lime">OptiSplit</span>, <span className="text-lime">OptiFill</span>
-              <br />
-              make <span className="text-lime">OptiMass</span>.
+              <span className="text-lime">Opti-split</span>, <span className="text-lime">Opti-fill</span>,{" "}
+              <span className="text-lime">OptiMass</span>.
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
               Pick the exercises you want this week. Rate the selection out of 100 against the
@@ -112,7 +111,7 @@ export default function Home() {
                       Build one now
                     </h3>
                     <p className="text-sm opacity-80 mt-0.5 leading-snug">
-                      Step through the kinesiology builder, get OptiSplit + OptiFill tuned for your level.
+                      Step through the kinesiology builder, get Opti-split + Opti-fill tuned for your level.
                     </p>
                   </div>
                 </div>

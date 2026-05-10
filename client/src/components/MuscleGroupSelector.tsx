@@ -100,7 +100,7 @@ export default function MuscleGroupSelector() {
             Pick a muscle group
           </h2>
           <p className="text-xs text-muted-foreground italic mt-0.5">
-            Sets, reps, and RIR are picked by OptiFill after you rate, pick a lifestyle, and pick an experience level. This step is just exercise selection.
+            Sets, reps, and RIR are picked by Opti-fill after you rate, pick a lifestyle, and pick an experience level. This step is just exercise selection.
           </p>
         </div>
       </div>

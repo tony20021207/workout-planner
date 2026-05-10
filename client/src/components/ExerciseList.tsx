@@ -49,7 +49,7 @@ export function ExerciseCard({ exercise, category, jointFunctionName }: { exerci
       selectedAngle && exercise.angles && exercise.angles.length > 1 ? `[${selectedAngle}]` : "",
     ].filter(Boolean).join(" ");
 
-    // Resolve tags after equipment + angle overrides so OptiFill can
+    // Resolve tags after equipment + angle overrides so Opti-fill can
     // bucket the rep range correctly (cambered bench -> very-high stretch
     // -> Low; toes-spread squat -> +Hip Abd jointActions; etc.).
     const tags = resolveEffectiveTags(exercise, selectedEquipment, selectedAngle);

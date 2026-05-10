@@ -1,8 +1,8 @@
 /**
- * Weekly split presets + OptiSplit engine.
+ * Weekly split presets + Opti-split engine.
  *
  * Five preset splits (FB3 / UL4 / PPL6 / Bro5 / UL+PPL5) plus a custom
- * mode. OptiSplit distributes a microcycle's exercise pool across the
+ * mode. Opti-split distributes a microcycle's exercise pool across the
  * chosen split's days following these rules:
  *
  *   1. Muscle-group day-intent matching. Each day declares the major
@@ -669,7 +669,7 @@ export function allocatePoolToSplit(
 
 /**
  * Compute how many sets per session a given routine item should get when
- * OptiFill runs. Sets come from the experience profile's per-muscle
+ * Opti-fill runs. Sets come from the experience profile's per-muscle
  * weekly volume target (10 / 15 / 20 sets/wk for beginner / foot-in-door
  * / experienced), scaled by anatomical mass weight, then divided across
  * all session-instances of all exercises hitting that muscle. We round
@@ -682,7 +682,7 @@ export function allocatePoolToSplit(
  *
  * Returns 1 as a floor (always produce at least one working set).
  */
-export function computeSmartFillSets(
+export function computeMatrixSets(
   item: RoutineItem,
   routine: RoutineItem[],
   dayAssignments: Record<string, string[]>,

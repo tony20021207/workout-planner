@@ -309,7 +309,7 @@ export default function CalendarPage() {
     setEditingEntry({ ...editingEntry, exercises: updated });
   };
 
-  // OptiFill: each exercise gets its own range via heuristic.
+  // Opti-fill: each exercise gets its own range via heuristic.
   const autoBucket = () => {
     if (!editingEntry) return;
     const updated = editingEntry.exercises.map((ex) => {
@@ -322,7 +322,7 @@ export default function CalendarPage() {
       return applyRangeToExercise(ex, rangeId) as CalendarExercise;
     });
     setEditingEntry({ ...editingEntry, exercises: updated });
-    toast.success("OptiFill applied across this day");
+    toast.success("Opti-fill applied across this day");
   };
 
   // Copy workout to another day
@@ -909,13 +909,13 @@ export default function CalendarPage() {
               Modify exercises, sets, reps, and weight for this specific day. Changes won't affect other days.
             </p>
 
-            {/* Rep-range pre-sets + OptiFill */}
+            {/* Rep-range pre-sets + Opti-fill */}
             {editingEntry.exercises.length > 0 && (
               <div className="mb-4 p-3 bg-secondary/50 border border-border rounded space-y-3">
                 <div>
                   <h4 className="text-xs font-heading font-semibold text-foreground mb-1">Rep-range pre-sets</h4>
                   <p className="text-[10px] text-muted-foreground leading-snug">
-                    Pre-Set: stamp every exercise to one rep range. OptiFill: pick a different range per exercise.
+                    Pre-Set: stamp every exercise to one rep range. Opti-fill: pick a different range per exercise.
                   </p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
@@ -937,9 +937,9 @@ export default function CalendarPage() {
                     size="sm"
                     onClick={autoBucket}
                     className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
-                    title="OptiFill: pick a rep range per exercise based on exercise type"
+                    title="Opti-fill: pick a rep range per exercise based on exercise type"
                   >
-                    <span className="font-semibold">OptiFill</span>
+                    <span className="font-semibold">Opti-fill</span>
                     <span className="text-[9px] text-muted-foreground font-normal">varies per ex.</span>
                   </Button>
                 </div>

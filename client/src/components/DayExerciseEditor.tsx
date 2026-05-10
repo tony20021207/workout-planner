@@ -5,7 +5,7 @@
  * Granular per-set sets/reps/weight editing lives on the calendar (where
  * users plan a specific training day). Here the user picks one of:
  *   - Low / Medium / High pre-set (one of the three rep ranges)
- *   - OptiFill (matrix-driven pick based on the exercise's tags)
+ *   - Opti-fill (matrix-driven pick based on the exercise's tags)
  *   - Customize (free-form reps + sets inputs)
  *
  * Move-to-day popover stays available.
@@ -42,7 +42,7 @@ import {
   smartFillRangeForExperience,
   type RepRangeId,
 } from "@/lib/repRanges";
-import { computeSmartFillSets } from "@/lib/splitPresets";
+import { computeMatrixSets } from "@/lib/splitPresets";
 import { getExperience } from "@/lib/experience";
 
 function NumberInput({
@@ -135,7 +135,7 @@ export default function DayExerciseEditor({
   const applySmartFill = () => {
     setCustomMode(false);
     const rangeId = smartFillRangeForExperience(item, experience);
-    const setsCount = computeSmartFillSets(item, routine, split.dayAssignments, expProfile);
+    const setsCount = computeMatrixSets(item, routine, split.dayAssignments, expProfile);
     updateRoutineItem(item.id, { sets: applyRangeToRoutineSets(item, rangeId, setsCount) });
   };
 
@@ -293,7 +293,7 @@ export default function DayExerciseEditor({
                     ))}
                     <SelectItem value="smart-fill" className="text-xs text-purple-300">
                       <Sparkles className="w-3 h-3 inline mr-1" />
-                      OptiFill — pick by exercise
+                      Opti-fill — pick by exercise
                     </SelectItem>
                     <SelectItem value="custom" className="text-xs">
                       Customize — free-form reps & sets

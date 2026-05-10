@@ -98,7 +98,7 @@ const RANGE_TIER: Record<RepRangeId, number> = { low: 0, medium: 1, high: 2 };
 const TIER_TO_RANGE: RepRangeId[] = ["low", "medium", "high"];
 
 /**
- * OptiFill rep range with experience adjustment:
+ * Opti-fill rep range with experience adjustment:
  *   - Beginner: shifts the matrix bucket UP one tier (more reps for skill
  *     mastery) — Low→Med, Med→High, High→High.
  *   - Foot in the Door: matrix as-is.
@@ -108,11 +108,11 @@ const TIER_TO_RANGE: RepRangeId[] = ["low", "medium", "high"];
  * The matrix's anatomy logic (calves/abs always start higher than
  * deadlift) is preserved; experience just nudges the result up or down.
  */
-export function smartFillRangeForExperience(
-  item: SmartFillInput,
+export function optiFillRangeForExperience(
+  item: RepRangeMatrixInput,
   experienceId: "beginner" | "foot-in-door" | "experienced" | null | undefined,
 ): RepRangeId {
-  const baseRange = smartFillRange(item);
+  const baseRange = optiFillRange(item);
   const baseTier = RANGE_TIER[baseRange];
   if (experienceId === "beginner") {
     return TIER_TO_RANGE[Math.min(2, baseTier + 1)];
@@ -123,7 +123,7 @@ export function smartFillRangeForExperience(
   return baseRange;
 }
 
-// Pattern matches for the OptiFill matrix.
+// Pattern matches for the Opti-fill matrix.
 const DEADLIFT_PATTERN =
   /\bdeadlift\b/i; // matches "Conventional Deadlift", "Sumo Deadlift", "Trap Bar Deadlift", "Deadlift"
 const NOT_CNS_DEADLIFT_PATTERN =
@@ -134,7 +134,7 @@ const ENDURANCE_MUSCLE_PATTERN =
   /soleus|abdomin|oblique|posterior delt|rear delt|forearm|rotator cuff|infraspinatus|teres minor|supraspinatus/i;
 
 /**
- * OptiFill matrix — pick a rep range for a routine item given its
+ * Opti-fill matrix — pick a rep range for a routine item given its
  * resolved tags and name. The matrix collapses to three rules in our
  * three-bucket world:
  *
@@ -155,7 +155,7 @@ const ENDURANCE_MUSCLE_PATTERN =
  * are accepted on the input shape so future P11+ revisions can extend
  * the matrix without breaking the call sites.
  */
-export interface SmartFillInput {
+export interface RepRangeMatrixInput {
   exercise: string;
   targetedMuscles: string[];
   category?: "systemic" | "regional";
@@ -163,7 +163,7 @@ export interface SmartFillInput {
   stability?: "very-high" | "high" | "medium" | "low";
 }
 
-export function smartFillRange(item: SmartFillInput): RepRangeId {
+export function optiFillRange(item: RepRangeMatrixInput): RepRangeId {
   const name = item.exercise.toLowerCase();
 
   // Rule 1: CNS deadlifts → Low
@@ -183,14 +183,14 @@ export function smartFillRange(item: SmartFillInput): RepRangeId {
 
 /**
  * Calendar-side convenience: name + category only. Loose backward-
- * compatible wrapper around smartFillRange for calendar exercises that
+ * compatible wrapper around optiFillRange for calendar exercises that
  * don't carry resolved tags.
  */
 export function suggestRangeForExercise(
   exerciseName: string,
   category: "systemic" | "regional",
 ): RepRangeId {
-  return smartFillRange({
+  return optiFillRange({
     exercise: exerciseName,
     targetedMuscles: [],
     category,
@@ -240,7 +240,7 @@ export function applyDayWidePreset<T extends RepRangePatchInput>(
  *
  * `overrideSetsCount` lets callers provide a custom sets target. Smart
  * Fill at the mesocycle / day / per-exercise scope passes the result of
- * computeSmartFillSets (per-muscle weekly volume target divided by
+ * computeMatrixSets (per-muscle weekly volume target divided by
  * total session-instances). Pre-Set callers omit the override and use
  * the rep-range bucket's natural defaultSets.
  */

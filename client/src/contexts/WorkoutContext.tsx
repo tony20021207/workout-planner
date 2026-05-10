@@ -51,7 +51,7 @@ export interface RoutineItem {
   angle?: string;
   /**
    * Resolved biomechanical tags (after equipment + angle overrides).
-   * OptiFill reads these to bucket the exercise into Low / Medium /
+   * Opti-fill reads these to bucket the exercise into Low / Medium /
    * High rep ranges. Optional so legacy session-storage rows still load.
    */
   stretchLevel?: StretchLevel;
@@ -449,7 +449,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   const addToRoutine = useCallback((params: AddExerciseParams) => {
     const parameters = getProgrammingParameters(params.category);
     // Sets / reps are intentionally empty until the user applies a
-    // Pre-Set or OptiFill. Initializing with placeholder sets is
+    // Pre-Set or Opti-fill. Initializing with placeholder sets is
     // misleading because rep range isn't a rated criterion on its own —
     // the rating engine cares about volume (sets x reps) downstream of
     // user choice. If callers explicitly pass numSets + defaultReps
