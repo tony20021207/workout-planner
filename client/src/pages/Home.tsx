@@ -192,7 +192,7 @@ export default function Home() {
       <footer className="border-t border-border py-8">
         <div className="container text-center text-sm text-muted-foreground">
           <p>
-            OptiMass — Kinesiology-based hypertrophy programming
+            OptiMass — Go out there and OptiMass.
           </p>
         </div>
       </footer>
