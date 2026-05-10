@@ -102,6 +102,9 @@ export interface SessionWarmup {
 /** Map dayId -> 3 warmups for that day. */
 export type SessionWarmupsByDay = Record<string, SessionWarmup[]>;
 
+/** Maximum favorited exercises a user can mark. */
+export const MAX_FAVORITES = 4;
+
 interface WorkoutContextType {
   routine: RoutineItem[];
   addToRoutine: (params: AddExerciseParams) => void;
@@ -113,6 +116,18 @@ interface WorkoutContextType {
   totalWeeklySets: number;
   effort: EffortCalibration;
   setEffort: (effort: EffortCalibration) => void;
+  /**
+   * Up to MAX_FAVORITES exercise ids the user has marked as favorites.
+   * Favorites become signals for two systems:
+   *   - The auto-allocator anchors them so they always land in the
+   *     split (never get dropped when balancing days).
+   *   - The 2-week variant swap engine (P9.3) detects regional bias
+   *     from the favorite set and counter-programs week 2 to fix
+   *     under-trained sub-regions.
+   */
+  favorites: string[];
+  toggleFavorite: (routineItemId: string) => void;
+  isFavorite: (routineItemId: string) => boolean;
   split: SplitState;
   setSplit: (state: SplitState) => void;
   clearSplit: () => void;
@@ -141,6 +156,7 @@ const LIFESTYLE_STORAGE_KEY = "kinesiology_lifestyle";
 const EXPERIENCE_STORAGE_KEY = "kinesiology_experience";
 const WARMUPS_STORAGE_KEY = "kinesiology_session_warmups";
 const AUTO_PLAN_STORAGE_KEY = "kinesiology_auto_plan_untouched";
+const FAVORITES_STORAGE_KEY = "kinesiology_favorites";
 
 function loadRoutineFromStorage(): RoutineItem[] {
   try {
@@ -297,6 +313,27 @@ function saveAutoPlanToStorage(value: boolean) {
   }
 }
 
+function loadFavoritesFromStorage(): string[] {
+  try {
+    const stored = sessionStorage.getItem(FAVORITES_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === "string");
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function saveFavoritesToStorage(favorites: string[]) {
+  try {
+    sessionStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+  } catch {
+    // ignore
+  }
+}
+
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 
 export function WorkoutProvider({ children }: { children: ReactNode }) {
@@ -307,6 +344,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [experience, setExperienceState] = useState<ExperienceId | null>(() => loadExperienceFromStorage());
   const [sessionWarmups, setSessionWarmupsState] = useState<SessionWarmupsByDay | null>(() => loadWarmupsFromStorage());
   const [autoPlanUntouched, setAutoPlanUntouchedState] = useState<boolean>(() => loadAutoPlanFromStorage());
+  const [favorites, setFavoritesState] = useState<string[]>(() => loadFavoritesFromStorage());
 
   // Persist routine to sessionStorage on every change
   useEffect(() => {
@@ -342,6 +380,30 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveAutoPlanToStorage(autoPlanUntouched);
   }, [autoPlanUntouched]);
+
+  // Persist favorites on every change
+  useEffect(() => {
+    saveFavoritesToStorage(favorites);
+  }, [favorites]);
+
+  const toggleFavorite = useCallback((routineItemId: string) => {
+    setFavoritesState((prev) => {
+      if (prev.includes(routineItemId)) {
+        // Already favorited — remove.
+        return prev.filter((id) => id !== routineItemId);
+      }
+      if (prev.length >= MAX_FAVORITES) {
+        // At cap — refuse silently. Caller should toast.
+        return prev;
+      }
+      return [...prev, routineItemId];
+    });
+  }, []);
+
+  const isFavorite = useCallback(
+    (routineItemId: string) => favorites.includes(routineItemId),
+    [favorites],
+  );
 
   const setSessionWarmups = useCallback((next: SessionWarmupsByDay | null) => {
     setSessionWarmupsState(next);
@@ -425,16 +487,23 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
 
   const removeFromRoutine = useCallback((id: string) => {
     setRoutine((prev) => prev.filter((item) => item.id !== id));
+    // Drop this id from favorites if present so the array doesn't leak
+    // stale references.
+    setFavoritesState((prev) => prev.filter((favId) => favId !== id));
     flipPlanModified();
   }, []);
 
   const clearRoutine = useCallback(() => {
     setRoutine([]);
+    setFavoritesState([]);
     flipPlanModified();
   }, []);
 
   const replaceRoutine = useCallback((items: RoutineItem[]) => {
     setRoutine(items);
+    // The replacement set has all-new ids (LLM-adopt path), so favorites
+    // pointing at the old ids are stale; clear them.
+    setFavoritesState([]);
     // Caller decides whether this is a fresh auto-plan adoption or a
     // user-driven replacement. Default to modified; auto paths call
     // markAutoPlanFresh after.
@@ -479,6 +548,9 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         autoPlanUntouched,
         markAutoPlanFresh,
         markAutoPlanModified,
+        favorites,
+        toggleFavorite,
+        isFavorite,
       }}
     >
       {children}

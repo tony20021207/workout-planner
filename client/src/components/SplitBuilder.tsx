@@ -283,6 +283,7 @@ export default function SplitBuilder() {
     sessionWarmups,
     setSessionWarmups,
     markAutoPlanFresh,
+    favorites,
   } = useWorkout();
   const [open, setOpen] = useState(false);
 
@@ -338,7 +339,7 @@ export default function SplitBuilder() {
       return;
     }
     const preset = SPLIT_PRESETS[id];
-    const allocation = allocatePoolToSplit(routine, preset, { experience });
+    const allocation = allocatePoolToSplit(routine, preset, { experience, favoriteIds: favorites });
     setSplit({ splitId: id, dayAssignments: allocation.byDay });
     // setSplit flips the plan-modified flag; auto-allocate is the canonical
     // "fresh" state, so flip back. This runs after setSplit's state update.
@@ -349,7 +350,7 @@ export default function SplitBuilder() {
 
   const handleReallocate = () => {
     if (!activePreset) return;
-    const allocation = allocatePoolToSplit(routine, activePreset, { experience });
+    const allocation = allocatePoolToSplit(routine, activePreset, { experience, favoriteIds: favorites });
     setSplit({ splitId: activePreset.id, dayAssignments: allocation.byDay });
     markAutoPlanFresh();
     toast.success("Re-allocated using the auto-allocator");

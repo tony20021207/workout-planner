@@ -17,6 +17,7 @@ import {
   ArrowRightLeft,
   GripVertical,
   Sparkles,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +32,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useWorkout, type RoutineItem } from "@/contexts/WorkoutContext";
+import { useWorkout, MAX_FAVORITES, type RoutineItem } from "@/contexts/WorkoutContext";
+import { toast } from "sonner";
 import {
   REP_RANGES,
   REP_RANGE_BY_ID,
@@ -105,9 +107,18 @@ export default function DayExerciseEditor({
   allDays,
   onMoveExercise,
 }: DayExerciseEditorProps) {
-  const { updateRoutineItem, split } = useWorkout();
+  const { updateRoutineItem, split, favorites, toggleFavorite, isFavorite } = useWorkout();
   const [expanded, setExpanded] = useState(false);
   const [customMode, setCustomMode] = useState(false);
+  const starred = isFavorite(item.id);
+
+  const handleToggleFavorite = () => {
+    if (!starred && favorites.length >= MAX_FAVORITES) {
+      toast.error(`Up to ${MAX_FAVORITES} favorites — unstar another first`);
+      return;
+    }
+    toggleFavorite(item.id);
+  };
 
   // Sets count for Smart Fill comes from the active split's preset.
   // Pre-Set keeps the rep-range's natural defaultSets so you don't get
@@ -196,6 +207,25 @@ export default function DayExerciseEditor({
           </div>
         </div>
         <div className="flex flex-col gap-0.5 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleToggleFavorite}
+            className={`w-7 h-7 p-0 ${
+              starred
+                ? "text-yellow-400 hover:text-yellow-300"
+                : "text-muted-foreground/50 hover:text-yellow-300"
+            }`}
+            title={
+              starred
+                ? "Unfavorite"
+                : favorites.length >= MAX_FAVORITES
+                  ? `Up to ${MAX_FAVORITES} favorites`
+                  : "Mark as favorite"
+            }
+          >
+            <Star className="w-3 h-3" fill={starred ? "currentColor" : "none"} />
+          </Button>
           <Button
             variant="ghost"
             size="sm"

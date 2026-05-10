@@ -17,9 +17,10 @@ import {
   Save,
   Sparkles,
   Layers,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useWorkout } from "@/contexts/WorkoutContext";
+import { useWorkout, MAX_FAVORITES } from "@/contexts/WorkoutContext";
 import { type RoutineItem } from "@/contexts/WorkoutContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
@@ -37,7 +38,16 @@ function DifficultyDot({ difficulty }: { difficulty: string }) {
 }
 
 function PoolItemRow({ item, index }: { item: RoutineItem; index: number }) {
-  const { removeFromRoutine } = useWorkout();
+  const { removeFromRoutine, favorites, toggleFavorite, isFavorite } = useWorkout();
+  const starred = isFavorite(item.id);
+
+  const handleToggleFavorite = () => {
+    if (!starred && favorites.length >= MAX_FAVORITES) {
+      toast.error(`Up to ${MAX_FAVORITES} favorites — unstar another first`);
+      return;
+    }
+    toggleFavorite(item.id);
+  };
 
   return (
     <motion.div
@@ -76,6 +86,28 @@ function PoolItemRow({ item, index }: { item: RoutineItem; index: number }) {
           <Button
             variant="ghost"
             size="sm"
+            onClick={handleToggleFavorite}
+            className={`w-8 h-8 p-0 ${
+              starred
+                ? "text-yellow-400 hover:text-yellow-300"
+                : "text-muted-foreground hover:text-yellow-300"
+            }`}
+            title={
+              starred
+                ? "Unfavorite"
+                : favorites.length >= MAX_FAVORITES
+                  ? `Up to ${MAX_FAVORITES} favorites`
+                  : "Mark as favorite (anchored across allocations)"
+            }
+          >
+            <Star
+              className="w-4 h-4"
+              fill={starred ? "currentColor" : "none"}
+            />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => removeFromRoutine(item.id)}
             className="text-muted-foreground hover:text-destructive w-8 h-8 p-0"
             title="Remove from week"
@@ -89,7 +121,7 @@ function PoolItemRow({ item, index }: { item: RoutineItem; index: number }) {
 }
 
 export default function RoutineTable() {
-  const { routine, clearRoutine } = useWorkout();
+  const { routine, clearRoutine, favorites } = useWorkout();
   const { isAuthenticated } = useAuth();
 
   // Aggregate stats for the weekly overview footer.
@@ -185,6 +217,10 @@ export default function RoutineTable() {
           <p className="text-sm text-muted-foreground">
             {routine.length} exercise{routine.length !== 1 ? "s" : ""} picked for this week.
             Sets &amp; reps come after you choose a split.
+          </p>
+          <p className="text-xs text-muted-foreground/80 mt-1 flex items-center gap-1">
+            <Star className="w-3 h-3 text-yellow-400" fill="currentColor" />
+            {favorites.length} / {MAX_FAVORITES} favorited — favorites anchor across allocations and drive week-2 bias correction.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
