@@ -15,6 +15,15 @@ import { trpc } from "@/lib/trpc";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { toast } from "sonner";
 import { Link, useSearch } from "wouter";
+import {
+  REP_RANGES,
+  REP_RANGE_BY_ID,
+  applyDayWidePreset,
+  applyRangeToExercise,
+  inferRangeFromReps,
+  suggestRangeForExercise,
+  type RepRangeId,
+} from "@/lib/repRanges";
 
 interface CalendarExercise {
   exercise: string;
@@ -283,6 +292,36 @@ export default function CalendarPage() {
     if (!editingEntry) return;
     const updated = editingEntry.exercises.filter((_, i) => i !== index);
     setEditingEntry({ ...editingEntry, exercises: updated });
+  };
+
+  // Rep-range preset handlers
+  const applyDayWide = (rangeId: RepRangeId) => {
+    if (!editingEntry) return;
+    const updated = applyDayWidePreset(editingEntry.exercises, rangeId);
+    setEditingEntry({ ...editingEntry, exercises: updated });
+    toast.success(`All exercises set to ${REP_RANGE_BY_ID[rangeId].shortLabel} reps`);
+  };
+
+  const applyPerExerciseRange = (index: number, rangeId: RepRangeId) => {
+    if (!editingEntry) return;
+    const updated = [...editingEntry.exercises];
+    updated[index] = applyRangeToExercise(updated[index], rangeId) as CalendarExercise;
+    setEditingEntry({ ...editingEntry, exercises: updated });
+  };
+
+  const autoBucket = () => {
+    if (!editingEntry) return;
+    const updated = editingEntry.exercises.map((ex) => {
+      // Use exercise name to infer category — assume systemic when name
+      // contains compound-ish words. Pure heuristic; user can override.
+      const looksCompound = /squat|deadlift|press|row|pull-up|chin-up|hip thrust|dip|lunge/i.test(
+        ex.exercise,
+      );
+      const rangeId = suggestRangeForExercise(ex.exercise, looksCompound ? "systemic" : "regional");
+      return applyRangeToExercise(ex, rangeId) as CalendarExercise;
+    });
+    setEditingEntry({ ...editingEntry, exercises: updated });
+    toast.success("Auto-bucketed by exercise type");
   };
 
   // Copy workout to another day
@@ -869,8 +908,45 @@ export default function CalendarPage() {
               Modify exercises, sets, reps, and weight for this specific day. Changes won't affect other days.
             </p>
 
+            {/* Rep-range preset bar */}
+            {editingEntry.exercises.length > 0 && (
+              <div className="mb-4 p-3 bg-secondary/50 border border-border rounded space-y-3">
+                <div>
+                  <h4 className="text-xs font-heading font-semibold text-foreground mb-1">Rep-range presets</h4>
+                  <p className="text-[10px] text-muted-foreground leading-snug">
+                    Quick way to retune the day. Set every exercise to one range, auto-bucket by exercise type, or pick per exercise below.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {REP_RANGES.map((r) => (
+                    <Button
+                      key={r.id}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applyDayWide(r.id)}
+                      className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start"
+                    >
+                      <span className="font-semibold">{r.shortLabel}</span>
+                      <span className="text-[9px] text-muted-foreground font-normal">{r.label}</span>
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={autoBucket}
+                    className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start border-lime/40 text-lime hover:bg-lime/10"
+                  >
+                    <span className="font-semibold">Auto</span>
+                    <span className="text-[9px] text-muted-foreground font-normal">3-bucket guess</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
-              {editingEntry.exercises.map((ex, index) => (
+              {editingEntry.exercises.map((ex, index) => {
+                const currentRange = inferRangeFromReps(ex.customReps);
+                return (
                 <div key={index} className="p-3 bg-secondary rounded space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
@@ -885,6 +961,26 @@ export default function CalendarPage() {
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </Button>
+                  </div>
+                  {/* Per-exercise range toggle */}
+                  <div className="flex gap-1">
+                    {REP_RANGES.map((r) => {
+                      const active = currentRange === r.id;
+                      return (
+                        <button
+                          key={r.id}
+                          onClick={() => applyPerExerciseRange(index, r.id)}
+                          className={`flex-1 text-[10px] py-1 rounded transition-colors ${
+                            active
+                              ? "bg-lime text-lime-foreground font-semibold"
+                              : "bg-background text-muted-foreground hover:bg-secondary border border-border"
+                          }`}
+                          title={r.description}
+                        >
+                          {r.shortLabel}
+                        </button>
+                      );
+                    })}
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
@@ -940,7 +1036,8 @@ export default function CalendarPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {editingEntry.exercises.length === 0 && (
