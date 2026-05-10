@@ -78,8 +78,16 @@ interface AddExerciseParams {
  * Selected split (one of the presets or "custom") plus the day-by-day
  * exercise assignments. Persisted independently so it can be cleared
  * without losing the pool, and vice versa.
+ *
+ * SplitId values must match the keys in SPLIT_PRESETS (splitPresets.ts).
  */
-export type SplitId = "fb3" | "ul4" | "ppl6" | "custom";
+export type SplitId =
+  | "fb3"
+  | "ul4"
+  | "ppl6"
+  | "bro5"
+  | "ulppl5"
+  | "custom";
 
 export interface SplitState {
   splitId: SplitId | null;
@@ -90,6 +98,33 @@ export interface SplitState {
 const DEFAULT_SPLIT: SplitState = {
   splitId: null,
   dayAssignments: {},
+};
+
+/**
+ * Two-week mesocycle state. When `enabled` is true, the SplitBuilder
+ * surfaces a Week 1 / Week 2 tab control and the user can independently
+ * shape each week. P9.3.1 (this commit) just adds the state model and
+ * the tab UI — Week 2 starts as a clone of Week 1 and the user can
+ * manually edit it. Subsequent P9.3.x phases layer in frequency
+ * rebalance, leg-day differentiation, load/deload math, and the variant
+ * swap engine that auto-populates Week 2.
+ */
+export interface MesocycleState {
+  enabled: boolean;
+  /** Week 2 dayId -> exercise ids. Mirrors split.dayAssignments shape. */
+  week2DayAssignments: Record<string, string[]>;
+  /**
+   * Week 2 per-exercise sets[] overrides. Empty -> use Week 1's sets
+   * for that exercise. When the load/deload phase lands, this map gets
+   * populated automatically with the deload-adjusted sets per exercise.
+   */
+  week2ExerciseSets: Record<string, SetDetail[]>;
+}
+
+const DEFAULT_MESOCYCLE: MesocycleState = {
+  enabled: false,
+  week2DayAssignments: {},
+  week2ExerciseSets: {},
 };
 
 export interface SessionWarmup {
@@ -147,6 +182,19 @@ interface WorkoutContextType {
   autoPlanUntouched: boolean;
   markAutoPlanFresh: () => void;
   markAutoPlanModified: () => void;
+  /** Two-week mesocycle state. See MesocycleState. */
+  mesocycle: MesocycleState;
+  /** Expand the current single-week split into a 2-week mesocycle.
+   * Clones week 1's dayAssignments as the initial week 2 layout. */
+  expandToBiweekly: () => void;
+  /** Collapse back to single-week. Wipes week 2 state. */
+  collapseToSingleWeek: () => void;
+  /** Replace week 2's dayAssignments wholesale (used by the variant swap
+   * engine in later phases). */
+  setWeek2DayAssignments: (next: Record<string, string[]>) => void;
+  /** Set per-exercise sets[] override for week 2. Pass empty array to
+   * remove the override (week 2 will fall back to week 1's sets). */
+  setWeek2ExerciseSets: (exerciseId: string, sets: SetDetail[]) => void;
 }
 
 const STORAGE_KEY = "kinesiology_routine";
@@ -157,6 +205,7 @@ const EXPERIENCE_STORAGE_KEY = "kinesiology_experience";
 const WARMUPS_STORAGE_KEY = "kinesiology_session_warmups";
 const AUTO_PLAN_STORAGE_KEY = "kinesiology_auto_plan_untouched";
 const FAVORITES_STORAGE_KEY = "kinesiology_favorites";
+const MESOCYCLE_STORAGE_KEY = "kinesiology_mesocycle";
 
 function loadRoutineFromStorage(): RoutineItem[] {
   try {
@@ -334,6 +383,33 @@ function saveFavoritesToStorage(favorites: string[]) {
   }
 }
 
+function loadMesocycleFromStorage(): MesocycleState {
+  try {
+    const stored = sessionStorage.getItem(MESOCYCLE_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && typeof parsed === "object") {
+        return {
+          enabled: Boolean(parsed.enabled),
+          week2DayAssignments: parsed.week2DayAssignments ?? {},
+          week2ExerciseSets: parsed.week2ExerciseSets ?? {},
+        };
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return DEFAULT_MESOCYCLE;
+}
+
+function saveMesocycleToStorage(state: MesocycleState) {
+  try {
+    sessionStorage.setItem(MESOCYCLE_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // ignore
+  }
+}
+
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 
 export function WorkoutProvider({ children }: { children: ReactNode }) {
@@ -345,6 +421,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [sessionWarmups, setSessionWarmupsState] = useState<SessionWarmupsByDay | null>(() => loadWarmupsFromStorage());
   const [autoPlanUntouched, setAutoPlanUntouchedState] = useState<boolean>(() => loadAutoPlanFromStorage());
   const [favorites, setFavoritesState] = useState<string[]>(() => loadFavoritesFromStorage());
+  const [mesocycle, setMesocycleState] = useState<MesocycleState>(() => loadMesocycleFromStorage());
 
   // Persist routine to sessionStorage on every change
   useEffect(() => {
@@ -385,6 +462,45 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveFavoritesToStorage(favorites);
   }, [favorites]);
+
+  // Persist mesocycle state on every change
+  useEffect(() => {
+    saveMesocycleToStorage(mesocycle);
+  }, [mesocycle]);
+
+  const expandToBiweekly = useCallback(() => {
+    setSplitState((prevSplit) => {
+      setMesocycleState({
+        enabled: true,
+        // Seed week 2 with a clone of week 1's day assignments so the
+        // user sees something useful immediately. Later P9.3 phases
+        // will reshape week 2 (frequency rebalance + variant swaps).
+        week2DayAssignments: JSON.parse(JSON.stringify(prevSplit.dayAssignments)) as Record<string, string[]>,
+        week2ExerciseSets: {},
+      });
+      return prevSplit;
+    });
+  }, []);
+
+  const collapseToSingleWeek = useCallback(() => {
+    setMesocycleState(DEFAULT_MESOCYCLE);
+  }, []);
+
+  const setWeek2DayAssignments = useCallback((next: Record<string, string[]>) => {
+    setMesocycleState((prev) => ({ ...prev, week2DayAssignments: next }));
+  }, []);
+
+  const setWeek2ExerciseSets = useCallback((exerciseId: string, sets: SetDetail[]) => {
+    setMesocycleState((prev) => {
+      const nextMap = { ...prev.week2ExerciseSets };
+      if (sets.length === 0) {
+        delete nextMap[exerciseId];
+      } else {
+        nextMap[exerciseId] = sets;
+      }
+      return { ...prev, week2ExerciseSets: nextMap };
+    });
+  }, []);
 
   const toggleFavorite = useCallback((routineItemId: string) => {
     setFavoritesState((prev) => {
@@ -496,14 +612,16 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   const clearRoutine = useCallback(() => {
     setRoutine([]);
     setFavoritesState([]);
+    setMesocycleState(DEFAULT_MESOCYCLE);
     flipPlanModified();
   }, []);
 
   const replaceRoutine = useCallback((items: RoutineItem[]) => {
     setRoutine(items);
     // The replacement set has all-new ids (LLM-adopt path), so favorites
-    // pointing at the old ids are stale; clear them.
+    // + mesocycle pointing at the old ids are stale; clear them.
     setFavoritesState([]);
+    setMesocycleState(DEFAULT_MESOCYCLE);
     // Caller decides whether this is a fresh auto-plan adoption or a
     // user-driven replacement. Default to modified; auto paths call
     // markAutoPlanFresh after.
@@ -551,6 +669,11 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         favorites,
         toggleFavorite,
         isFavorite,
+        mesocycle,
+        expandToBiweekly,
+        collapseToSingleWeek,
+        setWeek2DayAssignments,
+        setWeek2ExerciseSets,
       }}
     >
       {children}

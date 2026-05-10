@@ -173,8 +173,10 @@ function DayCard({
   items: RoutineItem[];
   allDays: { id: string; name: string }[];
   onMoveExercise: (exerciseId: string, fromDayId: string, toDayId: string) => void;
-  onApplyDayRange: (dayId: string, rangeId: RepRangeId) => void;
-  onAutoBucketDay: (dayId: string) => void;
+  /** When undefined (Week 2 view), the day-wide rep-range bar is hidden. */
+  onApplyDayRange?: (dayId: string, rangeId: RepRangeId) => void;
+  /** When undefined (Week 2 view), the per-day Opti-fill button is hidden. */
+  onAutoBucketDay?: (dayId: string) => void;
   stats: { compounds: number; isolations: number; total: number; compoundPct: number };
   warmups?: SessionWarmup[];
 }) {
@@ -216,8 +218,10 @@ function DayCard({
         </div>
       </div>
 
-      {/* Day-wide rep-range — Pre-Set or Opti-fill via one dropdown */}
-      {items.length > 0 && (
+      {/* Day-wide rep-range — Pre-Set or Opti-fill via one dropdown. Hidden
+          when handlers aren't provided (Week 2 view in P9.3.1; set
+          editing on Week 2 lands in P9.3.3). */}
+      {items.length > 0 && onApplyDayRange && onAutoBucketDay && (
         <div className="px-3 py-2 border-b border-border bg-secondary/15 flex items-center gap-2 flex-wrap">
           <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
             Day reps:
@@ -286,8 +290,13 @@ export default function SplitBuilder() {
     setSessionWarmups,
     markAutoPlanFresh,
     favorites,
+    mesocycle,
+    expandToBiweekly,
+    collapseToSingleWeek,
+    setWeek2DayAssignments,
   } = useWorkout();
   const [open, setOpen] = useState(false);
+  const [activeWeek, setActiveWeek] = useState<1 | 2>(1);
 
   const warmupMutation = trpc.sessionWarmups.generate.useMutation({
     onSuccess: (data: { days: Array<{ dayName: string; warmups: SessionWarmup[] }> }) => {
@@ -317,11 +326,18 @@ export default function SplitBuilder() {
     return m;
   }, [routine]);
 
+  // Active week's day assignments — Week 1 reads split.dayAssignments,
+  // Week 2 (when mesocycle is enabled) reads mesocycle.week2DayAssignments.
+  const isViewingWeek2 = mesocycle.enabled && activeWeek === 2;
+  const activeDayAssignments = isViewingWeek2
+    ? mesocycle.week2DayAssignments
+    : split.dayAssignments;
+
   const dayStats = useMemo(() => {
     const stats: Record<string, { compounds: number; isolations: number; total: number; compoundPct: number }> = {};
     if (!activePreset) return stats;
     for (const day of activePreset.days) {
-      const ids = split.dayAssignments[day.id] ?? [];
+      const ids = activeDayAssignments[day.id] ?? [];
       const items = ids.map((id) => itemsById.get(id)).filter(Boolean) as RoutineItem[];
       const compounds = items.filter((i) => i.category === "systemic").length;
       const isolations = items.length - compounds;
@@ -333,7 +349,7 @@ export default function SplitBuilder() {
       };
     }
     return stats;
-  }, [activePreset, split.dayAssignments, itemsById]);
+  }, [activePreset, activeDayAssignments, itemsById]);
 
   const handlePickPreset = (id: SplitId) => {
     if (id === "custom") {
@@ -359,10 +375,14 @@ export default function SplitBuilder() {
   };
 
   const handleMoveExercise = (exerciseId: string, fromDayId: string, toDayId: string) => {
-    const next = { ...split.dayAssignments };
+    const next = { ...activeDayAssignments };
     next[fromDayId] = (next[fromDayId] ?? []).filter((id) => id !== exerciseId);
     next[toDayId] = [...(next[toDayId] ?? []), exerciseId];
-    setSplit({ ...split, dayAssignments: next });
+    if (isViewingWeek2) {
+      setWeek2DayAssignments(next);
+    } else {
+      setSplit({ ...split, dayAssignments: next });
+    }
   };
 
   // Opti-fill resolves an experience-aware rep range AND a sets count
@@ -556,8 +576,10 @@ export default function SplitBuilder() {
         />
       </div>
 
-      {/* Post-split rater — only renders once a split is picked + assigned */}
-      {activePreset && (
+      {/* Post-split rater — only renders once a split is picked + assigned.
+          Operates on Week 1 (split.dayAssignments). Week 2 rating comes
+          later once load/deload + variant swap engine populate it. */}
+      {activePreset && !isViewingWeek2 && (
         <PostSplitRater />
       )}
 
@@ -580,12 +602,13 @@ export default function SplitBuilder() {
               </p>
             </div>
 
-            {/* Mesocycle-wide rep-range — single dropdown */}
-            {routine.length > 0 && (
+            {/* Mesocycle-wide rep-range — only relevant on Week 1 (Week 2
+                set overrides come from the load/deload phase in P9.3.3). */}
+            {routine.length > 0 && !isViewingWeek2 && (
               <div className="p-3 bg-secondary/40 border-2 border-border rounded-sm space-y-2">
                 <div>
                   <h5 className="font-heading font-bold text-sm text-foreground leading-tight">
-                    Rep-Range for the Mesocycle
+                    Rep-Range for {mesocycle.enabled ? "Week 1" : "the Mesocycle"}
                   </h5>
                   <p className="text-[11px] text-muted-foreground leading-snug">
                     Pre-Set stamps every exercise to one rep range. Opti-fill picks a different range per exercise (calves &amp; abs high reps, deadlifts low reps, everything else medium).
@@ -621,7 +644,10 @@ export default function SplitBuilder() {
               </div>
             )}
 
-            {/* Lifestyle-aware session warmup generator */}
+            {/* Lifestyle-aware session warmup generator — Week 1 only.
+                Week 2 warmups derive from Week 2's exercise list once the
+                variant swap engine lands in P9.3.4. */}
+            {!isViewingWeek2 && (
             <div className="p-3 bg-orange-500/[0.04] border-2 border-orange-500/25 rounded-sm">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="flex items-start gap-2 flex-1 min-w-0">
@@ -677,6 +703,68 @@ export default function SplitBuilder() {
                 </Button>
               </div>
             </div>
+            )}
+
+            {/* Mesocycle expand control + Week 1 / Week 2 tabs */}
+            <div className="flex items-center justify-between gap-3 flex-wrap p-3 bg-purple-500/[0.04] border-2 border-purple-500/25 rounded-sm">
+              <div className="flex-1 min-w-0">
+                <h5 className="font-heading font-bold text-sm text-foreground leading-tight">
+                  Mesocycle
+                </h5>
+                {!mesocycle.enabled ? (
+                  <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                    Single week. Expand to a 2-week mesocycle for accumulation → deload waves and per-week variant swaps.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                    2-week mesocycle. Week 2 starts as a clone of Week 1 — load/deload + variant swaps land in upcoming phases.
+                  </p>
+                )}
+              </div>
+              {!mesocycle.enabled ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    expandToBiweekly();
+                    setActiveWeek(1);
+                  }}
+                  className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 shrink-0"
+                  title="Clone Week 1 into a separate Week 2 you can shape independently"
+                >
+                  Expand to Biweekly
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="inline-flex rounded-sm overflow-hidden border border-border">
+                    <button
+                      onClick={() => setActiveWeek(1)}
+                      className={`text-xs px-3 py-1 ${activeWeek === 1 ? "bg-purple-500/20 text-purple-200 font-semibold" : "bg-background text-muted-foreground hover:bg-secondary"}`}
+                    >
+                      Week 1
+                    </button>
+                    <button
+                      onClick={() => setActiveWeek(2)}
+                      className={`text-xs px-3 py-1 ${activeWeek === 2 ? "bg-purple-500/20 text-purple-200 font-semibold" : "bg-background text-muted-foreground hover:bg-secondary"}`}
+                    >
+                      Week 2
+                    </button>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      collapseToSingleWeek();
+                      setActiveWeek(1);
+                    }}
+                    className="text-muted-foreground hover:text-destructive text-xs"
+                    title="Collapse back to a single week (clears Week 2 edits)"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )}
+            </div>
 
             <div
               className="grid gap-3"
@@ -685,7 +773,7 @@ export default function SplitBuilder() {
               }}
             >
               {activePreset.days.map((day) => {
-                const ids = split.dayAssignments[day.id] ?? [];
+                const ids = activeDayAssignments[day.id] ?? [];
                 const items = ids.map((id) => itemsById.get(id)).filter(Boolean) as RoutineItem[];
                 return (
                   <DayCard
@@ -694,10 +782,10 @@ export default function SplitBuilder() {
                     items={items}
                     allDays={activePreset.days}
                     onMoveExercise={handleMoveExercise}
-                    onApplyDayRange={handleApplyDayRange}
-                    onAutoBucketDay={handleAutoBucketDay}
+                    onApplyDayRange={isViewingWeek2 ? undefined : handleApplyDayRange}
+                    onAutoBucketDay={isViewingWeek2 ? undefined : handleAutoBucketDay}
                     stats={dayStats[day.id] ?? { compounds: 0, isolations: 0, total: 0, compoundPct: 0 }}
-                    warmups={sessionWarmups?.[day.id]}
+                    warmups={isViewingWeek2 ? undefined : sessionWarmups?.[day.id]}
                   />
                 );
               })}
