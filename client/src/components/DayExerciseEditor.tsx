@@ -25,6 +25,12 @@ import {
 } from "@/components/ui/popover";
 import { useWorkout, type RoutineItem, type SetDetail } from "@/contexts/WorkoutContext";
 import { recommendSetsForItem, autoRecommendSets } from "@/lib/setRecommender";
+import {
+  REP_RANGES,
+  applyRangeToRoutineSets,
+  inferRangeFromReps,
+  type RepRangeId,
+} from "@/lib/repRanges";
 
 function NumberInput({
   value,
@@ -112,6 +118,15 @@ export default function DayExerciseEditor({
   const applyAutoRec = () => {
     updateRoutineItem(item.id, { sets: autoRecommendSets(item, experience) });
   };
+
+  const applyRangePreset = (rangeId: RepRangeId) => {
+    updateRoutineItem(item.id, { sets: applyRangeToRoutineSets(item, rangeId) });
+  };
+
+  // Which preset bucket this exercise's current reps fall into.
+  const currentRange: RepRangeId = item.sets.length > 0
+    ? inferRangeFromReps(item.sets[0].reps)
+    : "hypertrophy";
 
   // Compact summary for the collapsed row.
   const summary = (() => {
@@ -209,6 +224,27 @@ export default function DayExerciseEditor({
                   <Sparkles className="w-3 h-3 mr-1" />
                   Auto-fill
                 </Button>
+              </div>
+
+              {/* Rep-range bucket toggle for this exercise */}
+              <div className="flex gap-1">
+                {REP_RANGES.map((r) => {
+                  const active = currentRange === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => applyRangePreset(r.id)}
+                      className={`flex-1 text-[10px] py-1 rounded transition-colors ${
+                        active
+                          ? "bg-lime text-lime-foreground font-semibold"
+                          : "bg-background text-muted-foreground hover:bg-secondary border border-border"
+                      }`}
+                      title={r.description}
+                    >
+                      {r.shortLabel}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Per-set rows */}

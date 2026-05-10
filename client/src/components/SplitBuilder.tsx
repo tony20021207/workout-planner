@@ -42,6 +42,14 @@ import {
 import { autoRecommendSets } from "@/lib/setRecommender";
 import { trpc } from "@/lib/trpc";
 import { LIFESTYLE_PROFILES } from "@/lib/lifestyle";
+import {
+  REP_RANGES,
+  REP_RANGE_BY_ID,
+  applyRangeToRoutineSets,
+  inferRangeFromReps,
+  suggestRangeForExercise,
+  type RepRangeId,
+} from "@/lib/repRanges";
 import { toast } from "sonner";
 import DayExerciseEditor from "./DayExerciseEditor";
 import PostSplitRater from "./PostSplitRater";
@@ -327,6 +335,38 @@ export default function SplitBuilder() {
     toast.success(`Auto-filled sets & reps for ${changed} exercise${changed !== 1 ? "s" : ""}`);
   };
 
+  // Apply a single rep-range preset to every exercise in the routine.
+  const handleApplyRangeAll = (rangeId: RepRangeId) => {
+    for (const item of routine) {
+      const newSets = applyRangeToRoutineSets(item, rangeId);
+      updateRoutineItem(item.id, { sets: newSets });
+    }
+    markAutoPlanFresh();
+    toast.success(`All exercises set to ${REP_RANGE_BY_ID[rangeId].shortLabel} reps`);
+  };
+
+  // Auto-bucket: each exercise gets its own preset based on a heuristic
+  // (deadlift / RDL / Bayesian -> heavy; calves / abs / face pull /
+  // lateral raise -> metabolic; default -> hypertrophy).
+  const handleAutoBucket = () => {
+    for (const item of routine) {
+      const rangeId = suggestRangeForExercise(item.exercise, item.category);
+      const newSets = applyRangeToRoutineSets(item, rangeId);
+      updateRoutineItem(item.id, { sets: newSets });
+    }
+    markAutoPlanFresh();
+    toast.success("Auto-bucketed by exercise type");
+  };
+
+  // Apply a preset to one exercise (used by the per-exercise toggle in
+  // DayExerciseEditor).
+  const handleApplyRangeOne = (id: string, rangeId: RepRangeId) => {
+    const item = routine.find((r) => r.id === id);
+    if (!item) return;
+    const newSets = applyRangeToRoutineSets(item, rangeId);
+    updateRoutineItem(id, { sets: newSets });
+  };
+
   const handleGenerateWarmups = () => {
     if (!activePreset || !lifestyle) return;
     const days = activePreset.days.map((day) => {
@@ -479,6 +519,45 @@ export default function SplitBuilder() {
                 Compound share target: {Math.round(COMPOUND_PCT_GOOD_MIN * 100)}–{Math.round(COMPOUND_PCT_GOOD_MAX * 100)}% per day
               </p>
             </div>
+
+            {/* Rep-range preset bar — global for the whole mesocycle */}
+            {routine.length > 0 && (
+              <div className="p-3 bg-secondary/40 border-2 border-border rounded-sm space-y-2">
+                <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                  <div>
+                    <h5 className="font-heading font-bold text-sm text-foreground leading-tight">
+                      Rep-Range Presets
+                    </h5>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Apply a target rep range across the entire mesocycle. Auto-bucket picks per exercise — calves &amp; abs metabolic, deadlifts heavy, everything else hypertrophy.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {REP_RANGES.map((r) => (
+                    <Button
+                      key={r.id}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleApplyRangeAll(r.id)}
+                      className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start"
+                    >
+                      <span className="font-semibold tabular-nums">{r.shortLabel}</span>
+                      <span className="text-[9px] text-muted-foreground font-normal">{r.label}</span>
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAutoBucket}
+                    className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start border-lime/40 text-lime hover:bg-lime/10"
+                  >
+                    <Wand2 className="w-3.5 h-3.5 mb-0.5" />
+                    <span className="font-semibold">Auto</span>
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Lifestyle-aware session warmup generator */}
             <div className="p-3 bg-orange-500/[0.04] border-2 border-orange-500/25 rounded-sm">

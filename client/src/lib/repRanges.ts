@@ -156,6 +156,29 @@ export function applyDayWidePreset<T extends RepRangePatchInput>(
 }
 
 /**
+ * Same logic as applyRangeToExercise but for the SplitBuilder's
+ * RoutineItem shape (item.sets is an array of { reps, weight } pairs).
+ * The new sets[] preserves the FIRST existing set's weight across all
+ * resized slots — so a user who already filled in 135 lbs doesn't lose
+ * it when toggling rep ranges.
+ */
+export interface RoutineItemLike {
+  sets: { reps: number; weight: number }[];
+}
+
+export function applyRangeToRoutineSets(
+  item: RoutineItemLike,
+  rangeId: RepRangeId,
+): { reps: number; weight: number }[] {
+  const range = REP_RANGE_BY_ID[rangeId];
+  const preservedWeight = item.sets[0]?.weight ?? 0;
+  return Array.from({ length: range.defaultSets }, () => ({
+    reps: range.defaultReps,
+    weight: preservedWeight,
+  }));
+}
+
+/**
  * Apply three-bucket preset: each exercise has been independently
  * assigned to a rangeId via assignments map (exerciseIndex -> rangeId).
  * Indexes not present in the map are left untouched.
