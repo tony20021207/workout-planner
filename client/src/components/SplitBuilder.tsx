@@ -356,14 +356,14 @@ export default function SplitBuilder() {
     let changed = 0;
     for (const item of routine) {
       const recommended = autoRecommendSets(item, experience);
-      // Always replace — auto-fill is destructive by design.
+      // Always replace — Smart Fill is destructive by design.
       updateRoutineItem(item.id, { sets: recommended });
       changed += 1;
     }
     // updateRoutineItem flipped the plan-modified flag for each call;
     // restore the fresh state since this entire batch IS the auto path.
     markAutoPlanFresh();
-    toast.success(`Auto-filled sets & reps for ${changed} exercise${changed !== 1 ? "s" : ""}`);
+    toast.success(`Smart Fill applied to ${changed} exercise${changed !== 1 ? "s" : ""}`);
   };
 
   // Apply a single rep-range preset to every exercise in the routine.
@@ -514,11 +514,11 @@ export default function SplitBuilder() {
                 variant="outline"
                 size="sm"
                 onClick={handleAutoFillAllSets}
-                title="Auto-recommend sets, reps, and rest for every exercise"
+                title="Smart Fill — recommend sets, reps, and rest for every exercise"
                 className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
               >
                 <Wand2 className="w-3.5 h-3.5 mr-1.5" />
-                Auto-fill sets & reps
+                Smart Fill
               </Button>
               <Button
                 variant="outline"

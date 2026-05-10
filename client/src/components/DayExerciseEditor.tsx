@@ -219,10 +219,10 @@ export default function DayExerciseEditor({
                   size="sm"
                   onClick={applyAutoRec}
                   className="h-6 px-2 text-[10px] text-purple-300 hover:text-purple-200"
-                  title="Apply the auto-recommendation"
+                  title="Smart Fill — apply the recommendation"
                 >
                   <Sparkles className="w-3 h-3 mr-1" />
-                  Auto-fill
+                  Smart Fill
                 </Button>
               </div>
 

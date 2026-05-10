@@ -165,7 +165,7 @@ export default function PostSplitRater() {
               Plan meets the rubric
             </h3>
             <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-              You used auto-allocate and auto-recommend without editing — the result already satisfies the Hypertrophy Matrix criteria for your experience level. Make any change (move an exercise, edit sets / reps, swap a pick) and the post-split rating button will reappear so you can re-score.
+              You used auto-allocate and Smart Fill without editing — the result already satisfies the Hypertrophy Matrix criteria for your experience level. Make any change (move an exercise, edit sets / reps, swap a pick) and the post-split rating button will reappear so you can re-score.
             </p>
           </div>
           <RatingRubric />
