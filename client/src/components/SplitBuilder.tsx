@@ -208,7 +208,7 @@ function DayCard({
         </div>
       </div>
 
-      {/* Day-wide rep-range presets — applies to every exercise on this day */}
+      {/* Day-wide rep-range pre-set + Smart Fill — applies to every exercise on this day */}
       {items.length > 0 && (
         <div className="px-3 py-2 border-b border-border bg-secondary/15 flex items-center gap-1.5 flex-wrap">
           <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold mr-1">
@@ -219,18 +219,18 @@ function DayCard({
               key={r.id}
               onClick={() => onApplyDayRange(day.id, r.id)}
               className="text-[10px] py-0.5 px-1.5 rounded bg-background text-muted-foreground hover:bg-secondary border border-border tabular-nums"
-              title={`Apply ${r.label} (${r.shortLabel}) to every exercise on this day`}
+              title={`Pre-Set: every exercise on this day to ${r.label} (${r.shortLabel})`}
             >
               {r.shortLabel}
             </button>
           ))}
           <button
             onClick={() => onAutoBucketDay(day.id)}
-            className="text-[10px] py-0.5 px-1.5 rounded text-lime border border-lime/40 hover:bg-lime/10"
-            title="Auto-bucket each exercise on this day by name heuristic"
+            className="text-[10px] py-0.5 px-1.5 rounded text-purple-300 border border-purple-500/40 hover:bg-purple-500/10"
+            title="Smart Fill: pick a rep range per exercise on this day based on exercise type"
           >
             <Wand2 className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />
-            Auto
+            Smart Fill
           </button>
         </div>
       )}
@@ -366,19 +366,20 @@ export default function SplitBuilder() {
     toast.success(`Smart Fill applied to ${changed} exercise${changed !== 1 ? "s" : ""}`);
   };
 
-  // Apply a single rep-range preset to every exercise in the routine.
+  // Pre-Set: stamp every exercise in the routine with the same range.
   const handleApplyRangeAll = (rangeId: RepRangeId) => {
     for (const item of routine) {
       const newSets = applyRangeToRoutineSets(item, rangeId);
       updateRoutineItem(item.id, { sets: newSets });
     }
     markAutoPlanFresh();
-    toast.success(`All exercises set to ${REP_RANGE_BY_ID[rangeId].shortLabel} reps`);
+    toast.success(`Pre-Set: all exercises to ${REP_RANGE_BY_ID[rangeId].shortLabel} reps`);
   };
 
-  // Auto-bucket: each exercise gets its own preset based on a heuristic
-  // (deadlift / RDL / Bayesian -> heavy; calves / abs / face pull /
-  // lateral raise -> metabolic; default -> hypertrophy).
+  // Smart Fill: each exercise gets its own range based on a heuristic
+  // (deadlift / RDL / Bayesian -> low reps; calves / abs / face pull /
+  // lateral raise -> high reps; default -> medium reps). After P11 the
+  // 5-rule matrix replaces this.
   const handleAutoBucket = () => {
     for (const item of routine) {
       const rangeId = suggestRangeForExercise(item.exercise, item.category);
@@ -386,7 +387,7 @@ export default function SplitBuilder() {
       updateRoutineItem(item.id, { sets: newSets });
     }
     markAutoPlanFresh();
-    toast.success("Auto-bucketed by exercise type");
+    toast.success("Smart Fill applied across mesocycle");
   };
 
   // Apply a preset to one exercise (used by the per-exercise toggle in
@@ -398,9 +399,9 @@ export default function SplitBuilder() {
     updateRoutineItem(id, { sets: newSets });
   };
 
-  // Apply preset to every exercise assigned to one day. Note: because
-  // a RoutineItem is shared across days when an exercise repeats, this
-  // also retunes the exercise on its other day(s).
+  // Pre-Set day-scoped: stamp every exercise on this day with one range.
+  // Note: because a RoutineItem is shared across days when an exercise
+  // repeats, this also retunes the exercise on its other day(s).
   const handleApplyDayRange = (dayId: string, rangeId: RepRangeId) => {
     const ids = split.dayAssignments[dayId] ?? [];
     let n = 0;
@@ -413,10 +414,12 @@ export default function SplitBuilder() {
     }
     markAutoPlanFresh();
     if (n > 0) {
-      toast.success(`Day set to ${REP_RANGE_BY_ID[rangeId].shortLabel} reps (${n} exercise${n === 1 ? "" : "s"})`);
+      toast.success(`Pre-Set: day to ${REP_RANGE_BY_ID[rangeId].shortLabel} reps (${n} exercise${n === 1 ? "" : "s"})`);
     }
   };
 
+  // Smart Fill day-scoped: each exercise on this day gets its own range
+  // via the heuristic.
   const handleAutoBucketDay = (dayId: string) => {
     const ids = split.dayAssignments[dayId] ?? [];
     let n = 0;
@@ -430,7 +433,7 @@ export default function SplitBuilder() {
     }
     markAutoPlanFresh();
     if (n > 0) {
-      toast.success(`Auto-bucketed ${n} exercise${n === 1 ? "" : "s"} on this day`);
+      toast.success(`Smart Fill applied to ${n} exercise${n === 1 ? "" : "s"} on this day`);
     }
   };
 
@@ -587,18 +590,16 @@ export default function SplitBuilder() {
               </p>
             </div>
 
-            {/* Rep-range preset bar — global for the whole mesocycle */}
+            {/* Rep-range pre-sets + Smart Fill — global for the whole mesocycle */}
             {routine.length > 0 && (
               <div className="p-3 bg-secondary/40 border-2 border-border rounded-sm space-y-2">
-                <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                  <div>
-                    <h5 className="font-heading font-bold text-sm text-foreground leading-tight">
-                      Rep-Range Presets
-                    </h5>
-                    <p className="text-[11px] text-muted-foreground leading-snug">
-                      Apply a target rep range across the entire mesocycle. Auto-bucket picks per exercise — calves &amp; abs metabolic, deadlifts heavy, everything else hypertrophy.
-                    </p>
-                  </div>
+                <div>
+                  <h5 className="font-heading font-bold text-sm text-foreground leading-tight">
+                    Rep-Range Pre-Sets
+                  </h5>
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    Pre-Set: stamp every exercise to one rep range. Smart Fill: pick a different range per exercise (calves &amp; abs high reps, deadlifts low reps, everything else medium).
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                   {REP_RANGES.map((r) => (
@@ -608,6 +609,7 @@ export default function SplitBuilder() {
                       size="sm"
                       onClick={() => handleApplyRangeAll(r.id)}
                       className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start"
+                      title={`Pre-Set: every exercise to ${r.label} (${r.shortLabel})`}
                     >
                       <span className="font-semibold tabular-nums">{r.shortLabel}</span>
                       <span className="text-[9px] text-muted-foreground font-normal">{r.label}</span>
@@ -617,10 +619,11 @@ export default function SplitBuilder() {
                     variant="outline"
                     size="sm"
                     onClick={handleAutoBucket}
-                    className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start border-lime/40 text-lime hover:bg-lime/10"
+                    className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
+                    title="Smart Fill: pick a rep range per exercise based on exercise type"
                   >
                     <Wand2 className="w-3.5 h-3.5 mb-0.5" />
-                    <span className="font-semibold">Auto</span>
+                    <span className="font-semibold">Smart Fill</span>
                   </Button>
                 </div>
               </div>

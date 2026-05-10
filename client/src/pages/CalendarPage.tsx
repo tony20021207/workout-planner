@@ -294,12 +294,12 @@ export default function CalendarPage() {
     setEditingEntry({ ...editingEntry, exercises: updated });
   };
 
-  // Rep-range preset handlers
+  // Pre-Set day-wide: every exercise to the same range.
   const applyDayWide = (rangeId: RepRangeId) => {
     if (!editingEntry) return;
     const updated = applyDayWidePreset(editingEntry.exercises, rangeId);
     setEditingEntry({ ...editingEntry, exercises: updated });
-    toast.success(`All exercises set to ${REP_RANGE_BY_ID[rangeId].shortLabel} reps`);
+    toast.success(`Pre-Set: all exercises to ${REP_RANGE_BY_ID[rangeId].shortLabel} reps`);
   };
 
   const applyPerExerciseRange = (index: number, rangeId: RepRangeId) => {
@@ -309,6 +309,7 @@ export default function CalendarPage() {
     setEditingEntry({ ...editingEntry, exercises: updated });
   };
 
+  // Smart Fill: each exercise gets its own range via heuristic.
   const autoBucket = () => {
     if (!editingEntry) return;
     const updated = editingEntry.exercises.map((ex) => {
@@ -321,7 +322,7 @@ export default function CalendarPage() {
       return applyRangeToExercise(ex, rangeId) as CalendarExercise;
     });
     setEditingEntry({ ...editingEntry, exercises: updated });
-    toast.success("Auto-bucketed by exercise type");
+    toast.success("Smart Fill applied across this day");
   };
 
   // Copy workout to another day
@@ -908,13 +909,13 @@ export default function CalendarPage() {
               Modify exercises, sets, reps, and weight for this specific day. Changes won't affect other days.
             </p>
 
-            {/* Rep-range preset bar */}
+            {/* Rep-range pre-sets + Smart Fill */}
             {editingEntry.exercises.length > 0 && (
               <div className="mb-4 p-3 bg-secondary/50 border border-border rounded space-y-3">
                 <div>
-                  <h4 className="text-xs font-heading font-semibold text-foreground mb-1">Rep-range presets</h4>
+                  <h4 className="text-xs font-heading font-semibold text-foreground mb-1">Rep-range pre-sets</h4>
                   <p className="text-[10px] text-muted-foreground leading-snug">
-                    Quick way to retune the day. Set every exercise to one range, auto-bucket by exercise type, or pick per exercise below.
+                    Pre-Set: stamp every exercise to one rep range. Smart Fill: pick a different range per exercise.
                   </p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
@@ -925,6 +926,7 @@ export default function CalendarPage() {
                       size="sm"
                       onClick={() => applyDayWide(r.id)}
                       className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start"
+                      title={`Pre-Set: every exercise to ${r.label} (${r.shortLabel})`}
                     >
                       <span className="font-semibold">{r.shortLabel}</span>
                       <span className="text-[9px] text-muted-foreground font-normal">{r.label}</span>
@@ -934,10 +936,11 @@ export default function CalendarPage() {
                     variant="outline"
                     size="sm"
                     onClick={autoBucket}
-                    className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start border-lime/40 text-lime hover:bg-lime/10"
+                    className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
+                    title="Smart Fill: pick a rep range per exercise based on exercise type"
                   >
-                    <span className="font-semibold">Auto</span>
-                    <span className="text-[9px] text-muted-foreground font-normal">3-bucket guess</span>
+                    <span className="font-semibold">Smart Fill</span>
+                    <span className="text-[9px] text-muted-foreground font-normal">varies per ex.</span>
                   </Button>
                 </div>
               </div>
