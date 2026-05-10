@@ -355,7 +355,7 @@ export default function SplitBuilder() {
     const allocation = allocatePoolToSplit(routine, activePreset, { experience, favoriteIds: favorites });
     setSplit({ splitId: activePreset.id, dayAssignments: allocation.byDay });
     markAutoPlanFresh();
-    toast.success("Re-allocated using the auto-allocator");
+    toast.success("Re-allocated using Smart Split");
   };
 
   const handleMoveExercise = (exerciseId: string, fromDayId: string, toDayId: string) => {
@@ -470,11 +470,11 @@ export default function SplitBuilder() {
           </div>
           <div>
             <h3 className="font-heading font-bold text-foreground text-base">
-              Pick a weekly split
+              Smart Split
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
               Distribute your {routine.length} exercise{routine.length !== 1 ? "s" : ""} across the week.
-              Auto-allocator handles 40/60 compound/iso balance, joint-function overlap, and warmup-priming order.
+              Smart Split handles joint-function synergy on each day, leg vs lower-body routing, and weekly-volume targeting.
             </p>
           </div>
         </div>
@@ -484,7 +484,7 @@ export default function SplitBuilder() {
           className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold shrink-0"
         >
           <Sparkles className="w-4 h-4 mr-1.5" />
-          Choose split
+          Start Smart Split
         </Button>
       </div>
     );
@@ -517,7 +517,7 @@ export default function SplitBuilder() {
                 variant="outline"
                 size="sm"
                 onClick={handleReallocate}
-                title="Re-run the auto-allocator (re-distributes exercises across days)"
+                title="Re-run Smart Split (re-distributes exercises across days)"
               >
                 <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
                 Re-allocate

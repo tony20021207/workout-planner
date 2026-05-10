@@ -1,9 +1,9 @@
 /**
- * Weekly split presets + auto-allocator.
+ * Weekly split presets + Smart Split engine.
  *
- * Three preset splits (FB3 / UL4 / PPL6) plus a custom mode. The auto-
- * allocator distributes a microcycle's exercise pool across the chosen
- * split's days following these rules:
+ * Five preset splits (FB3 / UL4 / PPL6 / Bro5 / UL+PPL5) plus a custom
+ * mode. Smart Split distributes a microcycle's exercise pool across the
+ * chosen split's days following these rules:
  *
  *   1. Muscle-group day-intent matching. Each day declares the major
  *      muscle groups it intends to cover (chest / back / shoulders /
@@ -49,7 +49,14 @@ export type MuscleTag =
   | "glutes"
   | "hams"
   | "calves"
-  | "core";
+  | "core"
+  // Routing tag — NOT a muscle, just a gate. Days that should accept
+  // heavy CNS-taxing hinges (Conventional / Sumo / Trap-Bar Deadlift,
+  // Good Morning, Jefferson Curl) carry this tag. UL "Lower" days do
+  // NOT carry it, since they happen 2x/week and stacking heavy hinges
+  // is too CNS-demanding. Allocator enforces: if an exercise has
+  // `heavy-hinge`, the day must also have it.
+  | "heavy-hinge";
 
 /** Anatomical-mass weights — used to scale weekly volume targets per muscle. */
 const MUSCLE_MASS_WEIGHT: Record<MuscleTag, number> = {
@@ -63,7 +70,20 @@ const MUSCLE_MASS_WEIGHT: Record<MuscleTag, number> = {
   hams: 1.0,
   calves: 0.6,      // Small mass; calf hypertrophy needs less than majors
   core: 0.5,        // Already trained as a stabilizer in many compounds
+  "heavy-hinge": 0, // Routing-only tag, contributes no volume target
 };
+
+/** Tags that gate eligibility rather than contributing to weekly volume. */
+const ROUTING_ONLY_TAGS = new Set<MuscleTag>(["heavy-hinge"]);
+
+/**
+ * Patterns for heavy CNS-taxing hinges that should only land on Leg days
+ * (not on UL "Lower" days). RDL / stiff-leg / single-leg variants are
+ * deliberately EXCLUDED — they're lighter on CNS and fit any lower-body
+ * slot.
+ */
+const HEAVY_HINGE_PATTERN = /(?:\bdeadlift\b|good morning|jefferson curl)/i;
+const NOT_HEAVY_HINGE_PATTERN = /romanian|stiff[- ]leg|single[- ]leg/i;
 
 /** Heuristic mapping: targetedMuscle string -> primary muscle tag(s). */
 const MUSCLE_NAME_TO_TAGS: Array<{ pattern: RegExp; tags: MuscleTag[] }> = [
@@ -110,6 +130,12 @@ export function getMuscleTagsForItem(item: RoutineItem): MuscleTag[] {
     else if (/triceps|skullcrusher|kickback|pressdown/.test(name)) tags.add("triceps");
     else if (/crunch|pallof|woodchop|side bend|v-up|ab wheel/.test(name)) tags.add("core");
   }
+  // Heavy-hinge routing: add `heavy-hinge` tag for the three CNS-taxing
+  // hinges so the allocator only lands them on Leg days (not Lower days).
+  const name = item.exercise.toLowerCase();
+  if (HEAVY_HINGE_PATTERN.test(name) && !NOT_HEAVY_HINGE_PATTERN.test(name)) {
+    tags.add("heavy-hinge");
+  }
   return Array.from(tags);
 }
 
@@ -138,45 +164,64 @@ export interface SplitPreset {
 export type SplitId = "fb3" | "ul4" | "ppl6" | "bro5" | "ulppl5" | "custom";
 
 /**
- * Full-body 3 days a week. Each day touches every major upper + lower
- * group (chest, back, shoulders, legs) plus core. Arms (bi vs tri)
- * rotates across days so each arm group gets ~2 days/wk on average.
+ * Full Body 3 days/week. Every major muscle group gets exactly 2 days
+ * of training across the week. Days group by joint-function synergy:
+ *
+ *   Day A — Push / Quad: chest + shoulders + triceps + quads + glutes + calves + core
+ *           Push synergy on the upper, squat synergy on the lower.
+ *   Day B — Pull / Hinge (Leg Day): back + biceps + hams + glutes + calves + core
+ *           Pull synergy + heavy hinge synergy. heavy-hinge tag enables
+ *           Deadlift / Good Morning / Jefferson Curl here.
+ *   Day C — Second hits: chest + back + shoulders + triceps + biceps + quads + hams
+ *           Mixed second-pass to balance the week without re-stacking heavy
+ *           CNS work.
+ *
+ * Frequency per muscle (exactly 2x/week each):
+ *   chest A,C · back B,C · shoulders A,C · triceps A,C · biceps B,C
+ *   quads A,C · hams B,C · glutes A,B · calves A,B · core A,B
  */
 export const FULL_BODY_3: SplitPreset = {
   id: "fb3",
   name: "Full Body — 3 days / week",
   shortLabel: "FB3",
   description:
-    "Mon / Wed / Fri (or every-other-day). Each day touches chest, back, shoulders, and legs + core; biceps and triceps rotate across days for balanced arm volume.",
+    "Mon / Wed / Fri. Every major muscle group hit exactly 2x/week. Day A groups push + squat; Day B is the leg-day (pull + heavy hinge); Day C is mixed second-pass.",
   daysPerWeek: 3,
   days: [
     {
       id: "fb-a",
-      name: "Day A",
-      tags: ["chest", "back", "shoulders", "quads", "biceps", "core"],
+      name: "Day A — Push / Quad",
+      tags: ["chest", "shoulders", "triceps", "quads", "glutes", "calves", "core"],
       scheduleHint: "Mon",
     },
     {
       id: "fb-b",
-      name: "Day B",
-      tags: ["chest", "back", "shoulders", "hams", "glutes", "triceps", "core"],
+      name: "Day B — Pull / Hinge (Leg Day)",
+      tags: ["back", "biceps", "hams", "glutes", "calves", "core", "heavy-hinge"],
       scheduleHint: "Wed",
     },
     {
       id: "fb-c",
-      name: "Day C",
-      tags: ["chest", "back", "shoulders", "quads", "glutes", "calves", "biceps", "core"],
+      name: "Day C — Mixed Second-Pass",
+      tags: ["chest", "back", "shoulders", "triceps", "biceps", "quads", "hams"],
       scheduleHint: "Fri",
     },
   ],
 };
 
+/**
+ * Upper / Lower / Upper / Leg — 4 days/week. Second lower day is
+ * a true Leg Day (carries heavy-hinge tag) so Deadlift / Good Morning
+ * / Jefferson Curl can land there. The first Lower day is volume-only
+ * — no heavy CNS hinges (avoids stacking with the upper day fatigue
+ * earlier in the week).
+ */
 export const UPPER_LOWER_4: SplitPreset = {
   id: "ul4",
-  name: "Upper / Lower — 4 days / week",
+  name: "Upper / Lower / Upper / Leg — 4 days / week",
   shortLabel: "UL4",
   description:
-    "Mon Upper / Tue Lower / Thu Upper / Fri Lower. Splits the body into upper and lower hemispheres twice per week — strong frequency for both with reasonable recovery.",
+    "Mon Upper / Tue Lower / Thu Upper / Fri Leg Day. Twice-per-week frequency on upper. Lower 1 (volume-only) + Leg Day (heavy hinges allowed) on the lower hemisphere.",
   daysPerWeek: 4,
   days: [
     {
@@ -198,28 +243,35 @@ export const UPPER_LOWER_4: SplitPreset = {
       scheduleHint: "Thu",
     },
     {
-      id: "ul-l2",
-      name: "Lower 2",
-      tags: ["quads", "hams", "glutes", "calves", "core"],
+      id: "ul-leg",
+      name: "Leg Day",
+      tags: ["quads", "hams", "glutes", "calves", "core", "heavy-hinge"],
       scheduleHint: "Fri",
     },
   ],
 };
 
+/**
+ * Push / Pull / Lower / Push / Pull / Legs — 6 days/week. The two
+ * lower-hemisphere days split into one Lower (no heavy hinges) and one
+ * true Leg Day (heavy-hinge tag). The Leg Day comes Saturday so the
+ * lifter has had the most cumulative recovery time before the heavy
+ * CNS work.
+ */
 export const PUSH_PULL_LEGS_6: SplitPreset = {
   id: "ppl6",
   name: "Push / Pull / Legs — 6 days / week",
   shortLabel: "PPL6",
   description:
-    "Mon Push / Tue Pull / Wed Legs / Thu Push / Fri Pull / Sat Legs / Sun rest. Twice-per-week frequency on each pattern with one rest day.",
+    "Mon Push / Tue Pull / Wed Lower / Thu Push / Fri Pull / Sat Leg Day / Sun rest. Twice-per-week frequency on each pattern. Lower mid-week (no heavy hinge), Leg Day weekend (heavy hinges allowed after maximum recovery).",
   daysPerWeek: 6,
   days: [
     { id: "ppl-p1", name: "Push 1", tags: ["chest", "shoulders", "triceps"], scheduleHint: "Mon" },
     { id: "ppl-pl1", name: "Pull 1", tags: ["back", "biceps"], scheduleHint: "Tue" },
-    { id: "ppl-l1", name: "Legs 1", tags: ["quads", "hams", "glutes", "calves", "core"], scheduleHint: "Wed" },
+    { id: "ppl-lower", name: "Lower", tags: ["quads", "hams", "glutes", "calves", "core"], scheduleHint: "Wed" },
     { id: "ppl-p2", name: "Push 2", tags: ["chest", "shoulders", "triceps"], scheduleHint: "Thu" },
     { id: "ppl-pl2", name: "Pull 2", tags: ["back", "biceps"], scheduleHint: "Fri" },
-    { id: "ppl-l2", name: "Legs 2", tags: ["quads", "hams", "glutes", "calves", "core"], scheduleHint: "Sat" },
+    { id: "ppl-leg", name: "Leg Day", tags: ["quads", "hams", "glutes", "calves", "core", "heavy-hinge"], scheduleHint: "Sat" },
   ],
 };
 
@@ -240,7 +292,7 @@ export const BRO_SPLIT_5: SplitPreset = {
     { id: "bro-back", name: "Back", tags: ["back"], scheduleHint: "Tue" },
     { id: "bro-shoulders", name: "Shoulders", tags: ["shoulders", "core"], scheduleHint: "Wed" },
     { id: "bro-arms", name: "Arms", tags: ["biceps", "triceps", "core"], scheduleHint: "Thu" },
-    { id: "bro-legs", name: "Legs", tags: ["quads", "hams", "glutes", "calves", "core"], scheduleHint: "Fri" },
+    { id: "bro-legs", name: "Leg Day", tags: ["quads", "hams", "glutes", "calves", "core", "heavy-hinge"], scheduleHint: "Fri" },
   ],
 };
 
@@ -284,8 +336,8 @@ export const UL_PPL_5: SplitPreset = {
     },
     {
       id: "ulppl-legs",
-      name: "Legs",
-      tags: ["quads", "hams", "glutes", "calves", "core"],
+      name: "Leg Day",
+      tags: ["quads", "hams", "glutes", "calves", "core", "heavy-hinge"],
       scheduleHint: "Sat",
     },
   ],
@@ -370,10 +422,18 @@ function pickBestDay(
   const itemTags = ctx.tagsById.get(item.id) ?? [];
   if (itemTags.length === 0) return null;
 
+  // Routing-only tags the exercise REQUIRES (e.g. heavy-hinge gates
+  // deadlift / good morning / jefferson curl to Leg days only).
+  const requiredTags = itemTags.filter((t) => ROUTING_ONLY_TAGS.has(t));
+
   const candidates = split.days.filter((d) => {
     if (ctx.byDay[d.id].length >= PER_DAY_EXERCISE_CAP) return false;
     if (ctx.byDay[d.id].includes(item.id)) return false; // already on this day; pick a different day for repetition
-    return d.tags.some((t) => itemTags.includes(t));
+    // Must overlap on at least one muscle tag.
+    if (!d.tags.some((t) => itemTags.includes(t))) return false;
+    // If exercise has any routing-only tags, day must carry them too.
+    if (!requiredTags.every((t) => d.tags.includes(t))) return false;
+    return true;
   });
   if (candidates.length === 0) return null;
 
@@ -394,6 +454,7 @@ function dayScoreForItem(day: SplitDay, item: RoutineItem, ctx: AllocationContex
   let score = 0;
   for (const t of itemTags) {
     if (!day.tags.includes(t)) continue;
+    if (ROUTING_ONLY_TAGS.has(t)) continue; // routing tags gate placement, not score
     // The lower the current volume for that muscle, the higher the score
     // (under-served muscles attract the next instance).
     score += 1; // base credit for matching at all
@@ -407,6 +468,7 @@ function applyExerciseToDay(item: RoutineItem, dayId: string, ctx: AllocationCon
   const tags = ctx.tagsById.get(item.id) ?? [];
   const sets = ctx.setsById.get(item.id) ?? 3;
   for (const t of tags) {
+    if (ROUTING_ONLY_TAGS.has(t)) continue; // skip routing tags in volume math
     ctx.volumeByMuscle[t] += sets;
   }
 }
@@ -420,6 +482,7 @@ function findMostUnderservedMuscle(
   let worstGap = 0;
   for (const tag of Object.keys(targets) as MuscleTag[]) {
     if (!validTags.has(tag)) continue;
+    if (ROUTING_ONLY_TAGS.has(tag)) continue; // routing tags have no volume target
     const gap = targets[tag] - ctx.volumeByMuscle[tag];
     if (gap > worstGap) {
       worstGap = gap;

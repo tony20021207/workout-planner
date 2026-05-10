@@ -26,7 +26,7 @@ export default function ExperiencePicker() {
           What's your experience level?
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-          Drives auto-allocation + Smart Fill: how many sets, reps, RIR per exercise, and
+          Drives Smart Split + Smart Fill: how many sets, reps, RIR per exercise, and
           weekly volume per major mover. All three levels stay inside the Nippard / Israetel
           MEV–MAV band — beginners pin to the lower edge, experienced lifters to the upper edge.
         </p>

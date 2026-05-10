@@ -111,7 +111,7 @@ export default function Home() {
                       Build one now
                     </h3>
                     <p className="text-sm opacity-80 mt-0.5 leading-snug">
-                      Step through the kinesiology builder, get auto-allocated and auto-tuned for your level.
+                      Step through the kinesiology builder, get Smart Split + Smart Fill tuned for your level.
                     </p>
                   </div>
                 </div>
