@@ -126,7 +126,7 @@ export default function DayExerciseEditor({
   // Which preset bucket this exercise's current reps fall into.
   const currentRange: RepRangeId = item.sets.length > 0
     ? inferRangeFromReps(item.sets[0].reps)
-    : "hypertrophy";
+    : "medium";
 
   // Compact summary for the collapsed row.
   const summary = (() => {

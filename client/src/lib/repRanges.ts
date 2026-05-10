@@ -23,7 +23,7 @@
  *
  * After applying any preset, the user can still edit individual sets.
  */
-export type RepRangeId = "heavy" | "hypertrophy" | "metabolic";
+export type RepRangeId = "low" | "medium" | "high";
 
 export interface RepRange {
   id: RepRangeId;
@@ -38,39 +38,43 @@ export interface RepRange {
   description: string;
 }
 
+// Per the 5–30 reps argument: anything in the 5–30 range pushed close
+// to failure produces comparable hypertrophy. The three buckets just
+// trade off load vs cardio vs joint stress vs time-per-set, not raw
+// growth potential.
 export const REP_RANGES: RepRange[] = [
   {
-    id: "heavy",
-    label: "Heavy",
+    id: "low",
+    label: "Low",
     minReps: 5,
     maxReps: 8,
     defaultReps: 6,
     shortLabel: "5–8",
     defaultSets: 4,
     description:
-      "Heavy load, lower reps. Best for stretch-bias compounds (RDL, Bayesian, Bulgarian Split Squat) and skill-driven barbell work where heavier weight unlocks the lengthened-position stimulus.",
+      "Lower reps, heavier loads. Same growth potential as Medium / High when pushed to failure. Easier on cardiovascular load, heavier on joint and CNS cost. Best on stable picks where you can load near failure safely.",
   },
   {
-    id: "hypertrophy",
-    label: "Hypertrophy",
+    id: "medium",
+    label: "Medium",
     minReps: 8,
     maxReps: 15,
     defaultReps: 12,
     shortLabel: "8–15",
     defaultSets: 3,
     description:
-      "Default hypertrophy band. Most isolations and machine compounds live here. Typically 70–80% of weekly working-set volume.",
+      "Default rep band. Balanced load and time-per-set, moderate recovery cost. The most common bucket for compound and isolation work alike.",
   },
   {
-    id: "metabolic",
-    label: "Metabolic",
+    id: "high",
+    label: "High",
     minReps: 15,
     maxReps: 30,
     defaultReps: 20,
     shortLabel: "15–30",
     defaultSets: 2,
     description:
-      "Higher reps, metabolic stress. Best for calves, core, and small-mass isolations (face pulls, lateral raises) where pump and time-under-tension drive growth.",
+      "Higher reps, lighter loads. Same growth potential as Low / Medium when pushed to failure. Lower joint stress, higher cardio and time cost. Best for small / endurance muscles (calves, abs, cuff, rear delts).",
   },
 ];
 
@@ -84,9 +88,9 @@ export const REP_RANGE_BY_ID: Record<RepRangeId, RepRange> = REP_RANGES.reduce(
 
 /** Find which preset best matches a given reps-per-set number. */
 export function inferRangeFromReps(reps: number): RepRangeId {
-  if (reps <= 8) return "heavy";
-  if (reps <= 15) return "hypertrophy";
-  return "metabolic";
+  if (reps <= 8) return "low";
+  if (reps <= 15) return "medium";
+  return "high";
 }
 
 /**
@@ -99,26 +103,26 @@ export function suggestRangeForExercise(
   category: "systemic" | "regional",
 ): RepRangeId {
   const name = exerciseName.toLowerCase();
-  // Calves + core + small-mass cuff/rotator work → metabolic
+  // Calves + core + small-mass cuff/rotator work → high reps
   if (
     /calf|calves|crunch|woodchop|pallof|side bend|v-up|ab wheel|face pull|external rotation/.test(
       name,
     )
   ) {
-    return "metabolic";
+    return "high";
   }
-  // Stretch-bias compounds + heavy hinges → heavy
+  // Stretch-bias compounds + heavy hinges → low reps
   if (
     /romanian deadlift|stiff[- ]leg|conventional deadlift|sumo deadlift|deadlift|bayesian|sissy squat|jefferson curl|nordic|bulgarian|good morning/.test(
       name,
     )
   ) {
-    return "heavy";
+    return "low";
   }
-  // Lateral raises + side delts in lengthened range → metabolic
-  if (/lateral raise|cable y/.test(name)) return "metabolic";
-  // Default: hypertrophy band
-  return "hypertrophy";
+  // Lateral raises + side delts in lengthened range → high reps
+  if (/lateral raise|cable y/.test(name)) return "high";
+  // Default: medium band
+  return "medium";
 }
 
 /**
