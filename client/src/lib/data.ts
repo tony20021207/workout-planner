@@ -2883,14 +2883,6 @@ export function getProgrammingParameters(category: CategoryType): ProgrammingPar
   };
 }
 
-export function getDefaultSets(_category?: CategoryType): number {
-  return 3;
-}
-
-export function getDefaultReps(category: CategoryType): number {
-  return category === "systemic" ? 6 : 12;
-}
-
 export function getDefaultWeight(): number {
   return 0;
 }
