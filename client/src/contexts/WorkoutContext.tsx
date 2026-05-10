@@ -3,6 +3,8 @@ import {
   type CategoryType,
   type Difficulty,
   type ProgrammingParameters,
+  type StretchLevel,
+  type StimulusLevel,
   getProgrammingParameters,
   generateId,
   getDefaultSets,
@@ -49,6 +51,13 @@ export interface RoutineItem {
   targetedMuscles: string[];
   equipment?: string;
   angle?: string;
+  /**
+   * Resolved biomechanical tags (after equipment + angle overrides).
+   * Smart Fill reads these to bucket the exercise into Low / Medium /
+   * High rep ranges. Optional so legacy session-storage rows still load.
+   */
+  stretchLevel?: StretchLevel;
+  stability?: StimulusLevel;
 }
 
 interface AddExerciseParams {
@@ -62,6 +71,9 @@ interface AddExerciseParams {
   numSets?: number;
   defaultReps?: number;
   defaultWeight?: number;
+  /** Resolved tags from the source exercise + applied overrides. */
+  stretchLevel?: StretchLevel;
+  stability?: StimulusLevel;
 }
 
 /**
@@ -396,6 +408,8 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       targetedMuscles: params.targetedMuscles,
       equipment: params.equipment,
       angle: params.angle,
+      stretchLevel: params.stretchLevel,
+      stability: params.stability,
     };
     setRoutine((prev) => [...prev, newItem]);
     flipPlanModified();

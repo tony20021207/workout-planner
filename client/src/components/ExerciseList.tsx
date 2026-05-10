@@ -12,6 +12,7 @@ import {
   type CategoryType,
   type Exercise,
   type Difficulty,
+  resolveEffectiveTags,
 } from "@/lib/data";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { toast } from "sonner";
@@ -48,6 +49,11 @@ export function ExerciseCard({ exercise, category, jointFunctionName }: { exerci
       selectedAngle && exercise.angles && exercise.angles.length > 1 ? `[${selectedAngle}]` : "",
     ].filter(Boolean).join(" ");
 
+    // Resolve tags after equipment + angle overrides so Smart Fill can
+    // bucket the rep range correctly (cambered bench -> very-high stretch
+    // -> Low; toes-spread squat -> +Hip Abd jointActions; etc.).
+    const tags = resolveEffectiveTags(exercise, selectedEquipment, selectedAngle);
+
     addToRoutine({
       exercise: exerciseName,
       jointFunction: jointFunctionName,
@@ -56,6 +62,8 @@ export function ExerciseCard({ exercise, category, jointFunctionName }: { exerci
       targetedMuscles: exercise.targetedMuscles,
       equipment: selectedEquipment,
       angle: selectedAngle,
+      stretchLevel: tags.stretchLevel,
+      stability: tags.stability,
       // sets / reps / weight intentionally not set — the context applies
       // sensible defaults; per-set values are configured later, after the
       // user picks a split (P5).

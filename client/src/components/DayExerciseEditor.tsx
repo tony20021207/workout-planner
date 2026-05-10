@@ -1,11 +1,14 @@
 /**
  * DayExerciseEditor — One row inside a SplitBuilder day card.
  *
- * Shows the exercise's name, targeted muscles, and a collapsed
- * sets-and-reps summary. Click the chevron to expand into an inline
- * per-set editor (reps + weight per set, plus add/remove set buttons).
+ * Simplified UX: the workout builder only edits REP RANGE per exercise.
+ * Granular per-set sets/reps/weight editing lives on the calendar (where
+ * users plan a specific training day). Here the user picks one of:
+ *   - Low / Medium / High pre-set (one of the three rep ranges)
+ *   - Smart Fill (matrix-driven pick based on the exercise's tags)
+ *   - Customize (free-form reps + sets inputs)
  *
- * Move-to-day popover stays available even when collapsed.
+ * Move-to-day popover stays available.
  */
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,8 +16,6 @@ import {
   ChevronDown,
   ArrowRightLeft,
   GripVertical,
-  Plus,
-  Minus,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,12 +24,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useWorkout, type RoutineItem, type SetDetail } from "@/contexts/WorkoutContext";
-import { recommendSetsForItem, autoRecommendSets } from "@/lib/setRecommender";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useWorkout, type RoutineItem } from "@/contexts/WorkoutContext";
 import {
   REP_RANGES,
+  REP_RANGE_BY_ID,
   applyRangeToRoutineSets,
   inferRangeFromReps,
+  smartFillRange,
   type RepRangeId,
 } from "@/lib/repRanges";
 
@@ -85,6 +94,9 @@ interface DayExerciseEditorProps {
   onMoveExercise: (exerciseId: string, fromDayId: string, toDayId: string) => void;
 }
 
+/** Special select values that aren't rep ranges. */
+type SelectValueId = RepRangeId | "smart-fill" | "custom";
+
 export default function DayExerciseEditor({
   item,
   index,
@@ -92,56 +104,60 @@ export default function DayExerciseEditor({
   allDays,
   onMoveExercise,
 }: DayExerciseEditorProps) {
-  const { updateRoutineItem, experience } = useWorkout();
+  const { updateRoutineItem } = useWorkout();
   const [expanded, setExpanded] = useState(false);
-  const rec = recommendSetsForItem(item, experience);
+  const [customMode, setCustomMode] = useState(false);
 
-  const updateSet = (setIdx: number, partial: Partial<SetDetail>) => {
-    const nextSets = item.sets.map((s, i) => (i === setIdx ? { ...s, ...partial } : s));
-    updateRoutineItem(item.id, { sets: nextSets });
-  };
-
-  const addSet = () => {
-    const last = item.sets[item.sets.length - 1];
-    const nextSet: SetDetail = {
-      reps: last?.reps ?? rec.defaultReps,
-      weight: last?.weight ?? rec.defaultWeight,
-    };
-    updateRoutineItem(item.id, { sets: [...item.sets, nextSet] });
-  };
-
-  const removeSet = () => {
-    if (item.sets.length <= 1) return;
-    updateRoutineItem(item.id, { sets: item.sets.slice(0, -1) });
-  };
-
-  const applyAutoRec = () => {
-    updateRoutineItem(item.id, { sets: autoRecommendSets(item, experience) });
-  };
+  // Which rep-range bucket the current sets fall into.
+  const currentRange: RepRangeId =
+    item.sets.length > 0 ? inferRangeFromReps(item.sets[0].reps) : "medium";
 
   const applyRangePreset = (rangeId: RepRangeId) => {
+    setCustomMode(false);
     updateRoutineItem(item.id, { sets: applyRangeToRoutineSets(item, rangeId) });
   };
 
-  // Which preset bucket this exercise's current reps fall into.
-  const currentRange: RepRangeId = item.sets.length > 0
-    ? inferRangeFromReps(item.sets[0].reps)
-    : "medium";
+  const applySmartFill = () => {
+    setCustomMode(false);
+    const rangeId = smartFillRange(item);
+    updateRoutineItem(item.id, { sets: applyRangeToRoutineSets(item, rangeId) });
+  };
+
+  const handleSelectChange = (value: string) => {
+    if (value === "smart-fill") {
+      applySmartFill();
+    } else if (value === "custom") {
+      setCustomMode(true);
+    } else {
+      applyRangePreset(value as RepRangeId);
+    }
+  };
+
+  // Customize handlers: edit a single reps value + sets count uniformly.
+  const customReps = item.sets[0]?.reps ?? 12;
+  const customSetsCount = item.sets.length || 3;
+  const customWeight = item.sets[0]?.weight ?? 0;
+
+  const updateCustomReps = (reps: number) => {
+    const newSets = Array.from({ length: customSetsCount }, () => ({
+      reps,
+      weight: customWeight,
+    }));
+    updateRoutineItem(item.id, { sets: newSets });
+  };
+
+  const updateCustomSetsCount = (n: number) => {
+    const safe = Math.max(1, Math.min(10, n));
+    const newSets = Array.from({ length: safe }, () => ({
+      reps: customReps,
+      weight: customWeight,
+    }));
+    updateRoutineItem(item.id, { sets: newSets });
+  };
 
   // Compact summary for the collapsed row.
-  const summary = (() => {
-    const reps = item.sets.map((s) => s.reps);
-    const weights = item.sets.map((s) => s.weight);
-    const allSameReps = reps.every((r) => r === reps[0]);
-    const allSameWeight = weights.every((w) => w === weights[0]);
-    const repsLabel = allSameReps ? `${reps[0]}` : `${Math.min(...reps)}–${Math.max(...reps)}`;
-    const weightLabel = allSameWeight
-      ? weights[0] === 0
-        ? "weight TBD"
-        : `${weights[0]} lbs`
-      : `${Math.min(...weights)}–${Math.max(...weights)} lbs`;
-    return `${item.sets.length} × ${repsLabel} reps · ${weightLabel}`;
-  })();
+  const summary = `${item.sets.length} × ${customReps} reps`;
+  const currentLabel = REP_RANGE_BY_ID[currentRange].shortLabel;
 
   return (
     <div className="border-b border-border/50 last:border-b-0 group">
@@ -156,7 +172,12 @@ export default function DayExerciseEditor({
           <div className="text-[10px] text-muted-foreground truncate">
             {item.targetedMuscles.join(", ")}
           </div>
-          <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">{summary}</div>
+          <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+            {summary}{" "}
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
+              · {currentLabel}
+            </span>
+          </div>
         </div>
         <div className="flex flex-col gap-0.5 shrink-0">
           <Button
@@ -164,7 +185,7 @@ export default function DayExerciseEditor({
             size="sm"
             onClick={() => setExpanded(!expanded)}
             className="w-7 h-7 p-0"
-            title={expanded ? "Hide sets" : "Edit sets"}
+            title={expanded ? "Hide" : "Edit rep range"}
           >
             <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? "rotate-180" : ""}`} />
           </Button>
@@ -199,7 +220,7 @@ export default function DayExerciseEditor({
         </div>
       </div>
 
-      {/* Expanded set editor */}
+      {/* Expanded — rep-range dropdown + optional Customize input */}
       <AnimatePresence>
         {expanded && (
           <motion.div
@@ -210,95 +231,56 @@ export default function DayExerciseEditor({
             className="overflow-hidden"
           >
             <div className="px-3 pb-3 pt-1 space-y-2 bg-secondary/20">
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="text-muted-foreground uppercase tracking-wider font-semibold">
-                  Suggested: {rec.numSets} × {rec.repRangeLabel} reps · rest ~{rec.restSeconds}s
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={applyAutoRec}
-                  className="h-6 px-2 text-[10px] text-purple-300 hover:text-purple-200"
-                  title="Smart Fill — apply the recommendation"
-                >
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Smart Fill
-                </Button>
-              </div>
-
-              {/* Rep-range bucket toggle for this exercise */}
-              <div className="flex gap-1">
-                {REP_RANGES.map((r) => {
-                  const active = currentRange === r.id;
-                  return (
-                    <button
-                      key={r.id}
-                      onClick={() => applyRangePreset(r.id)}
-                      className={`flex-1 text-[10px] py-1 rounded transition-colors ${
-                        active
-                          ? "bg-lime text-lime-foreground font-semibold"
-                          : "bg-background text-muted-foreground hover:bg-secondary border border-border"
-                      }`}
-                      title={r.description}
-                    >
-                      {r.shortLabel}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Per-set rows */}
               <div className="space-y-1">
-                {item.sets.map((s, i) => (
-                  <div key={i} className="flex items-center gap-1.5 text-[11px]">
-                    <span className="text-muted-foreground font-mono w-7">S{i + 1}</span>
-                    <NumberInput
-                      value={s.reps}
-                      onChange={(v) => updateSet(i, { reps: v })}
-                      min={1}
-                      max={99}
-                      className="w-12"
-                    />
-                    <span className="text-muted-foreground">reps</span>
-                    <span className="text-muted-foreground">@</span>
-                    <NumberInput
-                      value={s.weight}
-                      onChange={(v) => updateSet(i, { weight: v })}
-                      min={0}
-                      max={9999}
-                      className="w-14"
-                    />
-                    <span className="text-muted-foreground">lbs</span>
-                  </div>
-                ))}
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  Rep range
+                </span>
+                <Select
+                  value={customMode ? "custom" : currentRange}
+                  onValueChange={handleSelectChange}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REP_RANGES.map((r) => (
+                      <SelectItem key={r.id} value={r.id} className="text-xs">
+                        <span className="font-semibold">{r.shortLabel}</span>{" "}
+                        <span className="text-muted-foreground">— {r.label}</span>
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="smart-fill" className="text-xs text-purple-300">
+                      <Sparkles className="w-3 h-3 inline mr-1" />
+                      Smart Fill — pick by exercise
+                    </SelectItem>
+                    <SelectItem value="custom" className="text-xs">
+                      Customize — free-form reps & sets
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Set count controls */}
-              <div className="flex items-center gap-1 pt-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={removeSet}
-                  disabled={item.sets.length <= 1}
-                  className="w-7 h-7 p-0 text-muted-foreground hover:text-destructive"
-                  title="Remove last set"
-                >
-                  <Minus className="w-3 h-3" />
-                </Button>
-                <span className="text-[10px] text-muted-foreground tabular-nums w-8 text-center">
-                  {item.sets.length} sets
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={addSet}
-                  disabled={item.sets.length >= 10}
-                  className="w-7 h-7 p-0 text-muted-foreground hover:text-lime"
-                  title="Add set"
-                >
-                  <Plus className="w-3 h-3" />
-                </Button>
-              </div>
+              {/* Customize: simple reps + sets inputs (one value applies uniformly) */}
+              {customMode && (
+                <div className="flex items-center gap-2 text-[11px] pt-1">
+                  <NumberInput
+                    value={customSetsCount}
+                    onChange={updateCustomSetsCount}
+                    min={1}
+                    max={10}
+                    className="w-12"
+                  />
+                  <span className="text-muted-foreground">sets ×</span>
+                  <NumberInput
+                    value={customReps}
+                    onChange={updateCustomReps}
+                    min={1}
+                    max={50}
+                    className="w-12"
+                  />
+                  <span className="text-muted-foreground">reps</span>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

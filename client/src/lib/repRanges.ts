@@ -93,36 +93,78 @@ export function inferRangeFromReps(reps: number): RepRangeId {
   return "high";
 }
 
+// Pattern matches for the Smart Fill matrix.
+const DEADLIFT_PATTERN =
+  /\bdeadlift\b/i; // matches "Conventional Deadlift", "Sumo Deadlift", "Trap Bar Deadlift", "Deadlift"
+const NOT_CNS_DEADLIFT_PATTERN =
+  /romanian|stiff[- ]leg|single[- ]leg/i; // RDL etc. are NOT CNS-heavy deadlifts
+const ENDURANCE_NAME_PATTERN =
+  /calf|calves|crunch|woodchop|pallof|side bend|v-up|ab wheel|face pull|external rotation|lateral raise|cable y/i;
+const ENDURANCE_MUSCLE_PATTERN =
+  /soleus|abdomin|oblique|posterior delt|rear delt|forearm|rotator cuff|infraspinatus|teres minor|supraspinatus/i;
+
 /**
- * Suggest a sensible default rep-range for an exercise given its name +
- * category. Pure heuristic used to pre-fill the three-bucket UI so the
- * user starts from a reasonable assignment instead of a blank slate.
+ * Smart Fill matrix — pick a rep range for a routine item given its
+ * resolved tags and name. The matrix collapses to three rules in our
+ * three-bucket world:
+ *
+ *   1. Conventional / Sumo / Trap-Bar Deadlift → Low (5–8). CNS-heavy
+ *      lifts where rep count is ceiling-limited regardless of stretch.
+ *      Excludes RDL, stiff-leg, single-leg variants.
+ *
+ *   2. Endurance / small-mass / slow-twitch class → High (15–30).
+ *      Calves (soleus), abs, obliques, rear delts, cuff, forearms,
+ *      face pulls, lateral raises. Smaller mass needs higher reps for
+ *      effective hypertrophy stimulus.
+ *
+ *   3. Everything else → Medium (8–15). Stretch-bias compounds (RDL,
+ *      Bayesian, sissy squat) live here in the simplified matrix per
+ *      the 5–30-reps-equally-effective framing.
+ *
+ * The function reads name + targetedMuscles. stretchLevel + stability
+ * are accepted on the input shape so future P11+ revisions can extend
+ * the matrix without breaking the call sites.
+ */
+export interface SmartFillInput {
+  exercise: string;
+  targetedMuscles: string[];
+  category?: "systemic" | "regional";
+  stretchLevel?: "moderate" | "high" | "very-high";
+  stability?: "very-high" | "high" | "medium" | "low";
+}
+
+export function smartFillRange(item: SmartFillInput): RepRangeId {
+  const name = item.exercise.toLowerCase();
+
+  // Rule 1: CNS deadlifts → Low
+  if (DEADLIFT_PATTERN.test(name) && !NOT_CNS_DEADLIFT_PATTERN.test(name)) {
+    return "low";
+  }
+
+  // Rule 2: Endurance class → High (by name pattern OR targeted muscle)
+  if (ENDURANCE_NAME_PATTERN.test(name)) return "high";
+  if (item.targetedMuscles.some((m) => ENDURANCE_MUSCLE_PATTERN.test(m))) {
+    return "high";
+  }
+
+  // Rule 3: Default → Medium
+  return "medium";
+}
+
+/**
+ * Calendar-side convenience: name + category only. Loose backward-
+ * compatible wrapper around smartFillRange for calendar exercises that
+ * don't carry resolved tags.
  */
 export function suggestRangeForExercise(
   exerciseName: string,
   category: "systemic" | "regional",
 ): RepRangeId {
-  const name = exerciseName.toLowerCase();
-  // Calves + core + small-mass cuff/rotator work → high reps
-  if (
-    /calf|calves|crunch|woodchop|pallof|side bend|v-up|ab wheel|face pull|external rotation/.test(
-      name,
-    )
-  ) {
-    return "high";
-  }
-  // Stretch-bias compounds + heavy hinges → low reps
-  if (
-    /romanian deadlift|stiff[- ]leg|conventional deadlift|sumo deadlift|deadlift|bayesian|sissy squat|jefferson curl|nordic|bulgarian|good morning/.test(
-      name,
-    )
-  ) {
-    return "low";
-  }
-  // Lateral raises + side delts in lengthened range → high reps
-  if (/lateral raise|cable y/.test(name)) return "high";
-  // Default: medium band
-  return "medium";
+  return smartFillRange({
+    exercise: exerciseName,
+    targetedMuscles: [],
+    category,
+  });
 }
 
 /**

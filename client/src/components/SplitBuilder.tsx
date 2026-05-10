@@ -28,6 +28,13 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useWorkout, type RoutineItem, type SessionWarmup } from "@/contexts/WorkoutContext";
 import {
   ALL_PRESETS,
@@ -39,7 +46,6 @@ import {
   type SplitId,
   type SplitPreset,
 } from "@/lib/splitPresets";
-import { autoRecommendSets } from "@/lib/setRecommender";
 import { trpc } from "@/lib/trpc";
 import { LIFESTYLE_PROFILES } from "@/lib/lifestyle";
 import {
@@ -47,7 +53,7 @@ import {
   REP_RANGE_BY_ID,
   applyRangeToRoutineSets,
   inferRangeFromReps,
-  suggestRangeForExercise,
+  smartFillRange,
   type RepRangeId,
 } from "@/lib/repRanges";
 import { toast } from "sonner";
@@ -208,30 +214,34 @@ function DayCard({
         </div>
       </div>
 
-      {/* Day-wide rep-range pre-set + Smart Fill — applies to every exercise on this day */}
+      {/* Day-wide rep-range — Pre-Set or Smart Fill via one dropdown */}
       {items.length > 0 && (
-        <div className="px-3 py-2 border-b border-border bg-secondary/15 flex items-center gap-1.5 flex-wrap">
-          <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold mr-1">
+        <div className="px-3 py-2 border-b border-border bg-secondary/15 flex items-center gap-2 flex-wrap">
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
             Day reps:
           </span>
-          {REP_RANGES.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => onApplyDayRange(day.id, r.id)}
-              className="text-[10px] py-0.5 px-1.5 rounded bg-background text-muted-foreground hover:bg-secondary border border-border tabular-nums"
-              title={`Pre-Set: every exercise on this day to ${r.label} (${r.shortLabel})`}
-            >
-              {r.shortLabel}
-            </button>
-          ))}
-          <button
-            onClick={() => onAutoBucketDay(day.id)}
-            className="text-[10px] py-0.5 px-1.5 rounded text-purple-300 border border-purple-500/40 hover:bg-purple-500/10"
-            title="Smart Fill: pick a rep range per exercise on this day based on exercise type"
+          <Select
+            onValueChange={(v) => {
+              if (v === "smart-fill") onAutoBucketDay(day.id);
+              else onApplyDayRange(day.id, v as RepRangeId);
+            }}
           >
-            <Wand2 className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />
-            Smart Fill
-          </button>
+            <SelectTrigger className="h-6 text-[10px] w-[180px] py-0">
+              <SelectValue placeholder="Apply to day..." />
+            </SelectTrigger>
+            <SelectContent>
+              {REP_RANGES.map((r) => (
+                <SelectItem key={r.id} value={r.id} className="text-xs">
+                  <span className="font-semibold">{r.shortLabel}</span>{" "}
+                  <span className="text-muted-foreground">— {r.label}</span>
+                </SelectItem>
+              ))}
+              <SelectItem value="smart-fill" className="text-xs text-purple-300">
+                <Wand2 className="w-3 h-3 inline mr-1" />
+                Smart Fill — pick per exercise
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       )}
 
@@ -352,20 +362,6 @@ export default function SplitBuilder() {
     setSplit({ ...split, dayAssignments: next });
   };
 
-  const handleAutoFillAllSets = () => {
-    let changed = 0;
-    for (const item of routine) {
-      const recommended = autoRecommendSets(item, experience);
-      // Always replace — Smart Fill is destructive by design.
-      updateRoutineItem(item.id, { sets: recommended });
-      changed += 1;
-    }
-    // updateRoutineItem flipped the plan-modified flag for each call;
-    // restore the fresh state since this entire batch IS the auto path.
-    markAutoPlanFresh();
-    toast.success(`Smart Fill applied to ${changed} exercise${changed !== 1 ? "s" : ""}`);
-  };
-
   // Pre-Set: stamp every exercise in the routine with the same range.
   const handleApplyRangeAll = (rangeId: RepRangeId) => {
     for (const item of routine) {
@@ -376,27 +372,16 @@ export default function SplitBuilder() {
     toast.success(`Pre-Set: all exercises to ${REP_RANGE_BY_ID[rangeId].shortLabel} reps`);
   };
 
-  // Smart Fill: each exercise gets its own range based on a heuristic
-  // (deadlift / RDL / Bayesian -> low reps; calves / abs / face pull /
-  // lateral raise -> high reps; default -> medium reps). After P11 the
-  // 5-rule matrix replaces this.
+  // Smart Fill: each exercise gets its own range from the matrix
+  // (CNS deadlift -> Low; endurance class -> High; default -> Medium).
   const handleAutoBucket = () => {
     for (const item of routine) {
-      const rangeId = suggestRangeForExercise(item.exercise, item.category);
+      const rangeId = smartFillRange(item);
       const newSets = applyRangeToRoutineSets(item, rangeId);
       updateRoutineItem(item.id, { sets: newSets });
     }
     markAutoPlanFresh();
     toast.success("Smart Fill applied across mesocycle");
-  };
-
-  // Apply a preset to one exercise (used by the per-exercise toggle in
-  // DayExerciseEditor).
-  const handleApplyRangeOne = (id: string, rangeId: RepRangeId) => {
-    const item = routine.find((r) => r.id === id);
-    if (!item) return;
-    const newSets = applyRangeToRoutineSets(item, rangeId);
-    updateRoutineItem(id, { sets: newSets });
   };
 
   // Pre-Set day-scoped: stamp every exercise on this day with one range.
@@ -419,14 +404,14 @@ export default function SplitBuilder() {
   };
 
   // Smart Fill day-scoped: each exercise on this day gets its own range
-  // via the heuristic.
+  // via the matrix.
   const handleAutoBucketDay = (dayId: string) => {
     const ids = split.dayAssignments[dayId] ?? [];
     let n = 0;
     for (const id of ids) {
       const item = itemsById.get(id);
       if (!item) continue;
-      const rangeId = suggestRangeForExercise(item.exercise, item.category);
+      const rangeId = smartFillRange(item);
       const newSets = applyRangeToRoutineSets(item, rangeId);
       updateRoutineItem(id, { sets: newSets });
       n += 1;
@@ -516,16 +501,6 @@ export default function SplitBuilder() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleAutoFillAllSets}
-                title="Smart Fill — recommend sets, reps, and rest for every exercise"
-                className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
-              >
-                <Wand2 className="w-3.5 h-3.5 mr-1.5" />
-                Smart Fill
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
                 onClick={handleReallocate}
                 title="Re-run the auto-allocator (re-distributes exercises across days)"
               >
@@ -590,41 +565,43 @@ export default function SplitBuilder() {
               </p>
             </div>
 
-            {/* Rep-range pre-sets + Smart Fill — global for the whole mesocycle */}
+            {/* Mesocycle-wide rep-range — single dropdown */}
             {routine.length > 0 && (
               <div className="p-3 bg-secondary/40 border-2 border-border rounded-sm space-y-2">
                 <div>
                   <h5 className="font-heading font-bold text-sm text-foreground leading-tight">
-                    Rep-Range Pre-Sets
+                    Rep-Range for the Mesocycle
                   </h5>
                   <p className="text-[11px] text-muted-foreground leading-snug">
-                    Pre-Set: stamp every exercise to one rep range. Smart Fill: pick a different range per exercise (calves &amp; abs high reps, deadlifts low reps, everything else medium).
+                    Pre-Set stamps every exercise to one rep range. Smart Fill picks a different range per exercise (calves &amp; abs high reps, deadlifts low reps, everything else medium).
                   </p>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                  {REP_RANGES.map((r) => (
-                    <Button
-                      key={r.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleApplyRangeAll(r.id)}
-                      className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start"
-                      title={`Pre-Set: every exercise to ${r.label} (${r.shortLabel})`}
-                    >
-                      <span className="font-semibold tabular-nums">{r.shortLabel}</span>
-                      <span className="text-[9px] text-muted-foreground font-normal">{r.label}</span>
-                    </Button>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAutoBucket}
-                    className="text-[11px] h-auto py-1.5 px-2 flex flex-col items-start border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
-                    title="Smart Fill: pick a rep range per exercise based on exercise type"
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    Apply to all:
+                  </span>
+                  <Select
+                    onValueChange={(v) => {
+                      if (v === "smart-fill") handleAutoBucket();
+                      else handleApplyRangeAll(v as RepRangeId);
+                    }}
                   >
-                    <Wand2 className="w-3.5 h-3.5 mb-0.5" />
-                    <span className="font-semibold">Smart Fill</span>
-                  </Button>
+                    <SelectTrigger className="h-8 text-xs w-[260px]">
+                      <SelectValue placeholder="Pick a rep range for the whole week..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {REP_RANGES.map((r) => (
+                        <SelectItem key={r.id} value={r.id} className="text-xs">
+                          <span className="font-semibold">{r.shortLabel}</span>{" "}
+                          <span className="text-muted-foreground">— {r.label} (Pre-Set)</span>
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="smart-fill" className="text-xs text-purple-300">
+                        <Wand2 className="w-3 h-3 inline mr-1" />
+                        Smart Fill — pick per exercise
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
