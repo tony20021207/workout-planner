@@ -49,7 +49,7 @@ export interface MuscleGroup {
   subgroups: MuscleGroupSubgroup[];
 }
 
-interface SubcategoryTarget {
+export interface SubcategoryTarget {
   muscleGroup: MuscleGroupId;
   subgroupId: string;
   subgroupName: string;
@@ -59,7 +59,7 @@ interface SubcategoryTarget {
  * Map every existing subcategory id to (muscle group, subgroup) in the new
  * tree. Subcategory ids come from data.ts and are stable.
  */
-const SUBCATEGORY_MAP: Record<string, SubcategoryTarget> = {
+export const SUBCATEGORY_MAP: Record<string, SubcategoryTarget> = {
   // Tier 1 — Squat / Hinge / Push / Pull
   "squat-quad-biased":   { muscleGroup: "legs",      subgroupId: "quads",      subgroupName: "Quadriceps" },
   "squat-glute-adductor":{ muscleGroup: "legs",      subgroupId: "glutes",     subgroupName: "Glutes & Adductors" },

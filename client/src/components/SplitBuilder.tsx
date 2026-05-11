@@ -26,6 +26,7 @@ import {
   Wand2,
   Flame,
   Loader2,
+  Shuffle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,6 +60,13 @@ import {
   type RepRangeId,
 } from "@/lib/repRanges";
 import { toast } from "sonner";
+import type { SwapSize } from "@/lib/variantSwap";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import DayExerciseEditor from "./DayExerciseEditor";
 import PostSplitRater from "./PostSplitRater";
 
@@ -296,6 +304,7 @@ export default function SplitBuilder() {
     setWeek2DayAssignments,
     rebalanceWeek2,
     applyLoadDeload,
+    swapVariantsWeek2,
   } = useWorkout();
   const [open, setOpen] = useState(false);
   const [activeWeek, setActiveWeek] = useState<1 | 2>(1);
@@ -325,8 +334,13 @@ export default function SplitBuilder() {
   const itemsById = useMemo(() => {
     const m = new Map<string, RoutineItem>();
     routine.forEach((r) => m.set(r.id, r));
+    // Merge in Week 2's parallel routine (variant-swapped items). These
+    // ids only appear in mesocycle.week2DayAssignments — on Week 1 the
+    // merge is a no-op since Week 1 day assignments reference routine[]
+    // exclusively.
+    mesocycle.week2Routine.forEach((r) => m.set(r.id, r));
     return m;
-  }, [routine]);
+  }, [routine, mesocycle.week2Routine]);
 
   // Active week's day assignments — Week 1 reads split.dayAssignments,
   // Week 2 (when mesocycle is enabled) reads mesocycle.week2DayAssignments.
@@ -719,7 +733,7 @@ export default function SplitBuilder() {
                   </p>
                 ) : (
                   <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                    2-week mesocycle. Week 2 starts as a clone of Week 1. <span className="font-semibold text-purple-300">Rebalance</span> swaps mirrored upper days + pivots leg days; <span className="font-semibold text-purple-300">Load/Deload</span> rebalances per-muscle set counts against the 2-week budget.
+                    2-week mesocycle. Week 2 starts as a clone of Week 1. <span className="font-semibold text-purple-300">Rebalance</span> swaps mirrored upper days + pivots leg days; <span className="font-semibold text-purple-300">Load/Deload</span> redistributes set counts against the 2-week budget; <span className="font-semibold text-purple-300">Swap Variants</span> rotates non-favorited exercises (favorites are locked).
                   </p>
                 )}
               </div>
@@ -785,6 +799,59 @@ export default function SplitBuilder() {
                       >
                         Apply Load/Deload
                       </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 text-xs"
+                            title="Replace non-favorited Week 2 exercises with biomechanically similar variants. Favorites are hard-locked and never swapped."
+                          >
+                            <Shuffle className="w-3.5 h-3.5 mr-1" />
+                            Swap Variants
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-72">
+                          {([
+                            {
+                              size: "small" as SwapSize,
+                              label: "Small — same lane",
+                              detail: "Equipment / angle variant (BB Bench → DB Bench)",
+                            },
+                            {
+                              size: "medium" as SwapSize,
+                              label: "Medium — same muscle",
+                              detail: "Different SFR / ROM (Bayesian Curl → Preacher Curl)",
+                            },
+                            {
+                              size: "large" as SwapSize,
+                              label: "Large — same group",
+                              detail: "Different sub-bucket (Quads → Glutes within Legs)",
+                            },
+                          ]).map((opt) => (
+                            <DropdownMenuItem
+                              key={opt.size}
+                              onClick={() => {
+                                const summary = swapVariantsWeek2(opt.size);
+                                if (!summary) return;
+                                const parts: string[] = [];
+                                if (summary.swapped) parts.push(`${summary.swapped} swapped`);
+                                if (summary.locked) parts.push(`${summary.locked} locked / favorited`);
+                                if (summary.noVariant) parts.push(`${summary.noVariant} no variant available`);
+                                toast.success(
+                                  `Week 2 ${opt.size} swap applied${parts.length ? ` — ${parts.join(", ")}` : ""}`,
+                                );
+                              }}
+                              className="flex-col items-start gap-0.5 py-2"
+                            >
+                              <span className="font-semibold text-foreground">{opt.label}</span>
+                              <span className="text-[11px] text-muted-foreground leading-snug">
+                                {opt.detail}
+                              </span>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </>
                   )}
                   <Button

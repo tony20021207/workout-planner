@@ -12,6 +12,7 @@ import { type LifestyleId } from "@/lib/lifestyle";
 import { type ExperienceId, getExperience } from "@/lib/experience";
 import { rebalanceForWeek2 } from "@/lib/rebalance";
 import { computeWeek2LoadDeload } from "@/lib/loadDeload";
+import { swapAllNonFavoritesWeek2, type SwapSize } from "@/lib/variantSwap";
 
 export interface SetDetail {
   reps: number;
@@ -113,20 +114,30 @@ const DEFAULT_SPLIT: SplitState = {
  */
 export interface MesocycleState {
   enabled: boolean;
-  /** Week 2 dayId -> exercise ids. Mirrors split.dayAssignments shape. */
+  /** Week 2 dayId -> exercise ids. Mirrors split.dayAssignments shape.
+   * IDs may reference either routine[] (un-swapped items) or
+   * week2Routine[] (variant-swapped items). */
   week2DayAssignments: Record<string, string[]>;
   /**
-   * Week 2 per-exercise sets[] overrides. Empty -> use Week 1's sets
-   * for that exercise. When the load/deload phase lands, this map gets
-   * populated automatically with the deload-adjusted sets per exercise.
+   * Week 2 per-exercise sets[] overrides. Empty -> use the item's own
+   * sets[] (either from routine[] or week2Routine[]). When the load/
+   * deload phase runs, this map holds the deload-adjusted set counts.
    */
   week2ExerciseSets: Record<string, SetDetail[]>;
+  /**
+   * Parallel Week 2 routine — holds the RoutineItems created by the
+   * variant swap engine (P9.3.4). These items are NOT in routine[];
+   * they live here so Week 1 stays exactly as the user picked it.
+   * Renderers merge routine[] + week2Routine[] when on the Week 2 tab.
+   */
+  week2Routine: RoutineItem[];
 }
 
 const DEFAULT_MESOCYCLE: MesocycleState = {
   enabled: false,
   week2DayAssignments: {},
   week2ExerciseSets: {},
+  week2Routine: [],
 };
 
 export interface SessionWarmup {
@@ -205,6 +216,15 @@ interface WorkoutContextType {
    * feedback (load/deload/match counts). Returns null if mesocycle
    * isn't enabled. */
   applyLoadDeload: () => { loaded: number; deloaded: number; matched: number } | null;
+  /** Swap all non-favorited Week 2 exercises for variants at the given
+   * size (small / medium / large). Favorites are hard-locked and
+   * untouched. Week 1 stays as the user picked it; the swaps land in
+   * mesocycle.week2Routine[] and week2DayAssignments updates to reference
+   * the new ids. Returns counts for UI feedback. Returns null if
+   * mesocycle isn't enabled. */
+  swapVariantsWeek2: (
+    size: SwapSize,
+  ) => { swapped: number; locked: number; noVariant: number } | null;
   /** Set per-exercise sets[] override for week 2. Pass empty array to
    * remove the override (week 2 will fall back to week 1's sets). */
   setWeek2ExerciseSets: (exerciseId: string, sets: SetDetail[]) => void;
@@ -406,6 +426,7 @@ function loadMesocycleFromStorage(): MesocycleState {
           enabled: Boolean(parsed.enabled),
           week2DayAssignments: parsed.week2DayAssignments ?? {},
           week2ExerciseSets: parsed.week2ExerciseSets ?? {},
+          week2Routine: Array.isArray(parsed.week2Routine) ? parsed.week2Routine : [],
         };
       }
     }
@@ -490,6 +511,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         // will reshape week 2 (frequency rebalance + variant swaps).
         week2DayAssignments: JSON.parse(JSON.stringify(prevSplit.dayAssignments)) as Record<string, string[]>,
         week2ExerciseSets: {},
+        week2Routine: [],
       });
       return prevSplit;
     });
@@ -558,6 +580,59 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     });
     return summary;
   }, [experience]);
+
+  const swapVariantsWeek2 = useCallback(
+    (size: SwapSize): { swapped: number; locked: number; noVariant: number } | null => {
+      let summary: { swapped: number; locked: number; noVariant: number } | null = null;
+      setRoutine((prevRoutine) => {
+        setFavoritesState((prevFavorites) => {
+          setMesocycleState((prevMeso) => {
+            if (!prevMeso.enabled) return prevMeso;
+            // Merge current routine + any existing week2Routine items as
+            // the source pool — items that were already swapped on a
+            // previous click are now the "current" Week 2 items and
+            // should be considered for further swapping.
+            const sourcePool = [...prevRoutine, ...prevMeso.week2Routine];
+            const result = swapAllNonFavoritesWeek2(
+              sourcePool,
+              prevMeso.week2DayAssignments,
+              new Set(prevFavorites),
+              size,
+            );
+            summary = {
+              swapped: result.swappedCount,
+              locked: result.unchangedCount,
+              noVariant: result.noVariantCount,
+            };
+            // Migrate week2ExerciseSets so any load/deload work the user
+            // already did stays applied to the swapped-in item.
+            const newSets: Record<string, SetDetail[]> = {};
+            for (const [oldId, sets] of Object.entries(prevMeso.week2ExerciseSets)) {
+              const newId = result.idMap[oldId] ?? oldId;
+              newSets[newId] = sets;
+            }
+            // Rebuild week2Routine: drop entries whose old ids got
+            // swapped out (their corresponding new items are in
+            // result.swappedItems), keep the rest, then append new swaps.
+            const swappedOutIds = new Set(Object.keys(result.idMap));
+            const retainedWeek2Routine = prevMeso.week2Routine.filter(
+              (r) => !swappedOutIds.has(r.id),
+            );
+            return {
+              ...prevMeso,
+              week2DayAssignments: result.newWeek2DayAssignments,
+              week2ExerciseSets: newSets,
+              week2Routine: [...retainedWeek2Routine, ...result.swappedItems],
+            };
+          });
+          return prevFavorites;
+        });
+        return prevRoutine;
+      });
+      return summary;
+    },
+    [],
+  );
 
   const setWeek2ExerciseSets = useCallback((exerciseId: string, sets: SetDetail[]) => {
     setMesocycleState((prev) => {
@@ -744,6 +819,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         setWeek2DayAssignments,
         rebalanceWeek2,
         applyLoadDeload,
+        swapVariantsWeek2,
         setWeek2ExerciseSets,
       }}
     >
