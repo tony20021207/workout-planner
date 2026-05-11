@@ -21,6 +21,7 @@
  */
 import { categories, type Exercise } from "./data";
 import type { RoutineItem } from "@/contexts/WorkoutContext";
+import type { ExperienceId } from "./experience";
 
 // ============================================================
 // JOINT-ACTION TAXONOMY
@@ -106,6 +107,54 @@ const SFR_VALUE: Record<string, number> = {
 };
 
 // ============================================================
+// EXPERIENCE-LEVEL MODULATION
+// ============================================================
+//
+// Three of the five criteria are scored differently per experience
+// level (the other two — Deep Stretch and Major Coverage — are
+// universally good for hypertrophy regardless of training age).
+//
+//   SFR penalty       × 1.25 beginner / × 1.00 FID / × 0.75 experienced
+//   Stability penalty × 1.25 beginner / × 1.00 FID / × 0.75 experienced
+//   Compound/Iso band shifted: 15-35% / 20-45% / 25-50%
+//
+// Why: beginners can't absorb CNS-heavy low-SFR low-stability work
+// efficiently — they lack the technique to push to failure on free
+// weights. Experienced lifters can. The compound/iso sweet spot
+// literally moves with experience — more isolation for newer lifters,
+// more compound capacity for veterans.
+//
+// Stretch + coverage are NOT modulated: lengthened-position loading
+// helps everyone equally, and hitting the major movers matters
+// regardless of experience.
+
+const PENALTY_MULTIPLIER: Record<ExperienceId, number> = {
+  beginner: 1.25,
+  "foot-in-door": 1.0,
+  experienced: 0.75,
+};
+
+interface CompoundBand {
+  lo: number;
+  hi: number;
+}
+const COMPOUND_BAND: Record<ExperienceId, CompoundBand> = {
+  beginner: { lo: 0.15, hi: 0.35 },
+  "foot-in-door": { lo: 0.20, hi: 0.45 },
+  experienced: { lo: 0.25, hi: 0.50 },
+};
+
+/** Default experience when none is provided — falls back to baseline (FID). */
+const DEFAULT_EXPERIENCE: ExperienceId = "foot-in-door";
+
+function getMultiplier(experience: ExperienceId | null | undefined): number {
+  return PENALTY_MULTIPLIER[experience ?? DEFAULT_EXPERIENCE] ?? 1.0;
+}
+function getCompoundBand(experience: ExperienceId | null | undefined): CompoundBand {
+  return COMPOUND_BAND[experience ?? DEFAULT_EXPERIENCE] ?? COMPOUND_BAND[DEFAULT_EXPERIENCE];
+}
+
+// ============================================================
 // CRITERION SCORERS
 // ============================================================
 
@@ -113,8 +162,12 @@ const SFR_VALUE: Record<string, number> = {
  * Stability — weighted average of pick stability, mapped to 0-20 with
  * a floor of 4 (matches the prompt's "no stable picks should score 4-8"
  * lower bound). All very-high = 20, all low = 4, mixed proportional.
+ *
+ * Experience-modulated: the gap below full credit (20 − baseline) is
+ * multiplied by the experience penalty multiplier. Beginners absorb
+ * a steeper penalty for unstable picks; experienced lifters less.
  */
-function scoreStability(routine: RoutineItem[]): number {
+function scoreStability(routine: RoutineItem[], experience: ExperienceId | null | undefined): number {
   if (routine.length === 0) return 0;
   let sum = 0;
   for (const item of routine) {
@@ -122,8 +175,11 @@ function scoreStability(routine: RoutineItem[]): number {
     sum += STABILITY_VALUE[ex?.stability ?? "medium"] ?? 2;
   }
   const avg = sum / routine.length;
-  // avg 1 → 4, avg 4 → 20 (linear).
-  return clamp(((avg - 1) / 3) * 16 + 4, 0, 20);
+  // avg 1 → 4, avg 4 → 20 (linear). Baseline before experience scaling.
+  const baseline = clamp(((avg - 1) / 3) * 16 + 4, 0, 20);
+  const M = getMultiplier(experience);
+  const penalty = (20 - baseline) * M;
+  return clamp(20 - penalty, 0, 20);
 }
 
 /**
@@ -146,8 +202,11 @@ function scoreStretch(routine: RoutineItem[]): number {
 /**
  * SFR — weighted average of pick stimulus-to-fatigue rating, mapped to
  * 0-20 with floor of 4. All high = 20, all medium = 12, all low = 4.
+ *
+ * Experience-modulated: same penalty multiplier as Stability. Beginners
+ * pay more for low-SFR CNS-heavy picks; experienced lifters less.
  */
-function scoreSFR(routine: RoutineItem[]): number {
+function scoreSFR(routine: RoutineItem[], experience: ExperienceId | null | undefined): number {
   if (routine.length === 0) return 0;
   let sum = 0;
   for (const item of routine) {
@@ -155,29 +214,40 @@ function scoreSFR(routine: RoutineItem[]): number {
     sum += SFR_VALUE[ex?.sfr ?? "medium"] ?? 2;
   }
   const avg = sum / routine.length;
-  // avg 1 → 4, avg 2 → 12, avg 3 → 20 (linear).
-  return clamp(((avg - 1) / 2) * 16 + 4, 0, 20);
+  // avg 1 → 4, avg 2 → 12, avg 3 → 20 (linear). Baseline before scaling.
+  const baseline = clamp(((avg - 1) / 2) * 16 + 4, 0, 20);
+  const M = getMultiplier(experience);
+  const penalty = (20 - baseline) * M;
+  return clamp(20 - penalty, 0, 20);
 }
 
 /**
- * Compound vs Isolation Ratio. Full credit (20) in the 20-45% band;
- * penalty grows linearly outside the band per the prompt's curve.
+ * Compound vs Isolation Ratio. Full credit (20) inside the experience-
+ * specific band; penalty grows linearly outside the band per the
+ * prompt's curve.
+ *
+ *   Beginner band:     15–35%   (less compound — lower CNS load)
+ *   Foot-in-Door band: 20–45%   (baseline)
+ *   Experienced band:  25–50%   (more compound capacity)
+ *
  * Returns the score and the actual compound percentage.
  */
-function scoreCompoundIsoRatio(routine: RoutineItem[]): { score: number; pct: number } {
+function scoreCompoundIsoRatio(
+  routine: RoutineItem[],
+  experience: ExperienceId | null | undefined,
+): { score: number; pct: number } {
   if (routine.length === 0) return { score: 0, pct: 0 };
   const compounds = routine.filter((r) => r.category === "systemic").length;
   const pct = compounds / routine.length;
+  const band = getCompoundBand(experience);
   let score: number;
-  if (pct >= 0.20 && pct <= 0.45) {
+  if (pct >= band.lo && pct <= band.hi) {
     score = 20;
-  } else if (pct < 0.20) {
-    // 0.15 → -5, 0.10 → -10, 0.00 → -18 (capped at 0).
-    const deficit = 0.20 - pct;
+  } else if (pct < band.lo) {
+    const deficit = band.lo - pct;
     score = Math.max(0, 20 - deficit * 90);
   } else {
-    // 0.55 → -3.6, 0.65 → -7.2, 0.75 → -10.8, 1.0 → fully penalized.
-    const excess = pct - 0.45;
+    const excess = pct - band.hi;
     score = Math.max(0, 20 - excess * 36);
   }
   return { score, pct };
@@ -324,14 +394,20 @@ export interface PoolScore {
 }
 
 /**
- * Score a routine pool. Pure function — same routine + favorites
- * always produces the same score.
+ * Score a routine pool. Pure function — same routine + favorites +
+ * experience always produces the same score. If experience is
+ * null/undefined, falls back to the foot-in-door baseline (no
+ * modulation on the SFR / Stability / Compound-Iso criteria).
  */
-export function scorePool(routine: RoutineItem[], favoriteIds: string[]): PoolScore {
-  const stability = scoreStability(routine);
+export function scorePool(
+  routine: RoutineItem[],
+  favoriteIds: string[],
+  experience: ExperienceId | null | undefined,
+): PoolScore {
+  const stability = scoreStability(routine, experience);
   const stretch = scoreStretch(routine);
-  const sfr = scoreSFR(routine);
-  const cir = scoreCompoundIsoRatio(routine);
+  const sfr = scoreSFR(routine, experience);
+  const cir = scoreCompoundIsoRatio(routine, experience);
   const cov = scoreCoverage(routine, MAJOR_ACTIONS, 20);
   const minor = scoreCoverage(routine, MINOR_ACTIONS, 1.5);
   const fav = scoreFavorites(routine, favoriteIds);

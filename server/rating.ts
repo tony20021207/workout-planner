@@ -839,6 +839,10 @@ function buildPrecomputedScoresBlock(
   }
   lines.push("");
   lines.push(
+    "These scores are experience-modulated: the SFR + Stability penalty is steeper for beginners (×1.25) and milder for experienced (×0.75), and the Compound/Iso optimal band shifts (beginner 15-35%, foot-in-door 20-45%, experienced 25-50%). Same routine scored at different experience levels intentionally yields different numbers.",
+  );
+  lines.push("");
+  lines.push(
     "Your job: ECHO these numbers exactly in the response schema, AND write coaching notes / cueing tips / favorite-bias reasoning that align with these scores. Do NOT recompute or contradict them. Frame recommendations around the LOWEST-scored criteria.",
   );
   return lines.join("\n");

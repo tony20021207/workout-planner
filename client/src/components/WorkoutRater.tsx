@@ -564,8 +564,10 @@ export default function WorkoutRater() {
         : undefined;
     if (mode === "routine") {
       // Compute the deterministic score locally so the LLM only writes
-      // prose. Same routine + same favorites = same numbers every time.
-      const localScore = scorePool(routine, favorites);
+      // prose. Same routine + same favorites + same experience = same
+      // numbers every time. Experience modulates SFR / Stability penalty
+      // multiplier and the Compound/Iso band.
+      const localScore = scorePool(routine, favorites, experience);
       setPendingScore(localScore);
       rateMutation.mutate({
         source: "routine",
