@@ -61,18 +61,33 @@ export interface FavoriteBias {
   reasoning: string;
 }
 
-export interface OptimizedExercise {
-  exercise: string;
-  angle?: string;
-  equipment?: string;
-  sets: number;
-  repRange: string;
-  rir: string;
-  frequency?: string;
+/**
+ * Pair-based recommendations — left-to-right diff against the user's
+ * current pool. One pair per current exercise (keep / swap / remove)
+ * plus any number of 'add' pairs for coverage gaps.
+ */
+export type RecommendationAction = "keep" | "swap" | "remove" | "add";
+
+export interface RecommendationPair {
+  action: RecommendationAction;
+  /** 1-based index of the current exercise in the routine; 0 for 'add'. */
+  currentIndex: number;
+  /** Current exercise name. Empty string for 'add'. */
+  current: string;
+  /** Recommended exercise name. Same as current for 'keep'. Empty for 'remove'. */
+  recommended: string;
+  /** Category of the recommended exercise (or current for keep/remove). */
   category: CategoryType;
-  targetedMuscles: string[];
-  jointActions: string[];
+  /** Targeted muscles of the recommended exercise (needed for swap / add to build a RoutineItem). */
+  targetedMuscles?: string[];
+  /** One-sentence per-pair rationale naming the rating criterion driving the change. */
   rationale: string;
+}
+
+export interface Recommendations {
+  pairs: RecommendationPair[];
+  /** 3-5 sentence mesocycle summary. */
+  globalRationale: string;
 }
 
 export interface RatingResult {
@@ -85,7 +100,7 @@ export interface RatingResult {
   favoriteBias: FavoriteBias;
   /** Empty string if no pulldowns; otherwise the scap-depression cueing reminder. */
   scapularDepressionNote: string;
-  optimizedRoutine: OptimizedExercise[];
+  recommendations: Recommendations;
 }
 
 // ============================================================
@@ -191,37 +206,32 @@ export function serializeRoutineToText(routine: RoutineItem[]): string {
 }
 
 /**
- * Convert an LLM-suggested OptimizedExercise into a RoutineItem ready for the routine.
+ * Convert a swap or add RecommendationPair into a RoutineItem. Used by
+ * WorkoutRater when applying an accepted recommendation. Sets[] is
+ * intentionally empty — the user fills sets/reps via Opti-fill or
+ * Pre-Set after the diff is applied.
  */
-export function optimizedToRoutineItem(opt: OptimizedExercise): RoutineItem {
-  const repsMatch = opt.repRange.match(/(\d+)/);
-  const defaultReps = repsMatch ? parseInt(repsMatch[1], 10) : 10;
-  const sets = Array.from({ length: Math.max(1, opt.sets) }, () => ({
-    reps: defaultReps,
-    weight: 0,
-  }));
-
-  const exerciseName = opt.angle && !opt.exercise.toLowerCase().includes(opt.angle.toLowerCase())
-    ? `${opt.angle} ${opt.exercise}`
-    : opt.exercise;
-
+export function pairToRoutineItem(pair: RecommendationPair): RoutineItem {
+  const targetedMuscles = pair.targetedMuscles ?? [];
   return {
     id: generateId(),
-    exercise: exerciseName,
-    jointFunction: opt.targetedMuscles[0] || "Custom",
-    category: opt.category,
+    exercise: pair.recommended,
+    // jointFunction is best-effort — the recommendations API doesn't
+    // carry it. Use the primary targeted muscle as a stand-in so
+    // existing matchers (heavy-hinge cleanup, Upper Body Pull strip)
+    // still have something reasonable to read.
+    jointFunction: targetedMuscles[0] || "Custom",
+    category: pair.category,
     parameters: {
-      sets: `${opt.sets} sets`,
-      reps: `${opt.repRange} reps`,
-      frequency: opt.frequency || "2x per week",
-      rest: opt.category === "systemic" ? "2–3 minutes" : "60–90 seconds",
-      intensity: opt.rir,
-      rationale: opt.rationale,
+      sets: "3 sets",
+      reps: pair.category === "systemic" ? "8-12 reps" : "12-15 reps",
+      frequency: "2x per week",
+      rest: pair.category === "systemic" ? "2–3 minutes" : "60–90 seconds",
+      intensity: pair.category === "systemic" ? "1-2 RIR" : "0 RIR",
+      rationale: pair.rationale,
     },
-    sets,
+    sets: [],
     difficulty: "medium",
-    targetedMuscles: opt.targetedMuscles,
-    equipment: opt.equipment,
-    angle: opt.angle,
+    targetedMuscles,
   };
 }

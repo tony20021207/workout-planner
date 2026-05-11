@@ -4,7 +4,7 @@
  * shows the breakdown inline, and lets the user adopt the optimized routine
  * (all-or-some) and re-rate iteratively.
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
@@ -14,8 +14,6 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
-  Plus,
-  Minus,
   RotateCw,
   Replace,
   AlertTriangle,
@@ -23,6 +21,8 @@ import {
   Info,
   Trophy,
   Heart,
+  ArrowRight,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,10 +34,11 @@ import ExperiencePicker from "./ExperiencePicker";
 import { toast } from "sonner";
 import {
   type RatingResult,
-  type OptimizedExercise,
+  type RecommendationPair,
   serializeRoutineToText,
-  optimizedToRoutineItem,
+  pairToRoutineItem,
 } from "@/lib/rating";
+import { type RoutineItem } from "@/contexts/WorkoutContext";
 import { RatingRubric } from "./RatingRubric";
 
 type SourceMode = "routine" | "text" | "image";
@@ -114,26 +115,138 @@ function BreakdownRow({ label, score, max, notes }: { label: string; score: numb
   );
 }
 
+function countActionable(pairs: RecommendationPair[]): number {
+  return pairs.filter((p) => p.action !== "keep").length;
+}
+
+interface RecommendationRowProps {
+  pair: RecommendationPair;
+  striped: boolean;
+  accepted: boolean;
+  onToggle: () => void;
+}
+
+function RecommendationRow({ pair, striped, accepted, onToggle }: RecommendationRowProps) {
+  const isKeep = pair.action === "keep";
+  const isRemove = pair.action === "remove";
+  const isAdd = pair.action === "add";
+  const isSwap = pair.action === "swap";
+
+  // Tag chip styling per action.
+  const tagStyle =
+    isKeep ? "border-muted-foreground/40 text-muted-foreground bg-muted-foreground/5"
+    : isSwap ? "border-yellow-400/40 text-yellow-300 bg-yellow-500/10"
+    : isAdd ? "border-lime/40 text-lime bg-lime/10"
+    : "border-red-400/40 text-red-300 bg-red-500/10";
+
+  const tagLabel = isKeep ? "Keep" : isSwap ? "Swap" : isAdd ? "Add" : "Remove";
+
+  return (
+    <div
+      className={`p-3 border-b border-border last:border-b-0 ${
+        striped ? "bg-secondary/30" : "bg-card"
+      } ${!accepted && !isKeep ? "opacity-60" : ""}`}
+    >
+      <div className="flex items-start gap-3">
+        {/* Checkbox column — keep rows show a lock icon instead. */}
+        <div className="pt-0.5 shrink-0">
+          {isKeep ? (
+            <div
+              className="w-5 h-5 flex items-center justify-center text-muted-foreground"
+              title="No action — current pick is appropriate"
+            >
+              <Lock className="w-3 h-3" />
+            </div>
+          ) : (
+            <button
+              onClick={onToggle}
+              className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center transition-colors ${
+                accepted
+                  ? "bg-lime border-lime text-lime-foreground"
+                  : "bg-background border-border hover:border-lime/60"
+              }`}
+              title={accepted ? "Untick to skip this recommendation" : "Tick to accept this recommendation"}
+            >
+              {accepted && <CheckCircle2 className="w-3 h-3" strokeWidth={3} />}
+            </button>
+          )}
+        </div>
+
+        {/* Diff row: current → recommended */}
+        <div className="flex-1 min-w-0 grid grid-cols-[1fr_auto_1fr] gap-3 items-center">
+          {/* Current */}
+          <div className="min-w-0">
+            {pair.current ? (
+              <div className="text-sm font-semibold text-foreground truncate" title={pair.current}>
+                {pair.current}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground italic">— (none)</div>
+            )}
+          </div>
+
+          {/* Arrow + tag */}
+          <div className="flex items-center gap-2 shrink-0">
+            <ArrowRight className="w-4 h-4 text-muted-foreground" />
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-semibold uppercase tracking-wider ${tagStyle}`}>
+              {tagLabel}
+            </span>
+          </div>
+
+          {/* Recommended */}
+          <div className="min-w-0">
+            {isRemove ? (
+              <div className="text-sm text-muted-foreground italic">— (drop)</div>
+            ) : (
+              <div className="text-sm font-semibold text-foreground truncate" title={pair.recommended}>
+                {pair.recommended}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Per-pair rationale */}
+      {pair.rationale && (
+        <p className="text-[11px] text-muted-foreground italic leading-relaxed mt-1.5 ml-8">
+          {pair.rationale}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function WorkoutRater() {
-  const { routine, replaceRoutine, addRoutineItem, lifestyle, experience, markAutoPlanFresh, favorites } = useWorkout();
+  const { routine, replaceRoutine, lifestyle, experience, markAutoPlanFresh, favorites } = useWorkout();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<SourceMode>("routine");
   const [pastedText, setPastedText] = useState("");
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [imageName, setImageName] = useState<string | null>(null);
   const [result, setResult] = useState<RatingResult | null>(null);
-  const [excluded, setExcluded] = useState<Set<number>>(new Set());
+  // Indices into result.recommendations.pairs that the user has accepted.
+  // Defaults to every non-"keep" pair on a fresh rating. Toggled per row.
+  const [acceptedPairs, setAcceptedPairs] = useState<Set<number>>(new Set());
 
   const rateMutation = trpc.rating.rateWorkout.useMutation({
     onSuccess: (data) => {
       setResult(data as RatingResult);
-      setExcluded(new Set());
       toast.success("Rating complete");
     },
     onError: (err) => {
       toast.error(`Rating failed: ${err.message}`);
     },
   });
+
+  // Default-accept every non-"keep" pair whenever a fresh result arrives.
+  useEffect(() => {
+    if (!result) return;
+    const next = new Set<number>();
+    result.recommendations.pairs.forEach((p, idx) => {
+      if (p.action !== "keep") next.add(idx);
+    });
+    setAcceptedPairs(next);
+  }, [result]);
 
   const canSubmit = useMemo(() => {
     if (mode === "routine") return routine.length > 0;
@@ -197,43 +310,102 @@ export default function WorkoutRater() {
     }
   };
 
-  const handleAdoptAll = () => {
-    if (!result) return;
-    const items = result.optimizedRoutine
-      .filter((_, i) => !excluded.has(i))
-      .map(optimizedToRoutineItem);
-    if (items.length === 0) {
-      toast.error("No exercises selected to adopt");
-      return;
-    }
-    replaceRoutine(items);
-    // Adopting the LLM-optimized routine wholesale IS the auto path — this
-    // is the canonical "perfect plan" entry point.
-    if (excluded.size === 0) {
-      markAutoPlanFresh();
-    }
-    toast.success(`Adopted ${items.length} exercise${items.length === 1 ? "" : "s"} as your new routine`);
-    setMode("routine");
-    setResult(null);
-  };
-
-  const handleAddOne = (opt: OptimizedExercise) => {
-    addRoutineItem(optimizedToRoutineItem(opt));
-    toast.success(`Added "${opt.exercise}" to your routine`);
-  };
-
-  const toggleExclude = (i: number) => {
-    setExcluded((prev) => {
+  const togglePair = (idx: number) => {
+    setAcceptedPairs((prev) => {
       const next = new Set(prev);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
       return next;
     });
   };
 
+  const acceptAll = () => {
+    if (!result) return;
+    const next = new Set<number>();
+    result.recommendations.pairs.forEach((p, idx) => {
+      if (p.action !== "keep") next.add(idx);
+    });
+    setAcceptedPairs(next);
+  };
+
+  /**
+   * Apply the accepted pairs to the user's routine. Builds a new routine
+   * by walking the current routine and applying each pair's action:
+   *
+   *   keep   → current item stays
+   *   swap   → current item replaced (sets[] preserved if user already filled them)
+   *   remove → current item dropped
+   *   add    → new item appended
+   *
+   * Unchecked pairs are treated as "leave the current item alone."
+   */
+  const handleApplyRecommendations = () => {
+    if (!result) return;
+    const pairs = result.recommendations.pairs;
+    const pairByCurrentIndex = new Map<number, { pair: RecommendationPair; pairIdx: number }>();
+    pairs.forEach((p, pairIdx) => {
+      if (p.currentIndex > 0) pairByCurrentIndex.set(p.currentIndex, { pair: p, pairIdx });
+    });
+
+    const nextRoutine: RoutineItem[] = [];
+    let appliedSwaps = 0;
+    let appliedRemoves = 0;
+    let appliedAdds = 0;
+
+    routine.forEach((item, i) => {
+      const found = pairByCurrentIndex.get(i + 1);
+      if (!found) {
+        nextRoutine.push(item);
+        return;
+      }
+      const { pair, pairIdx } = found;
+      const accepted = acceptedPairs.has(pairIdx);
+      if (!accepted || pair.action === "keep") {
+        nextRoutine.push(item);
+        return;
+      }
+      if (pair.action === "remove") {
+        appliedRemoves++;
+        return;
+      }
+      if (pair.action === "swap") {
+        const newItem = pairToRoutineItem(pair);
+        // Preserve any sets[] the user already filled; if empty (typical
+        // pre-Opti-fill state) the swap starts blank too.
+        newItem.sets = item.sets;
+        nextRoutine.push(newItem);
+        appliedSwaps++;
+        return;
+      }
+      nextRoutine.push(item);
+    });
+
+    pairs.forEach((p, pairIdx) => {
+      if (p.action === "add" && acceptedPairs.has(pairIdx)) {
+        nextRoutine.push(pairToRoutineItem(p));
+        appliedAdds++;
+      }
+    });
+
+    if (appliedSwaps + appliedRemoves + appliedAdds === 0) {
+      toast.error("No changes selected — pick at least one recommendation");
+      return;
+    }
+
+    replaceRoutine(nextRoutine);
+    markAutoPlanFresh();
+    const parts: string[] = [];
+    if (appliedSwaps) parts.push(`${appliedSwaps} swapped`);
+    if (appliedRemoves) parts.push(`${appliedRemoves} removed`);
+    if (appliedAdds) parts.push(`${appliedAdds} added`);
+    toast.success(`Recommendations applied — ${parts.join(", ")}`);
+    setMode("routine");
+    setResult(null);
+  };
+
   const reset = () => {
     setResult(null);
-    setExcluded(new Set());
+    setAcceptedPairs(new Set());
     setPastedText("");
     setImageDataUrl(null);
     setImageName(null);
@@ -620,20 +792,35 @@ Tue - Pull
               <ExperiencePicker />
             </div>
 
-            {/* Optimized routine */}
+            {/* Pair-based recommendations — left-to-right diff */}
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">
-                  Optimized Routine · {result.optimizedRoutine.length} exercises
-                </h4>
+                <div>
+                  <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">
+                    Recommendations · {countActionable(result.recommendations.pairs)} change{countActionable(result.recommendations.pairs) === 1 ? "" : "s"}
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Each row maps a current pick to what the engine recommends. Tick a row to accept it; untick to keep your current pick. Favorited exercises are locked.
+                  </p>
+                </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Button
                     size="sm"
-                    onClick={handleAdoptAll}
+                    variant="outline"
+                    onClick={acceptAll}
+                    className="text-xs"
+                    title="Re-check every actionable row (swap / remove / add)"
+                  >
+                    Select all
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleApplyRecommendations}
                     className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold"
+                    title="Apply every checked recommendation to your routine"
                   >
                     <Replace className="w-4 h-4 mr-1" />
-                    Adopt {excluded.size > 0 ? `selected (${result.optimizedRoutine.length - excluded.size})` : "all & replace"}
+                    Apply ({acceptedPairs.size})
                   </Button>
                   <Button
                     size="sm"
@@ -655,82 +842,31 @@ Tue - Pull
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                Toggle <Minus className="w-3 h-3 inline" /> to exclude an exercise from "Adopt all". Use <Plus className="w-3 h-3 inline" /> to add a single exercise to your existing routine without replacing it.
-              </p>
-
+              {/* Diff rows */}
               <div className="border-2 border-border rounded-sm overflow-hidden">
-                {result.optimizedRoutine.map((opt, i) => {
-                  const isExcluded = excluded.has(i);
-                  return (
-                    <div
-                      key={i}
-                      className={`p-3 border-b border-border last:border-b-0 ${
-                        i % 2 === 0 ? "bg-card" : "bg-secondary/30"
-                      } ${isExcluded ? "opacity-40" : ""}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-heading font-semibold text-foreground text-sm">{opt.exercise}</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border ${
-                              opt.category === "systemic"
-                                ? "border-lime/40 text-lime bg-lime/10"
-                                : "border-coral/40 text-coral bg-coral/10"
-                            }`}>
-                              {opt.category === "systemic" ? "Tier 1" : "Tier 2"}
-                            </span>
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            {opt.targetedMuscles.join(", ")}
-                          </div>
-                          {opt.jointActions && opt.jointActions.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1.5">
-                              {opt.jointActions.map((ja, jaIdx) => (
-                                <span
-                                  key={jaIdx}
-                                  className="text-[10px] px-1.5 py-0.5 bg-purple-500/10 text-purple-300 border border-purple-500/30 rounded-sm"
-                                >
-                                  {ja}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-foreground mt-1.5">
-                            <span><strong className="text-lime">{opt.sets}</strong> × {opt.repRange} reps</span>
-                            <span>{opt.rir}</span>
-                            {opt.frequency && <span>{opt.frequency}</span>}
-                            {opt.equipment && <span className="text-muted-foreground">{opt.equipment}</span>}
-                          </div>
-                          {opt.rationale && (
-                            <p className="text-[11px] text-muted-foreground italic mt-1.5 leading-relaxed">{opt.rationale}</p>
-                          )}
-                        </div>
-                        <div className="flex flex-col gap-1 shrink-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleExclude(i)}
-                            className={`w-8 h-8 p-0 ${isExcluded ? "border-lime text-lime" : "border-destructive/50 text-destructive"}`}
-                            title={isExcluded ? "Include in adopt-all" : "Exclude from adopt-all"}
-                          >
-                            {isExcluded ? <Plus className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleAddOne(opt)}
-                            className="w-8 h-8 p-0 text-lime border-lime/40 hover:bg-lime/10"
-                            title="Add this single exercise to your routine"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {result.recommendations.pairs.map((pair, idx) => (
+                  <RecommendationRow
+                    key={idx}
+                    pair={pair}
+                    striped={idx % 2 === 1}
+                    accepted={acceptedPairs.has(idx)}
+                    onToggle={() => togglePair(idx)}
+                  />
+                ))}
               </div>
+
+              {/* Global rationale — mesocycle-perspective summary */}
+              {result.recommendations.globalRationale && (
+                <div className="p-4 bg-purple-500/[0.04] border-2 border-purple-500/25 rounded-sm">
+                  <div className="flex items-center gap-1.5 mb-1.5 text-purple-300 font-semibold text-xs uppercase tracking-wider">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Why these changes — mesocycle view
+                  </div>
+                  <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                    {result.recommendations.globalRationale}
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
