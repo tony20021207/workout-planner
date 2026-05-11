@@ -140,6 +140,57 @@ function countActionable(pairs: RecommendationPair[]): number {
 }
 
 /**
+ * Build the routine that would result if the given pairs were applied.
+ * Pure function — does not mutate. Shared between the live score
+ * projection (per render) and the actual Apply handler (on click).
+ *
+ *   keep   → current item stays
+ *   swap   → current item replaced (sets[] preserved)
+ *   remove → current item dropped
+ *   add    → new item appended
+ *
+ * Pairs not in `accepted` are treated as no-ops.
+ */
+function buildProjectedRoutine(
+  routine: RoutineItem[],
+  pairs: RecommendationPair[],
+  accepted: Set<number>,
+): RoutineItem[] {
+  const pairByCurrentIdx = new Map<number, { pair: RecommendationPair; pairIdx: number }>();
+  pairs.forEach((p, pairIdx) => {
+    if (p.currentIndex > 0) pairByCurrentIdx.set(p.currentIndex, { pair: p, pairIdx });
+  });
+  const out: RoutineItem[] = [];
+  routine.forEach((item, i) => {
+    const found = pairByCurrentIdx.get(i + 1);
+    if (!found) {
+      out.push(item);
+      return;
+    }
+    const { pair, pairIdx } = found;
+    const isAccepted = accepted.has(pairIdx);
+    if (!isAccepted || pair.action === "keep") {
+      out.push(item);
+      return;
+    }
+    if (pair.action === "remove") return;
+    if (pair.action === "swap") {
+      const newItem = pairToRoutineItem(pair);
+      newItem.sets = item.sets;
+      out.push(newItem);
+      return;
+    }
+    out.push(item);
+  });
+  pairs.forEach((p, pairIdx) => {
+    if (p.action === "add" && accepted.has(pairIdx)) {
+      out.push(pairToRoutineItem(p));
+    }
+  });
+  return out;
+}
+
+/**
  * Merge the deterministic local PoolScore into the LLM's RatingResult.
  * Replaces every score number + the coverage / minor / favorite list
  * fields with the locally-computed values. The LLM's prose (notes,
@@ -397,9 +448,20 @@ interface RecommendationRowProps {
   striped: boolean;
   accepted: boolean;
   onToggle: () => void;
+  /** The criterion that moves the most if THIS pair alone is applied.
+   * Surfaces inline next to the action tag so the user understands
+   * what each swap actually does for the score. Null when noise-only. */
+  criterionDelta: { name: string; delta: number } | null;
 }
 
-function RecommendationRow({ pair, currentItem, striped, accepted, onToggle }: RecommendationRowProps) {
+function RecommendationRow({
+  pair,
+  currentItem,
+  striped,
+  accepted,
+  onToggle,
+  criterionDelta,
+}: RecommendationRowProps) {
   const isKeep = pair.action === "keep";
   const isRemove = pair.action === "remove";
   const isAdd = pair.action === "add";
@@ -475,12 +537,25 @@ function RecommendationRow({ pair, currentItem, striped, accepted, onToggle }: R
             )}
           </div>
 
-          {/* Arrow + tag */}
-          <div className="flex items-center gap-2 shrink-0 pt-0.5">
-            <ArrowRight className="w-4 h-4 text-muted-foreground" />
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-semibold uppercase tracking-wider ${tagStyle}`}>
-              {tagLabel}
-            </span>
+          {/* Arrow + tag + per-pair criterion delta */}
+          <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">
+            <div className="flex items-center gap-2">
+              <ArrowRight className="w-4 h-4 text-muted-foreground" />
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-semibold uppercase tracking-wider ${tagStyle}`}>
+                {tagLabel}
+              </span>
+            </div>
+            {criterionDelta && (
+              <span
+                className={`text-[10px] tabular-nums font-semibold ${
+                  criterionDelta.delta > 0 ? "text-lime" : "text-red-400"
+                }`}
+                title={`Applying this pair shifts ${criterionDelta.name} by ${criterionDelta.delta > 0 ? "+" : ""}${criterionDelta.delta.toFixed(1)}`}
+              >
+                {criterionDelta.delta > 0 ? "+" : ""}
+                {criterionDelta.delta.toFixed(1)} {criterionDelta.name}
+              </span>
+            )}
           </div>
 
           {/* Recommended side */}
@@ -551,6 +626,49 @@ export default function WorkoutRater() {
     if (mode === "text") return pastedText.trim().length > 20;
     return !!imageDataUrl;
   }, [mode, routine.length, pastedText, imageDataUrl]);
+
+  /**
+   * Live score projection — re-runs the deterministic scorer against
+   * the hypothetical routine that would result from applying every
+   * currently-checked pair. Updates as the user toggles checkboxes.
+   * Only meaningful for source=routine (text / image have no local
+   * routine state).
+   */
+  const projectedScore = useMemo(() => {
+    if (!result || mode !== "routine") return null;
+    const projected = buildProjectedRoutine(routine, result.recommendations.pairs, acceptedPairs);
+    return scorePool(projected, favorites, experience);
+  }, [result, routine, acceptedPairs, favorites, experience, mode]);
+
+  /**
+   * Per-pair criterion deltas — for each pair, simulates "what if only
+   * THIS pair is applied?" and surfaces the criterion that moves most.
+   * Shown inline next to each row in the diff view as "+3 stretch" etc.
+   */
+  const perPairCriterionDelta = useMemo(() => {
+    if (!result || mode !== "routine") return [];
+    const baseline = scorePool(routine, favorites, experience);
+    return result.recommendations.pairs.map((pair, idx) => {
+      if (pair.action === "keep") return null;
+      const justThis = new Set([idx]);
+      const projected = buildProjectedRoutine(routine, result.recommendations.pairs, justThis);
+      const scored = scorePool(projected, favorites, experience);
+      // Criterion-by-criterion delta. Pick the one with the biggest |Δ|.
+      const candidates: Array<{ name: string; delta: number }> = [
+        { name: "stability", delta: scored.stability - baseline.stability },
+        { name: "stretch", delta: scored.stretch - baseline.stretch },
+        { name: "SFR", delta: scored.sfr - baseline.sfr },
+        { name: "compound/iso", delta: scored.compoundIsoRatio - baseline.compoundIsoRatio },
+        { name: "coverage", delta: scored.coverage - baseline.coverage },
+      ];
+      let best: { name: string; delta: number } | null = null;
+      for (const c of candidates) {
+        if (Math.abs(c.delta) < 0.3) continue; // ignore noise
+        if (!best || Math.abs(c.delta) > Math.abs(best.delta)) best = c;
+      }
+      return best;
+    });
+  }, [result, routine, favorites, experience, mode]);
 
   const handleRate = () => {
     const lifestyleArg = lifestyle ?? undefined;
@@ -656,69 +774,29 @@ export default function WorkoutRater() {
   };
 
   /**
-   * Apply the accepted pairs to the user's routine. Builds a new routine
-   * by walking the current routine and applying each pair's action:
-   *
-   *   keep   → current item stays
-   *   swap   → current item replaced (sets[] preserved if user already filled them)
-   *   remove → current item dropped
-   *   add    → new item appended
-   *
-   * Unchecked pairs are treated as "leave the current item alone."
+   * Apply the accepted pairs to the user's routine. Uses the shared
+   * buildProjectedRoutine helper so the math matches what the live
+   * projection shows.
    */
   const handleApplyRecommendations = () => {
     if (!result) return;
     const pairs = result.recommendations.pairs;
-    const pairByCurrentIndex = new Map<number, { pair: RecommendationPair; pairIdx: number }>();
-    pairs.forEach((p, pairIdx) => {
-      if (p.currentIndex > 0) pairByCurrentIndex.set(p.currentIndex, { pair: p, pairIdx });
-    });
-
-    const nextRoutine: RoutineItem[] = [];
+    // Tally action counts BEFORE mutating, for the toast summary.
     let appliedSwaps = 0;
     let appliedRemoves = 0;
     let appliedAdds = 0;
-
-    routine.forEach((item, i) => {
-      const found = pairByCurrentIndex.get(i + 1);
-      if (!found) {
-        nextRoutine.push(item);
-        return;
-      }
-      const { pair, pairIdx } = found;
-      const accepted = acceptedPairs.has(pairIdx);
-      if (!accepted || pair.action === "keep") {
-        nextRoutine.push(item);
-        return;
-      }
-      if (pair.action === "remove") {
-        appliedRemoves++;
-        return;
-      }
-      if (pair.action === "swap") {
-        const newItem = pairToRoutineItem(pair);
-        // Preserve any sets[] the user already filled; if empty (typical
-        // pre-Opti-fill state) the swap starts blank too.
-        newItem.sets = item.sets;
-        nextRoutine.push(newItem);
-        appliedSwaps++;
-        return;
-      }
-      nextRoutine.push(item);
+    pairs.forEach((p, idx) => {
+      if (!acceptedPairs.has(idx)) return;
+      if (p.action === "swap") appliedSwaps++;
+      else if (p.action === "remove") appliedRemoves++;
+      else if (p.action === "add") appliedAdds++;
     });
-
-    pairs.forEach((p, pairIdx) => {
-      if (p.action === "add" && acceptedPairs.has(pairIdx)) {
-        nextRoutine.push(pairToRoutineItem(p));
-        appliedAdds++;
-      }
-    });
-
     if (appliedSwaps + appliedRemoves + appliedAdds === 0) {
       toast.error("No changes selected — pick at least one recommendation");
       return;
     }
 
+    const nextRoutine = buildProjectedRoutine(routine, pairs, acceptedPairs);
     replaceRoutine(nextRoutine);
     markAutoPlanFresh();
     const parts: string[] = [];
@@ -1030,10 +1108,40 @@ Tue - Pull
             {/* Optimized Routine — pair-based diff view */}
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div>
-                  <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">
-                    Optimized Routine
-                  </h4>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">
+                      Optimized Routine
+                    </h4>
+                    {projectedScore && (
+                      <div className="text-xs tabular-nums flex items-center gap-1.5">
+                        <span className="text-muted-foreground">Score:</span>
+                        <span className="text-foreground font-semibold">{Math.round(result.score)}</span>
+                        <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                        <span
+                          className={`font-bold ${
+                            projectedScore.total > result.score
+                              ? "text-lime"
+                              : projectedScore.total < result.score
+                                ? "text-red-400"
+                                : "text-foreground"
+                          }`}
+                        >
+                          {Math.round(projectedScore.total)}
+                        </span>
+                        {projectedScore.total !== result.score && (
+                          <span
+                            className={`text-[10px] ${
+                              projectedScore.total > result.score ? "text-lime" : "text-red-400"
+                            }`}
+                          >
+                            ({projectedScore.total > result.score ? "+" : ""}
+                            {(projectedScore.total - result.score).toFixed(1)})
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     {countActionable(result.recommendations.pairs)} suggested change{countActionable(result.recommendations.pairs) === 1 ? "" : "s"}. Tick a row to accept, untick to keep your current pick. Favorited exercises are locked.
                   </p>
@@ -1052,10 +1160,19 @@ Tue - Pull
                     size="sm"
                     onClick={handleApplyRecommendations}
                     className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold"
-                    title="Apply every checked recommendation to your routine"
+                    title={
+                      projectedScore
+                        ? `Apply checked recommendations. Projected new score: ${Math.round(projectedScore.total)}/100`
+                        : "Apply every checked recommendation to your routine"
+                    }
                   >
                     <Replace className="w-4 h-4 mr-1" />
-                    Apply ({acceptedPairs.size})
+                    Apply
+                    {projectedScore && projectedScore.total !== result.score && (
+                      <span className="ml-1 text-[10px] opacity-80">
+                        → {Math.round(projectedScore.total)}
+                      </span>
+                    )}
                   </Button>
                   <Button
                     size="sm"
@@ -1092,6 +1209,7 @@ Tue - Pull
                       striped={idx % 2 === 1}
                       accepted={acceptedPairs.has(idx)}
                       onToggle={() => togglePair(idx)}
+                      criterionDelta={perPairCriterionDelta[idx] ?? null}
                     />
                   );
                 })}
