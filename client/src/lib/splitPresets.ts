@@ -106,11 +106,12 @@ const MUSCLE_NAME_TO_TAGS: Array<{ pattern: RegExp; tags: MuscleTag[] }> = [
 ];
 
 /**
- * Pattern for muscles that are ALWAYS back movers (the user actually
- * trains them when picking the exercise). Erectors and upper traps are
- * deliberately NOT in this list — they're stabilizers in deadlifts /
- * squats / RDLs and shouldn't make those exercises eligible for back
- * days.
+ * Pattern for muscles that count as primary back movers. Erectors and
+ * upper traps are NOT included — in squat / leg press / deadlift /
+ * good morning / jefferson curl those muscles stabilize the lift but
+ * don't take the kind of direct load that produces upper-back
+ * hypertrophy. Deadlifts are leg-day lifts only; biceps / lat /
+ * rhomboid volume comes from dedicated pulls.
  */
 const PRIMARY_BACK_PATTERN =
   /lat\b|latissimus|teres|rhomboid|mid trap|lower trap|upper back/i;
@@ -142,6 +143,14 @@ export function getMuscleTagsForItem(item: RoutineItem): MuscleTag[] {
     if (!hasPrimaryBack) {
       tags.delete("back");
     }
+  }
+  // Compound back/pull exercises (Upper Body Pull jointFunction) list
+  // "Biceps" in targetedMuscles as a secondary mover, but the stimulus
+  // isn't enough to count as weekly biceps volume. Strip biceps tag so
+  // the allocator doesn't credit pulldowns / rows / pull-ups toward
+  // the biceps target — biceps volume must come from dedicated curls.
+  if (item.jointFunction === "Upper Body Pull" && tags.has("biceps") && tags.has("back")) {
+    tags.delete("biceps");
   }
   // Edge case: exercise name reveals muscle group when targetedMuscles is unhelpful.
   if (tags.size === 0) {
