@@ -294,6 +294,7 @@ export default function SplitBuilder() {
     expandToBiweekly,
     collapseToSingleWeek,
     setWeek2DayAssignments,
+    rebalanceWeek2,
   } = useWorkout();
   const [open, setOpen] = useState(false);
   const [activeWeek, setActiveWeek] = useState<1 | 2>(1);
@@ -717,7 +718,7 @@ export default function SplitBuilder() {
                   </p>
                 ) : (
                   <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                    2-week mesocycle. Week 2 starts as a clone of Week 1 — load/deload + variant swaps land in upcoming phases.
+                    2-week mesocycle. Week 2 starts as a clone of Week 1. Use <span className="font-semibold text-purple-300">Rebalance Week 2</span> to pivot leg days (squat-bias ↔ hinge-bias) and swap mirrored upper days.
                   </p>
                 )}
               </div>
@@ -750,6 +751,20 @@ export default function SplitBuilder() {
                       Week 2
                     </button>
                   </div>
+                  {isViewingWeek2 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        rebalanceWeek2();
+                        toast.success("Week 2 rebalanced — leg-day pivot + day-pair swap applied");
+                      }}
+                      className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 text-xs"
+                      title="Reshape Week 2: swap mirrored upper days (Upper 1 ↔ Upper 2, Push 1 ↔ Push 2, Pull 1 ↔ Pull 2) and separate squat-pattern from hinge-pattern across Lower and Leg Day"
+                    >
+                      Rebalance Week 2
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"

@@ -10,6 +10,7 @@ import {
 } from "@/lib/data";
 import { type LifestyleId } from "@/lib/lifestyle";
 import { type ExperienceId } from "@/lib/experience";
+import { rebalanceForWeek2 } from "@/lib/rebalance";
 
 export interface SetDetail {
   reps: number;
@@ -192,6 +193,10 @@ interface WorkoutContextType {
   /** Replace week 2's dayAssignments wholesale (used by the variant swap
    * engine in later phases). */
   setWeek2DayAssignments: (next: Record<string, string[]>) => void;
+  /** Recompute Week 2's dayAssignments from Week 1 via the rebalance
+   * engine (mirrored day-pair swap + leg-day hard-binary pivot). Opt-in
+   * button on the Week 2 tab. No-op if mesocycle isn't enabled. */
+  rebalanceWeek2: () => void;
   /** Set per-exercise sets[] override for week 2. Pass empty array to
    * remove the override (week 2 will fall back to week 1's sets). */
   setWeek2ExerciseSets: (exerciseId: string, sets: SetDetail[]) => void;
@@ -490,6 +495,27 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     setMesocycleState((prev) => ({ ...prev, week2DayAssignments: next }));
   }, []);
 
+  const rebalanceWeek2 = useCallback(() => {
+    // Read latest values via setter-callbacks so we never close over stale
+    // state (the button can fire after Week 1 edits without remounting).
+    setSplitState((prevSplit) => {
+      if (!prevSplit.splitId) return prevSplit;
+      setRoutine((prevRoutine) => {
+        setMesocycleState((prevMeso) => {
+          if (!prevMeso.enabled) return prevMeso;
+          const next = rebalanceForWeek2(
+            prevRoutine,
+            prevSplit.splitId!,
+            prevSplit.dayAssignments,
+          );
+          return { ...prevMeso, week2DayAssignments: next };
+        });
+        return prevRoutine;
+      });
+      return prevSplit;
+    });
+  }, []);
+
   const setWeek2ExerciseSets = useCallback((exerciseId: string, sets: SetDetail[]) => {
     setMesocycleState((prev) => {
       const nextMap = { ...prev.week2ExerciseSets };
@@ -673,6 +699,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         expandToBiweekly,
         collapseToSingleWeek,
         setWeek2DayAssignments,
+        rebalanceWeek2,
         setWeek2ExerciseSets,
       }}
     >
