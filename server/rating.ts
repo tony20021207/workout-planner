@@ -156,14 +156,64 @@ For every criterion's "notes" field, match the tone to where the score lands rel
 - GOOD (≥ 80%): specific praise calling out what's strong about the routine.
 Keep notes to 1–2 sentences. Skip generic "good job" — be specific.
 
+═══ RECOMMENDATIONS · pair-based, NOT a flat rewrite ═══
+The user already picked their exercises. Don't dump a fresh weekly plan
+on top of theirs — instead, produce a PAIRED set of recommendations
+that maps cleanly to a left-to-right diff view in the UI:
+
+  current exercise   →   action   →   recommended exercise
+
+For EVERY exercise in the user's current pool, emit exactly one pair
+with action ∈ {"keep", "swap", "remove"}:
+  - keep:   the current pick is appropriate. recommended = same name.
+  - swap:   replace with a different exercise that strictly improves
+            one or more rating criteria. recommended = new name.
+  - remove: the current pick is harmful or redundant. recommended = null.
+
+For coverage gaps the current pool cannot fill (e.g. zero hip
+adduction work, zero direct scapular depressor work), emit "add"
+pairs:
+  - add:    new exercise to introduce. current = null, recommended =
+            new name.
+
+The user identifies current items by their 1-based INDEX in the
+serialized routine list. Set "currentIndex" to that number (1, 2, 3,
+...) for keep / swap / remove pairs. For add pairs, currentIndex = 0.
+
+EVERY pair needs a "rationale" — one sentence naming the specific
+rating criterion (stability, stretch, SFR, compound-iso ratio, MAJOR
+joint coverage, minor bonus, OR favorite-bias) driving the change.
+Examples:
+  - swap, "Hammer Curl → Preacher Curl": "Picks up biceps long-head
+    stretch — current pool's stretch score is 11/20, dragging on the
+    100. Preacher Curl is a very-high stretch pick."
+  - swap, "Conventional Deadlift → Romanian Deadlift": "SFR upgrade:
+    drops the CNS-heavy conventional pull (low SFR for hypertrophy)
+    while preserving hamstring + glute coverage."
+  - add, "Hip Adduction Machine": "Hip Adductors covered 0/full
+    today; this lands the major mover for +0.91 coverage points."
+  - remove, "Wide-Grip Bench Press": "Redundant with your existing
+    Barbell Bench Press; the slot is better spent elsewhere."
+  - keep, "Lat Pulldown": "Favorited (locked) AND fills the only
+    primary back compound role — no reason to touch this."
+
+FAVORITES: never swap or remove a favorited exercise. Mark them "keep"
+with a rationale acknowledging the favorite lock.
+
+GLOBAL RATIONALE: separately, write a 3-5 sentence summary tying the
+recommendations together. Lead with the user's weakest criterion(s)
+and explain how the proposed changes lift that criterion. End with a
+projected score delta. Frame as a WEEKLY MESOCYCLE — the user is
+building a week of training, not a single workout.
+
 OUTPUT REQUIREMENTS:
 - All criterion scores are 0 to their respective max (no negatives anywhere).
 - favoriteBias.delta is an integer in [-5, +5].
 - Final "score" = sum of all 5 criterion scores + favoriteBias.delta, capped 0..100. The minorBonus is tracked SEPARATELY and NOT included in "score".
 - minorBonus.score is 0 to 1.5, summed across the 5 minor actions at +0.30 each.
 - coverage.hit / coverage.missing arrays use exact taxonomy names; coverage tracks MAJORS only. minorBonus.hit / minorBonus.missing track the 5 minor actions only.
-- Every exercise in "optimizedRoutine" must include "jointActions" drawn from the canonical list.
-- "optimizedRoutine" should be a complete weekly rewrite that fills coverage gaps, eliminates redundancy, respects the 20–45% compound-isolation band, and would score 100/100 against this rubric (with bonus minorBonus on top wherever feasible).
+- recommendations.pairs MUST emit one pair per current exercise (keep/swap/remove) PLUS any number of "add" pairs for coverage gaps.
+- recommendations.globalRationale is the 3-5 sentence mesocycle summary.
 
 YOU MUST RESPOND WITH STRICT JSON matching the provided schema.`;
 
@@ -188,7 +238,7 @@ const ratingSchema = {
     "minorBonus",
     "favoriteBias",
     "scapularDepressionNote",
-    "optimizedRoutine",
+    "recommendations",
   ],
   properties: {
     score: { type: "number", description: "Final score 0-100, summed from all 5 criteria. Does NOT include minorBonus." },
@@ -275,29 +325,65 @@ const ratingSchema = {
       type: "string",
       description: "Empty string if no pulldown movements present. Otherwise the scapular-depression cueing reminder.",
     },
-    optimizedRoutine: {
-      type: "array",
-      description: "Complete rewritten routine that would score 100/100. Exercises in the order they should be performed within the week.",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["exercise", "sets", "repRange", "rir", "category", "targetedMuscles", "jointActions", "rationale"],
-        properties: {
-          exercise: { type: "string", description: "Exercise name including angle if applicable" },
-          angle: { type: "string", description: "Angle/variation if not in name" },
-          equipment: { type: "string", description: "Equipment used" },
-          sets: { type: "number" },
-          repRange: { type: "string", description: "e.g. '8-12'" },
-          rir: { type: "string", description: "Recommended RIR for this exercise — typically 1-2 for compounds, 0 for isolations" },
-          frequency: { type: "string", description: "e.g. '2x per week'" },
-          category: { type: "string", enum: ["systemic", "regional"] },
-          targetedMuscles: { type: "array", items: { type: "string" } },
-          jointActions: {
-            type: "array",
-            items: { type: "string" },
-            description: "Joint actions produced, drawn from the canonical taxonomy",
+    recommendations: {
+      type: "object",
+      additionalProperties: false,
+      required: ["pairs", "globalRationale"],
+      properties: {
+        pairs: {
+          type: "array",
+          description:
+            "Pair-based diff against the user's current pool. One pair per current exercise (keep/swap/remove) plus any number of 'add' pairs for coverage gaps. UI renders left-to-right: current → action → recommended.",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["action", "currentIndex", "current", "recommended", "category", "rationale"],
+            properties: {
+              action: {
+                type: "string",
+                enum: ["keep", "swap", "remove", "add"],
+                description:
+                  "keep = current pick stays. swap = replace with a different exercise. remove = drop with no replacement. add = introduce a new exercise to fill a coverage gap.",
+              },
+              currentIndex: {
+                type: "number",
+                description:
+                  "1-based index of the current exercise in the serialized routine list. For 'add' pairs, set to 0.",
+              },
+              current: {
+                type: "string",
+                description:
+                  "Exact name of the user's current exercise (as it appears in the serialized routine). Empty string for 'add' pairs.",
+              },
+              recommended: {
+                type: "string",
+                description:
+                  "Exact name of the recommended exercise. For 'keep' = same as current. For 'remove' = empty string. For 'swap' / 'add' = the new pick.",
+              },
+              category: {
+                type: "string",
+                enum: ["systemic", "regional"],
+                description:
+                  "Category of the RECOMMENDED exercise (or the current one for keep / remove). Drives downstream programming defaults.",
+              },
+              targetedMuscles: {
+                type: "array",
+                items: { type: "string" },
+                description:
+                  "Targeted muscles of the recommended exercise. Required for 'add' and 'swap' so the client can build a RoutineItem.",
+              },
+              rationale: {
+                type: "string",
+                description:
+                  "One sentence naming the specific rating criterion (stability / stretch / SFR / compound-iso ratio / MAJOR joint coverage / minor bonus / favorite-bias) driving this pair. Must reference the user's actual routine context.",
+              },
+            },
           },
-          rationale: { type: "string", description: "Why this exercise was chosen / what gap it fills" },
+        },
+        globalRationale: {
+          type: "string",
+          description:
+            "3-5 sentence mesocycle-level summary tying the pair recommendations together. Lead with the user's weakest criterion(s), explain how the changes lift those criteria, end with a projected score delta.",
         },
       },
     },
