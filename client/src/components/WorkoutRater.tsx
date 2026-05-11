@@ -22,6 +22,7 @@ import {
   X,
   Info,
   Trophy,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -114,7 +115,7 @@ function BreakdownRow({ label, score, max, notes }: { label: string; score: numb
 }
 
 export default function WorkoutRater() {
-  const { routine, replaceRoutine, addRoutineItem, lifestyle, experience, markAutoPlanFresh } = useWorkout();
+  const { routine, replaceRoutine, addRoutineItem, lifestyle, experience, markAutoPlanFresh, favorites } = useWorkout();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<SourceMode>("routine");
   const [pastedText, setPastedText] = useState("");
@@ -143,12 +144,20 @@ export default function WorkoutRater() {
   const handleRate = () => {
     const lifestyleArg = lifestyle ?? undefined;
     const experienceArg = experience ?? undefined;
+    // Favorites only apply when rating the user's own routine — text /
+    // image sources are external content the user is checking, not their
+    // own committed picks.
+    const favoriteNames =
+      mode === "routine"
+        ? routine.filter((r) => favorites.includes(r.id)).map((r) => r.exercise)
+        : undefined;
     if (mode === "routine") {
       rateMutation.mutate({
         source: "routine",
         text: serializeRoutineToText(routine),
         lifestyle: lifestyleArg,
         experience: experienceArg,
+        favorites: favoriteNames,
       });
     } else if (mode === "text") {
       rateMutation.mutate({ source: "text", text: pastedText, lifestyle: lifestyleArg, experience: experienceArg });
@@ -529,6 +538,77 @@ Tue - Pull
                       ))}
                     </ul>
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* Favorite-driven bias (P9.3.5 harsh parenting) */}
+            {result.favoriteBias && (
+              <div className="p-4 bg-card rounded-sm border border-border space-y-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-pink-400" />
+                    Favorite Bias
+                  </h4>
+                  <div className="text-xs tabular-nums">
+                    <span
+                      className={`font-bold ${
+                        result.favoriteBias.delta > 0
+                          ? "text-lime"
+                          : result.favoriteBias.delta < 0
+                            ? "text-red-400"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {result.favoriteBias.delta > 0 ? "+" : ""}
+                      {result.favoriteBias.delta}
+                    </span>
+                    <span className="text-muted-foreground"> / ±5 (in the 100)</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Favorites are locked from variant-swap. In exchange, the rating engine holds them to a higher standard — good favorites earn up to +5, bad ones penalize up to −5.
+                </p>
+                {(result.favoriteBias.goodFavorites.length > 0 || result.favoriteBias.badFavorites.length > 0) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-lime font-semibold mb-1">
+                        Good ({result.favoriteBias.goodFavorites.length})
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {result.favoriteBias.goodFavorites.length === 0 ? (
+                          <span className="text-muted-foreground italic">None</span>
+                        ) : (
+                          result.favoriteBias.goodFavorites.map((g, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-lime/10 text-lime rounded-sm border border-lime/30">
+                              {g}
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wider text-red-400 font-semibold mb-1">
+                        Costing you ({result.favoriteBias.badFavorites.length})
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {result.favoriteBias.badFavorites.length === 0 ? (
+                          <span className="text-muted-foreground italic">None</span>
+                        ) : (
+                          result.favoriteBias.badFavorites.map((b, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-red-500/10 text-red-400 rounded-sm border border-red-500/30">
+                              {b}
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {result.favoriteBias.reasoning && (
+                  <p className="text-xs text-muted-foreground leading-relaxed italic whitespace-pre-wrap">
+                    {result.favoriteBias.reasoning}
+                  </p>
                 )}
               </div>
             )}

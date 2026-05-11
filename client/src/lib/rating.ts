@@ -41,6 +41,26 @@ export interface MinorBonus {
   opportunityTips: string[];
 }
 
+/**
+ * Favorite-driven bias correction — P9.3.5. "Harsh-parent" rule: the
+ * user locks an exercise as favorite (immune from variant swap), and the
+ * rating engine holds it to a higher standard, applying a -5..+5 delta
+ * to the final score. Good favorites (fill coverage gap, anchor weak
+ * mover) earn up to +5; bad favorites (redundant slot, force other
+ * muscles undertrained) penalize up to -5. Reasoning text names each
+ * favorite by exercise name and states its specific cost or benefit.
+ */
+export interface FavoriteBias {
+  /** Integer in [-5, +5]. Included in the final 100-pt score. */
+  delta: number;
+  /** Names of favorites that materially improve this routine. */
+  goodFavorites: string[];
+  /** Names of favorites that materially hurt this routine. */
+  badFavorites: string[];
+  /** Per-favorite plaintext explanation. */
+  reasoning: string;
+}
+
 export interface OptimizedExercise {
   exercise: string;
   angle?: string;
@@ -56,12 +76,13 @@ export interface OptimizedExercise {
 }
 
 export interface RatingResult {
-  /** Final score, 0-100. Sum of all 5 criteria. Does NOT include minorBonus. */
+  /** Final score, 0-100. Sum of all 5 criteria + favoriteBias.delta, capped 0..100. Does NOT include minorBonus. */
   score: number;
   verdict: string;
   selectionBreakdown: SelectionBreakdown;
   coverageBreakdown: CoverageBreakdown;
   minorBonus: MinorBonus;
+  favoriteBias: FavoriteBias;
   /** Empty string if no pulldowns; otherwise the scap-depression cueing reminder. */
   scapularDepressionNote: string;
   optimizedRoutine: OptimizedExercise[];
@@ -94,13 +115,14 @@ export interface OptimizedDay {
 }
 
 export interface PostSplitRatingResult {
-  /** Final score, 0-100. Does NOT include minorBonus. */
+  /** Final score, 0-100. Sum of all 8 criteria + favoriteBias.delta, capped 0..100. Does NOT include minorBonus. */
   score: number;
   verdict: string;
   selectionBreakdown: SelectionBreakdown;
   coverageBreakdown: CoverageBreakdown;
   minorBonus: MinorBonus;
   postSplitAddOns: PostSplitAddOns;
+  favoriteBias: FavoriteBias;
   scapularDepressionNote: string;
   optimizedDailyPlan: OptimizedDay[];
 }

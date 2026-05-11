@@ -158,7 +158,8 @@ Keep notes to 1–2 sentences. Skip generic "good job" — be specific.
 
 OUTPUT REQUIREMENTS:
 - All criterion scores are 0 to their respective max (no negatives anywhere).
-- Final "score" = sum of all 5 criterion scores. Cap at 100. The minorBonus is tracked SEPARATELY and NOT included in "score".
+- favoriteBias.delta is an integer in [-5, +5].
+- Final "score" = sum of all 5 criterion scores + favoriteBias.delta, capped 0..100. The minorBonus is tracked SEPARATELY and NOT included in "score".
 - minorBonus.score is 0 to 1.5, summed across the 5 minor actions at +0.30 each.
 - coverage.hit / coverage.missing arrays use exact taxonomy names; coverage tracks MAJORS only. minorBonus.hit / minorBonus.missing track the 5 minor actions only.
 - Every exercise in "optimizedRoutine" must include "jointActions" drawn from the canonical list.
@@ -185,6 +186,7 @@ const ratingSchema = {
     "selectionBreakdown",
     "coverageBreakdown",
     "minorBonus",
+    "favoriteBias",
     "scapularDepressionNote",
     "optimizedRoutine",
   ],
@@ -240,6 +242,35 @@ const ratingSchema = {
         },
       },
     },
+    favoriteBias: {
+      type: "object",
+      additionalProperties: false,
+      required: ["delta", "goodFavorites", "badFavorites", "reasoning"],
+      properties: {
+        delta: {
+          type: "number",
+          description:
+            "Integer in [-5, +5]. Added to the criterion sum to produce final score (capped 0..100). +1..+2 per GOOD favorite, -1..-3 per BAD favorite, 0 if no favorites or all neutral.",
+        },
+        goodFavorites: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Exact exercise names of favorites that materially improve this routine (fill coverage gaps, anchor weak movers, high-SFR / high-stretch). Empty if no good favorites.",
+        },
+        badFavorites: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Exact exercise names of favorites that materially hurt this routine (redundant slots, force other movers undertrained, low-SFR / CNS-heavy). Empty if no bad favorites.",
+        },
+        reasoning: {
+          type: "string",
+          description:
+            "Per-favorite plaintext explanation. Name each favorite by exact exercise name and state its specific cost or benefit in THIS routine. If no favorites locked: explain the cost of leaving the engine fully unconstrained.",
+        },
+      },
+    },
     scapularDepressionNote: {
       type: "string",
       description: "Empty string if no pulldown movements present. Otherwise the scapular-depression cueing reminder.",
@@ -289,6 +320,9 @@ const inputSchema = z.object({
   imageDataUrl: z.string().optional(),
   lifestyle: lifestyleEnum.optional(),
   experience: experienceEnum.optional(),
+  /** Exercise NAMES the user marked as favorites. Locked from swaps;
+   * triggers favorite-driven bias correction in the score. */
+  favorites: z.array(z.string()).optional(),
 });
 
 const EXPERIENCE_RATING_GUIDANCE: Record<z.infer<typeof experienceEnum>, string> = {
@@ -412,7 +446,8 @@ SCAPULAR-DEPRESSION CUEING:
 If pulldown movements present (Lat Pulldown, Single-Arm Cable Pulldown, Pull-Up / Chin-Up, Lat Prayer, Pullover), populate scapularDepressionNote with the cueing reminder. Otherwise empty string.
 
 OUTPUT REQUIREMENTS:
-- Final "score" = sum of all 8 criterion scores (capped at 100). Does NOT include minorBonus.
+- favoriteBias.delta is an integer in [-5, +5].
+- Final "score" = sum of all 8 criterion scores + favoriteBias.delta, capped 0..100. Does NOT include minorBonus.
 - minorBonus.score is 0 to 1.05.
 - coverage.hit / coverage.missing track MAJORS only. minorBonus.hit / minorBonus.missing track the 5 minor actions only. All names must be exact taxonomy names.
 - "optimizedDailyPlan" should re-write the entire week's split + sets/reps to score 100/100 (with the +1.05 minor bonus where feasible).
@@ -429,6 +464,7 @@ const postSplitRatingSchema = {
     "coverageBreakdown",
     "minorBonus",
     "postSplitAddOns",
+    "favoriteBias",
     "scapularDepressionNote",
     "optimizedDailyPlan",
   ],
@@ -488,6 +524,35 @@ const postSplitRatingSchema = {
         totalVolume: breakdownEntry,
       },
     },
+    favoriteBias: {
+      type: "object",
+      additionalProperties: false,
+      required: ["delta", "goodFavorites", "badFavorites", "reasoning"],
+      properties: {
+        delta: {
+          type: "number",
+          description:
+            "Integer in [-5, +5]. Added to the criterion sum to produce final score (capped 0..100). +1..+2 per GOOD favorite, -1..-3 per BAD favorite, 0 if no favorites or all neutral.",
+        },
+        goodFavorites: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Exact exercise names of favorites that materially improve this routine. Empty if no good favorites.",
+        },
+        badFavorites: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Exact exercise names of favorites that materially hurt this routine. Empty if no bad favorites.",
+        },
+        reasoning: {
+          type: "string",
+          description:
+            "Per-favorite plaintext explanation. Name each favorite and state its specific cost or benefit in THIS routine.",
+        },
+      },
+    },
     scapularDepressionNote: { type: "string" },
     optimizedDailyPlan: {
       type: "array",
@@ -527,7 +592,65 @@ const postSplitInputSchema = z.object({
   text: z.string(),
   lifestyle: lifestyleEnum.optional(),
   experience: experienceEnum.optional(),
+  /** Exercise NAMES the user marked as favorites. */
+  favorites: z.array(z.string()).optional(),
 });
+
+const FAVORITES_BIAS_PROMPT = `═══ FAVORITE-DRIVEN BIAS · −5 to +5 ═══
+The user can mark up to 4 exercises as "favorites" — committed picks that the
+engine cannot swap out under any circumstance. This is the user telling you:
+"I'm keeping this lift no matter what." Favorites get the strongest day-match
+in the allocator and immunity from the variant-swap engine — but the rating
+engine holds them to a HIGHER standard, not a lower one. This is the
+"harsh-parent" rule: locking a lift means owning what it costs you.
+
+For each favorite, classify it as GOOD or BAD against this routine specifically:
+
+GOOD favorites materially improve the program:
+- Fills a coverage gap nothing else in the routine addresses (e.g., favoriting
+  an RDL when hams are otherwise undertrained).
+- High-SFR / high-stretch / high-stability pick that fits the user's
+  experience level.
+- Anchors a major mover that needs frequency (e.g., favoriting a primary
+  back compound when back is a weak point).
+
+BAD favorites materially hurt the program:
+- Redundant slot — third curl variant when biceps is already at full coverage
+  while another muscle group is undertrained.
+- Forces the engine to leave a different MAJOR mover under-served because
+  this slot is locked.
+- Low-SFR / CNS-heavy pick that wastes recovery budget (e.g., favoriting a
+  conventional deadlift in a hypertrophy-only program).
+- Locks in a movement pattern the user already over-covers.
+
+SCORE DELTA (must fall in [-5, +5]):
+- +1 to +2 per GOOD favorite (cap +5 total)
+- −1 to −3 per BAD favorite (cap −5 total)
+- 0 if no favorites locked OR favorites are neutral
+
+REASONING (mandatory): name each favorite by exact exercise name and state
+its specific cost or benefit IN THIS routine. No generic language.
+
+Example reasoning:
+"Favorited: Romanian Deadlift (+2): fills the hamstring coverage gap that
+no other exercise in the pool addresses; high-SFR posterior-chain pick.
+Hammer Curl (−2): biceps is already at full coverage via Bayesian Curl +
+Preacher Curl; this third curl variant locks the slot and forces the engine
+to leave chest stuck at 8 sets/wk vs. the 15 target. Lat Pulldown (+1):
+strong high-SFR primary back movement, anchors twice-weekly back frequency."
+
+If the user has NO favorites locked:
+- delta = 0
+- goodFavorites = []
+- badFavorites = []
+- reasoning = "No favorites locked — the engine has full freedom to swap
+  exercises. Consider favoriting 1–2 anchor lifts (RDL, primary back
+  compound, anchor pressing variant) to make them immune from variant swap
+  while taking accountability for their slot."
+
+FINAL SCORE:
+- final score = sum of all criterion scores + favoriteBias.delta, capped 0..100.
+- favoriteBias is part of the 100, not a separate bonus track like minorBonus.`;
 
 function buildSystemPrompt(
   basePrompt: string,
@@ -539,7 +662,16 @@ function buildSystemPrompt(
   if (expBlock) blocks.push(expBlock);
   if (lifestyle) blocks.push(LIFESTYLE_RATING_GUIDANCE[lifestyle]);
   blocks.push(basePrompt);
+  blocks.push(FAVORITES_BIAS_PROMPT);
   return blocks.join("\n\n");
+}
+
+/** Build the user-side favorites line. Empty string if no favorites. */
+function buildFavoritesLine(favorites: string[] | undefined): string {
+  if (!favorites || favorites.length === 0) {
+    return "\n\nUSER FAVORITES: (none locked)";
+  }
+  return `\n\nUSER FAVORITES (LOCKED — engine cannot swap): ${favorites.join(", ")}`;
 }
 
 export const ratingRouter = router({
@@ -551,11 +683,12 @@ export const ratingRouter = router({
         | { type: "image_url"; image_url: { url: string; detail?: "auto" | "low" | "high" } }
       > = [];
 
+      const favoritesLine = buildFavoritesLine(input.favorites);
       if (input.source === "image") {
         if (!input.imageDataUrl) throw new Error("imageDataUrl required for image source");
         userContent.push({
           type: "text",
-          text: "Evaluate this weekly workout. Read all exercises, angles, and equipment from the image, then apply the Hypertrophy Matrix Rating System.",
+          text: `Evaluate this weekly workout. Read all exercises, angles, and equipment from the image, then apply the Hypertrophy Matrix Rating System.${favoritesLine}`,
         });
         userContent.push({
           type: "image_url",
@@ -567,7 +700,7 @@ export const ratingRouter = router({
           input.source === "routine"
             ? "Evaluate the following weekly microcycle (built in the Kinesiology Workout Builder) using the Hypertrophy Matrix Rating System."
             : "Evaluate the following weekly workout (provided by the user as text) using the Hypertrophy Matrix Rating System.";
-        userContent.push({ type: "text", text: `${intro}\n\n${input.text}` });
+        userContent.push({ type: "text", text: `${intro}\n\n${input.text}${favoritesLine}` });
       }
 
       const result = await invokeLLM({
@@ -597,6 +730,7 @@ export const ratingRouter = router({
     .mutation(async ({ input }) => {
       const intro =
         "Evaluate the following FINALIZED weekly training plan (split + day-by-day exercise assignments + sets/reps/weight) using the Hypertrophy Matrix Post-Split Rating System.";
+      const favoritesLine = buildFavoritesLine(input.favorites);
 
       const result = await invokeLLM({
         messages: [
@@ -604,7 +738,7 @@ export const ratingRouter = router({
           {
             role: "user",
             content: [
-              { type: "text", text: `${intro}\n\n${input.text}` },
+              { type: "text", text: `${intro}\n\n${input.text}${favoritesLine}` },
             ],
           },
         ],
