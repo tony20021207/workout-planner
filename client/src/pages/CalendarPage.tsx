@@ -918,7 +918,7 @@ export default function CalendarPage() {
                     Pre-Set: stamp every exercise to one rep range. Opti-fill: pick a different range per exercise.
                   </p>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
                   {REP_RANGES.map((r) => (
                     <Button
                       key={r.id}

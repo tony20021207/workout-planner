@@ -1,29 +1,30 @@
 /**
- * Rep-range presets for the calendar customizer.
+ * Rep-range presets — four-bucket system.
  *
- * The auto-recommender (post-split, weekly) gives ONE recommendation per
- * exercise based on category × experience. That stays unchanged.
+ * Splitting the old 8-15 "medium" band into two finer buckets gives
+ * meaningful programming variety in the hypertrophy zone:
  *
- * On the calendar, when the user schedules a workout (or picks one for
- * another day), they can apply one of these presets:
+ *   - 5-8   (Low):       strength-flavored, near-failure on stable picks.
+ *   - 8-12  (Med-Low):   heavy hypertrophy, compound-default.
+ *   - 12-15 (Med-High):  pump hypertrophy, isolation-default.
+ *   - 15-30 (High):      endurance / small-mass / slow-twitch.
  *
- *   THREE-BUCKET:
- *     User assigns each exercise to a rep-range bucket — 5-8 / 8-15 /
- *     15-30. Each bucket gets the corresponding rep target (default
- *     center of the range). Best for the Nippard 80/20 mix where most
- *     work lives in 8-15 with a smaller share heavy and metabolic.
+ * Pre-Set lets the user apply one bucket to a scope (mesocycle / day /
+ * single exercise). Opti-fill picks per-exercise via the matrix:
  *
- *   DAY-WIDE PRESET:
- *     User picks ONE range — 5-8 / 8-15 / 15-30 — for the entire day.
- *     Cleanest when the day is a single training intent (e.g. "heavy
- *     compound day").
+ *   Rule 1: CNS deadlifts            → Low
+ *   Rule 2: endurance-class by name  → High
+ *   Rule 3: endurance-class by muscle→ High
+ *   Rule 4: compound (systemic)      → Med-Low (8-12)
+ *   Rule 5: isolation (regional)     → Med-High (12-15)
  *
- *   CUSTOM:
- *     Free per-set edit (existing behaviour).
+ * Per the 5-30 reps argument: anything in the 5-30 range pushed close
+ * to failure produces comparable hypertrophy. The four buckets trade off
+ * load vs cardio vs joint stress vs time-per-set, not raw growth.
  *
  * After applying any preset, the user can still edit individual sets.
  */
-export type RepRangeId = "low" | "medium" | "high";
+export type RepRangeId = "low" | "med-low" | "med-high" | "high";
 
 export interface RepRange {
   id: RepRangeId;
@@ -38,10 +39,6 @@ export interface RepRange {
   description: string;
 }
 
-// Per the 5–30 reps argument: anything in the 5–30 range pushed close
-// to failure produces comparable hypertrophy. The three buckets just
-// trade off load vs cardio vs joint stress vs time-per-set, not raw
-// growth potential.
 export const REP_RANGES: RepRange[] = [
   {
     id: "low",
@@ -52,18 +49,29 @@ export const REP_RANGES: RepRange[] = [
     shortLabel: "5–8",
     defaultSets: 4,
     description:
-      "Lower reps, heavier loads. Same growth potential as Medium / High when pushed to failure. Easier on cardiovascular load, heavier on joint and CNS cost. Best on stable picks where you can load near failure safely.",
+      "Lower reps, heavier loads. Same growth potential as the higher tiers when pushed to failure. Easier on cardiovascular load, heavier on joint and CNS cost. Best on stable picks where you can load near failure safely.",
   },
   {
-    id: "medium",
-    label: "Medium",
+    id: "med-low",
+    label: "Med-Low",
     minReps: 8,
-    maxReps: 15,
-    defaultReps: 12,
-    shortLabel: "8–15",
+    maxReps: 12,
+    defaultReps: 10,
+    shortLabel: "8–12",
     defaultSets: 3,
     description:
-      "Default rep band. Balanced load and time-per-set, moderate recovery cost. The most common bucket for compound and isolation work alike.",
+      "Heavy hypertrophy zone. Nippard / Israetel default for compound work. Balanced load and time-per-set; moderate CNS cost.",
+  },
+  {
+    id: "med-high",
+    label: "Med-High",
+    minReps: 12,
+    maxReps: 15,
+    defaultReps: 14,
+    shortLabel: "12–15",
+    defaultSets: 3,
+    description:
+      "Pump hypertrophy zone. Default for isolation work — biceps, triceps, side delts, leg curls. Lighter joint load, more metabolic stress per set.",
   },
   {
     id: "high",
@@ -74,7 +82,7 @@ export const REP_RANGES: RepRange[] = [
     shortLabel: "15–30",
     defaultSets: 2,
     description:
-      "Higher reps, lighter loads. Same growth potential as Low / Medium when pushed to failure. Lower joint stress, higher cardio and time cost. Best for small / endurance muscles (calves, abs, cuff, rear delts).",
+      "Higher reps, lighter loads. Same growth potential as the lower tiers when pushed to failure. Lower joint stress, higher cardio and time cost. Best for small / endurance muscles (calves, abs, cuff, rear delts).",
   },
 ];
 
@@ -86,24 +94,34 @@ export const REP_RANGE_BY_ID: Record<RepRangeId, RepRange> = REP_RANGES.reduce(
   {} as Record<RepRangeId, RepRange>,
 );
 
-/** Find which preset best matches a given reps-per-set number. */
+/** Find which preset best matches a given reps-per-set number.
+ * Boundaries: ≤8 → low, ≤12 → med-low, ≤15 → med-high, else → high. */
 export function inferRangeFromReps(reps: number): RepRangeId {
   if (reps <= 8) return "low";
-  if (reps <= 15) return "medium";
+  if (reps <= 12) return "med-low";
+  if (reps <= 15) return "med-high";
   return "high";
 }
 
-/** Tier index for shifting rep ranges by experience. 0=low, 1=medium, 2=high. */
-const RANGE_TIER: Record<RepRangeId, number> = { low: 0, medium: 1, high: 2 };
-const TIER_TO_RANGE: RepRangeId[] = ["low", "medium", "high"];
+/** Tier index for shifting rep ranges by experience. 0=low … 3=high. */
+const RANGE_TIER: Record<RepRangeId, number> = {
+  low: 0,
+  "med-low": 1,
+  "med-high": 2,
+  high: 3,
+};
+const TIER_TO_RANGE: RepRangeId[] = ["low", "med-low", "med-high", "high"];
+const MAX_TIER = TIER_TO_RANGE.length - 1;
 
 /**
  * Opti-fill rep range with experience adjustment:
  *   - Beginner: shifts the matrix bucket UP one tier (more reps for skill
- *     mastery) — Low→Med, Med→High, High→High.
+ *     mastery). Low → Med-Low, Med-Low → Med-High, Med-High → High,
+ *     High → High (clamp).
  *   - Foot in the Door: matrix as-is.
- *   - Experienced: shifts DOWN one tier (heavier loads, fewer reps) —
- *     Low→Low, Med→Low, High→Med.
+ *   - Experienced: shifts DOWN one tier (heavier loads, fewer reps).
+ *     Low → Low (clamp), Med-Low → Low, Med-High → Med-Low,
+ *     High → Med-High.
  *
  * The matrix's anatomy logic (calves/abs always start higher than
  * deadlift) is preserved; experience just nudges the result up or down.
@@ -115,13 +133,16 @@ export function optiFillRangeForExperience(
   const baseRange = optiFillRange(item);
   const baseTier = RANGE_TIER[baseRange];
   if (experienceId === "beginner") {
-    return TIER_TO_RANGE[Math.min(2, baseTier + 1)];
+    return TIER_TO_RANGE[Math.min(MAX_TIER, baseTier + 1)];
   }
   if (experienceId === "experienced") {
     return TIER_TO_RANGE[Math.max(0, baseTier - 1)];
   }
   return baseRange;
 }
+
+/** Back-compat alias — consumers import the function under either name. */
+export { optiFillRangeForExperience as smartFillRangeForExperience };
 
 // Pattern matches for the Opti-fill matrix.
 const DEADLIFT_PATTERN =
@@ -135,25 +156,28 @@ const ENDURANCE_MUSCLE_PATTERN =
 
 /**
  * Opti-fill matrix — pick a rep range for a routine item given its
- * resolved tags and name. The matrix collapses to three rules in our
- * three-bucket world:
+ * resolved tags and name. Five rules in the four-bucket world:
  *
  *   1. Conventional / Sumo / Trap-Bar Deadlift → Low (5–8). CNS-heavy
  *      lifts where rep count is ceiling-limited regardless of stretch.
  *      Excludes RDL, stiff-leg, single-leg variants.
  *
- *   2. Endurance / small-mass / slow-twitch class → High (15–30).
- *      Calves (soleus), abs, obliques, rear delts, cuff, forearms,
- *      face pulls, lateral raises. Smaller mass needs higher reps for
- *      effective hypertrophy stimulus.
+ *   2. Endurance class by NAME → High (15–30). Calf raises, crunches,
+ *      lateral raises, pallof, face pulls, woodchops, etc.
  *
- *   3. Everything else → Medium (8–15). Stretch-bias compounds (RDL,
- *      Bayesian, sissy squat) live here in the simplified matrix per
- *      the 5–30-reps-equally-effective framing.
+ *   3. Endurance class by TARGETED MUSCLE → High (15–30). Soleus,
+ *      obliques, rear delts, rotator cuff, forearms — smaller mass
+ *      and slow-twitch fibers benefit from higher reps.
  *
- * The function reads name + targetedMuscles. stretchLevel + stability
- * are accepted on the input shape so future P11+ revisions can extend
- * the matrix without breaking the call sites.
+ *   4. Compound (category === "systemic") → Med-Low (8–12). Heavy
+ *      hypertrophy zone; the Nippard / Israetel default for compounds.
+ *
+ *   5. Isolation (category === "regional", default) → Med-High (12–15).
+ *      Pump hypertrophy zone; the default for curls, extensions, flies.
+ *
+ * The function reads name + targetedMuscles + category. stretchLevel +
+ * stability are accepted on the input shape so future revisions can
+ * extend the matrix without breaking call sites.
  */
 export interface RepRangeMatrixInput {
   exercise: string;
@@ -171,14 +195,17 @@ export function optiFillRange(item: RepRangeMatrixInput): RepRangeId {
     return "low";
   }
 
-  // Rule 2: Endurance class → High (by name pattern OR targeted muscle)
+  // Rule 2 + 3: Endurance class → High (by name pattern OR targeted muscle)
   if (ENDURANCE_NAME_PATTERN.test(name)) return "high";
   if (item.targetedMuscles.some((m) => ENDURANCE_MUSCLE_PATTERN.test(m))) {
     return "high";
   }
 
-  // Rule 3: Default → Medium
-  return "medium";
+  // Rule 4: Compound → Med-Low (8–12). Default for systemic / multi-joint.
+  if (item.category === "systemic") return "med-low";
+
+  // Rule 5: Isolation → Med-High (12–15). Default for regional / single-joint.
+  return "med-high";
 }
 
 /**

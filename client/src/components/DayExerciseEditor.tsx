@@ -123,9 +123,11 @@ export default function DayExerciseEditor({
 
   const expProfile = getExperience(experience) ?? getExperience("foot-in-door")!;
 
-  // Which rep-range bucket the current sets fall into.
+  // Which rep-range bucket the current sets fall into. Default to
+  // med-low (8–12) for unconfigured items — the heavy-hypertrophy
+  // bucket the matrix uses for compounds.
   const currentRange: RepRangeId =
-    item.sets.length > 0 ? inferRangeFromReps(item.sets[0].reps) : "medium";
+    item.sets.length > 0 ? inferRangeFromReps(item.sets[0].reps) : "med-low";
 
   const applyRangePreset = (rangeId: RepRangeId) => {
     setCustomMode(false);
