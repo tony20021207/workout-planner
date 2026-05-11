@@ -65,7 +65,13 @@ function tierOf(score: number, max: number): ScoreTier {
   return "good";
 }
 
+/**
+ * One row of the Pool Rating Matrix. Bar + score is always visible;
+ * the LLM's coaching note is collapsed behind a "Details" toggle so
+ * the matrix stays scannable at-a-glance.
+ */
 function BreakdownRow({ label, score, max, notes }: { label: string; score: number; max: number; notes: string }) {
+  const [open, setOpen] = useState(false);
   const pct = Math.max(0, Math.min(1, score / max));
   const tier = tierOf(score, max);
 
@@ -97,20 +103,33 @@ function BreakdownRow({ label, score, max, notes }: { label: string; score: numb
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between text-xs">
+      <div className="flex items-baseline justify-between gap-2 text-xs">
         <span className="font-semibold text-foreground">{label}</span>
-        <span className="text-muted-foreground tabular-nums">{score.toFixed(1)} / {max}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-muted-foreground tabular-nums">{score.toFixed(1)} / {max}</span>
+          {notes && (
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground border border-border rounded-sm px-1.5 py-0.5 transition-colors"
+              title={open ? "Hide details" : "Show coaching note"}
+            >
+              {open ? "− Details" : "+ Details"}
+            </button>
+          )}
+        </div>
       </div>
       <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
         <div className={`h-full ${t.bar} transition-all`} style={{ width: `${pct * 100}%` }} />
       </div>
-      <div className={`text-[11px] leading-relaxed border rounded-sm p-2 flex items-start gap-1.5 ${t.note}`}>
-        <TierIcon className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${t.iconClass}`} />
-        <div>
-          <span className="font-semibold uppercase tracking-wider text-[9px] block mb-0.5 opacity-80">{t.label}</span>
-          {notes}
+      {open && notes && (
+        <div className={`text-[11px] leading-relaxed border rounded-sm p-2 flex items-start gap-1.5 ${t.note}`}>
+          <TierIcon className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${t.iconClass}`} />
+          <div>
+            <span className="font-semibold uppercase tracking-wider text-[9px] block mb-0.5 opacity-80">{t.label}</span>
+            {notes}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -119,14 +138,213 @@ function countActionable(pairs: RecommendationPair[]): number {
   return pairs.filter((p) => p.action !== "keep").length;
 }
 
+/**
+ * "How to recover rating" — big call-to-action button that expands to
+ * show the coverage hit/missing chips + cueing tips. Framed as "please
+ * read" because under-trained MAJOR joint actions can be recovered via
+ * conscious cueing of existing exercises (no need to add lifts).
+ */
+function HowToRecoverButton({
+  hit,
+  missing,
+  cueingTips,
+}: {
+  hit: string[];
+  missing: string[];
+  cueingTips: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-2 border-yellow-500/40 bg-yellow-500/[0.06] rounded-sm overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full p-4 flex items-center justify-between gap-3 hover:bg-yellow-500/10 transition-colors text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-yellow-500/20 rounded-sm">
+            <AlertTriangle className="w-5 h-5 text-yellow-300" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-heading font-bold text-base text-foreground">How to recover rating</span>
+              <span className="text-[10px] uppercase tracking-wider bg-yellow-500/30 text-yellow-100 font-semibold px-1.5 py-0.5 rounded-sm">
+                please read
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+              Lost coverage points can be recovered without changing your exercise list — just by cueing intentional engagement of under-trained joint actions during your existing lifts.
+            </p>
+          </div>
+        </div>
+        <span className="text-muted-foreground text-xs shrink-0">{open ? "Hide" : "Show"}</span>
+      </button>
+      {open && (
+        <div className="p-4 border-t-2 border-yellow-500/30 space-y-4 bg-background/40">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div>
+              <div className="flex items-center gap-1.5 text-lime mb-2 font-semibold">
+                <CheckCircle2 className="w-4 h-4" /> Hit Well ({hit.length})
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {hit.length === 0 ? (
+                  <span className="text-muted-foreground italic">None highlighted</span>
+                ) : (
+                  hit.map((m, i) => (
+                    <span key={i} className="px-2 py-0.5 bg-lime/10 text-lime rounded-sm border border-lime/30">
+                      {m}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 text-red-400 mb-2 font-semibold">
+                <XCircle className="w-4 h-4" /> Missing / Under-trained ({missing.length})
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {missing.length === 0 ? (
+                  <span className="text-muted-foreground italic">All groups covered</span>
+                ) : (
+                  missing.map((m, i) => (
+                    <span key={i} className="px-2 py-0.5 bg-red-500/10 text-red-300 rounded-sm border border-red-500/30">
+                      {m}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+          {cueingTips.length > 0 && (
+            <div className="p-3 bg-yellow-500/[0.04] border border-yellow-500/30 rounded-sm">
+              <div className="flex items-center gap-1.5 mb-2 text-yellow-200 font-semibold text-xs uppercase tracking-wider">
+                <Info className="w-3.5 h-3.5" />
+                Cue these intentionally during your existing exercises
+              </div>
+              <ul className="space-y-2 text-[12px] text-foreground leading-relaxed list-disc pl-5">
+                {cueingTips.map((tip, i) => (
+                  <li key={i}>{tip}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * "Cherry on top" — collapsible button that expands to show the minor
+ * coverage bonus. Bonus points sit ON TOP of the 100 and are never
+ * deducted; framed as a low-stakes "extra credit" pickup.
+ */
+function CherryOnTopButton({
+  score,
+  hit,
+  missing,
+  notes,
+  opportunityTips,
+}: {
+  score: number;
+  hit: string[];
+  missing: string[];
+  notes: string;
+  opportunityTips: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-2 border-blue-500/40 bg-blue-500/[0.05] rounded-sm overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full p-4 flex items-center justify-between gap-3 hover:bg-blue-500/10 transition-colors text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-500/20 rounded-sm">
+            <Trophy className="w-5 h-5 text-blue-300" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-heading font-bold text-base text-foreground">Cherry on top</span>
+              <span className="text-xs tabular-nums text-blue-300 font-bold">
+                +{score.toFixed(2)}
+              </span>
+              <span className="text-[10px] text-muted-foreground tabular-nums">/ +1.50</span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+              Minor stabilizer actions tracked as a bonus pool. Added on top of the 100 — never deducted. Optional pickup.
+            </p>
+          </div>
+        </div>
+        <span className="text-muted-foreground text-xs shrink-0">{open ? "Hide" : "Show"}</span>
+      </button>
+      {open && (
+        <div className="p-4 border-t-2 border-blue-500/30 space-y-3 bg-background/40">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-blue-300 font-semibold mb-1">
+                Grabbed ({hit.length})
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {hit.length === 0 ? (
+                  <span className="text-muted-foreground italic">None yet</span>
+                ) : (
+                  hit.map((h, i) => (
+                    <span key={i} className="px-2 py-0.5 bg-blue-500/10 text-blue-300 rounded-sm border border-blue-500/30">
+                      {h}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                Available ({missing.length})
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {missing.length === 0 ? (
+                  <span className="text-muted-foreground italic">All grabbed</span>
+                ) : (
+                  missing.map((m, i) => (
+                    <span key={i} className="px-2 py-0.5 bg-secondary/40 text-muted-foreground rounded-sm border border-border">
+                      {m}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+          {notes && <p className="text-xs text-muted-foreground leading-relaxed italic">{notes}</p>}
+          {opportunityTips.length > 0 && (
+            <div className="p-3 bg-blue-500/5 border border-blue-500/30 rounded-sm">
+              <div className="flex items-center gap-1.5 mb-1.5 text-blue-300 font-semibold text-xs">
+                <Info className="w-3.5 h-3.5" />
+                Easy bonus pickups
+              </div>
+              <ul className="space-y-1.5 text-[11px] text-muted-foreground leading-relaxed list-disc pl-4">
+                {opportunityTips.map((tip, i) => (
+                  <li key={i}>{tip}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface RecommendationRowProps {
   pair: RecommendationPair;
+  /** Same-index RoutineItem from the user's routine (for keep rows, used
+   * to source targetedMuscles for the 'current' side). May be undefined
+   * for 'add' rows where current is null. */
+  currentItem?: RoutineItem;
   striped: boolean;
   accepted: boolean;
   onToggle: () => void;
 }
 
-function RecommendationRow({ pair, striped, accepted, onToggle }: RecommendationRowProps) {
+function RecommendationRow({ pair, currentItem, striped, accepted, onToggle }: RecommendationRowProps) {
   const isKeep = pair.action === "keep";
   const isRemove = pair.action === "remove";
   const isAdd = pair.action === "add";
@@ -141,6 +359,16 @@ function RecommendationRow({ pair, striped, accepted, onToggle }: Recommendation
 
   const tagLabel = isKeep ? "Keep" : isSwap ? "Swap" : isAdd ? "Add" : "Remove";
 
+  // Muscles per side. Current side comes from the user's routine when
+  // available (most accurate); falls back to keeping it blank. Recommended
+  // side comes from the LLM's pair.targetedMuscles (for swap / add) or
+  // copies from current (for keep).
+  const currentMuscles = currentItem?.targetedMuscles ?? [];
+  const recommendedMuscles =
+    isKeep ? currentMuscles
+    : isRemove ? []
+    : pair.targetedMuscles ?? [];
+
   return (
     <div
       className={`p-3 border-b border-border last:border-b-0 ${
@@ -149,11 +377,11 @@ function RecommendationRow({ pair, striped, accepted, onToggle }: Recommendation
     >
       <div className="flex items-start gap-3">
         {/* Checkbox column — keep rows show a lock icon instead. */}
-        <div className="pt-0.5 shrink-0">
+        <div className="pt-1 shrink-0">
           {isKeep ? (
             <div
               className="w-5 h-5 flex items-center justify-center text-muted-foreground"
-              title="No action — current pick is appropriate"
+              title={pair.rationale || "No action — current pick is appropriate"}
             >
               <Lock className="w-3 h-3" />
             </div>
@@ -165,53 +393,60 @@ function RecommendationRow({ pair, striped, accepted, onToggle }: Recommendation
                   ? "bg-lime border-lime text-lime-foreground"
                   : "bg-background border-border hover:border-lime/60"
               }`}
-              title={accepted ? "Untick to skip this recommendation" : "Tick to accept this recommendation"}
+              title={pair.rationale || (accepted ? "Untick to skip" : "Tick to accept")}
             >
               {accepted && <CheckCircle2 className="w-3 h-3" strokeWidth={3} />}
             </button>
           )}
         </div>
 
-        {/* Diff row: current → recommended */}
-        <div className="flex-1 min-w-0 grid grid-cols-[1fr_auto_1fr] gap-3 items-center">
-          {/* Current */}
-          <div className="min-w-0">
+        {/* Diff row: current side → recommended side */}
+        <div className="flex-1 min-w-0 grid grid-cols-[1fr_auto_1fr] gap-3 items-start">
+          {/* Current side */}
+          <div className="min-w-0 space-y-0.5">
             {pair.current ? (
-              <div className="text-sm font-semibold text-foreground truncate" title={pair.current}>
-                {pair.current}
-              </div>
+              <>
+                <div className="text-sm font-semibold text-foreground truncate" title={pair.current}>
+                  {pair.current}
+                </div>
+                {currentMuscles.length > 0 && (
+                  <div className="text-[10px] text-muted-foreground leading-snug">
+                    {currentMuscles.join(", ")}
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-sm text-muted-foreground italic">— (none)</div>
             )}
           </div>
 
           {/* Arrow + tag */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 pt-0.5">
             <ArrowRight className="w-4 h-4 text-muted-foreground" />
             <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-semibold uppercase tracking-wider ${tagStyle}`}>
               {tagLabel}
             </span>
           </div>
 
-          {/* Recommended */}
-          <div className="min-w-0">
+          {/* Recommended side */}
+          <div className="min-w-0 space-y-0.5">
             {isRemove ? (
               <div className="text-sm text-muted-foreground italic">— (drop)</div>
             ) : (
-              <div className="text-sm font-semibold text-foreground truncate" title={pair.recommended}>
-                {pair.recommended}
-              </div>
+              <>
+                <div className="text-sm font-semibold text-foreground truncate" title={pair.recommended}>
+                  {pair.recommended}
+                </div>
+                {recommendedMuscles.length > 0 && (
+                  <div className="text-[10px] text-muted-foreground leading-snug">
+                    {recommendedMuscles.join(", ")}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
       </div>
-
-      {/* Per-pair rationale */}
-      {pair.rationale && (
-        <p className="text-[11px] text-muted-foreground italic leading-relaxed mt-1.5 ml-8">
-          {pair.rationale}
-        </p>
-      )}
     </div>
   );
 }
@@ -580,16 +815,36 @@ Tue - Pull
               <p className="text-sm text-foreground leading-relaxed flex-1">{result.verdict}</p>
             </div>
 
-            {/* Breakdowns — 4 selection criteria, all at 20 pts each */}
+            {/* Pool Rating Matrix — 5 criterion rows, all at 20 pts each.
+                Notes folded behind '+ Details' so the matrix stays scannable. */}
             <div className="p-4 bg-card rounded-sm border border-border space-y-4">
               <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">
-                Selection · 80
+                Pool Rating Matrix · 100
               </h4>
               <BreakdownRow label="Stability" score={result.selectionBreakdown.stability.score} max={20} notes={result.selectionBreakdown.stability.notes} />
               <BreakdownRow label="Deep Stretch" score={result.selectionBreakdown.stretch.score} max={20} notes={result.selectionBreakdown.stretch.notes} />
               <BreakdownRow label="SFR" score={result.selectionBreakdown.sfr.score} max={20} notes={result.selectionBreakdown.sfr.notes} />
               <BreakdownRow label="Compound / Isolation Ratio" score={result.selectionBreakdown.compoundIsolationRatio.score} max={20} notes={result.selectionBreakdown.compoundIsolationRatio.notes} />
+              <BreakdownRow label="Joint-Action Coverage" score={result.coverageBreakdown.score} max={20} notes={result.coverageBreakdown.notes} />
             </div>
+
+            {/* How to recover rating — big call-to-action button */}
+            <HowToRecoverButton
+              hit={result.coverageBreakdown.hit}
+              missing={result.coverageBreakdown.missing}
+              cueingTips={result.coverageBreakdown.cueingTips ?? []}
+            />
+
+            {/* Cherry on top — minor coverage bonus, collapsed */}
+            {result.minorBonus && (
+              <CherryOnTopButton
+                score={result.minorBonus.score}
+                hit={result.minorBonus.hit}
+                missing={result.minorBonus.missing}
+                notes={result.minorBonus.notes}
+                opportunityTips={result.minorBonus.opportunityTips ?? []}
+              />
+            )}
 
             {/* Scap-depression cueing note (only if pulldown movements present) */}
             {result.scapularDepressionNote && (
@@ -599,118 +854,6 @@ Tue - Pull
                   <p className="font-semibold text-foreground mb-0.5">Pulldown technique cue</p>
                   <p className="text-muted-foreground leading-relaxed">{result.scapularDepressionNote}</p>
                 </div>
-              </div>
-            )}
-
-            {/* Coverage — joint-action level (20 pts) */}
-            <div className="p-4 bg-card rounded-sm border border-border">
-              <BreakdownRow
-                label="Joint-Action Coverage"
-                score={result.coverageBreakdown.score}
-                max={20}
-                notes={result.coverageBreakdown.notes}
-              />
-              <p className="text-xs text-muted-foreground mt-3 mb-3">
-                MAJORS only. 22 major joint actions distributed across 20 pts (~0.91 each, half-credit ~0.45). DIRECT coverage only — stabilizer roles and passive stretch don't auto-credit. The 5 stabilizer / minor actions sit in a separate bonus pool (see below) that adds to your total without ever deducting. Use the cueing tips to recover lost points by upgrading hidden roles into intentional direct work.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div>
-                  <div className="flex items-center gap-1.5 text-lime mb-2 font-semibold">
-                    <CheckCircle2 className="w-4 h-4" /> Hit Well
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {result.coverageBreakdown.hit.length === 0 ? (
-                      <span className="text-muted-foreground italic">None highlighted</span>
-                    ) : result.coverageBreakdown.hit.map((m, i) => (
-                      <span key={i} className="px-2 py-0.5 bg-lime/10 text-lime rounded-sm border border-lime/30">{m}</span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5 text-red-400 mb-2 font-semibold">
-                    <XCircle className="w-4 h-4" /> Missing / Under-trained
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {result.coverageBreakdown.missing.length === 0 ? (
-                      <span className="text-muted-foreground italic">All groups covered</span>
-                    ) : result.coverageBreakdown.missing.map((m, i) => (
-                      <span key={i} className="px-2 py-0.5 bg-red-500/10 text-red-300 rounded-sm border border-red-500/30">{m}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              {result.coverageBreakdown.cueingTips && result.coverageBreakdown.cueingTips.length > 0 && (
-                <div className="mt-4 p-3 bg-blue-500/5 border border-blue-500/30 rounded-sm">
-                  <div className="flex items-center gap-1.5 mb-1.5 text-blue-300 font-semibold text-xs">
-                    <Info className="w-3.5 h-3.5" />
-                    Recover lost coverage points by cueing intentionally
-                  </div>
-                  <p className="text-[10px] text-muted-foreground/70 mb-2 leading-snug">
-                    Stabilizer / stretch roles don't auto-score, but you can upgrade them into direct training stimulus by following these cues during your existing exercises.
-                  </p>
-                  <ul className="space-y-1.5 text-[11px] text-muted-foreground leading-relaxed list-disc pl-4">
-                    {result.coverageBreakdown.cueingTips.map((tip, i) => (
-                      <li key={i}>{tip}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {/* Minor coverage bonus */}
-            {result.minorBonus && (
-              <div className="p-4 bg-card rounded-sm border border-border space-y-3">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-blue-300" />
-                    Minor Coverage Bonus
-                  </h4>
-                  <div className="text-xs tabular-nums">
-                    <span className="text-blue-300 font-bold">+{result.minorBonus.score.toFixed(2)}</span>
-                    <span className="text-muted-foreground"> / +1.50</span>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Stabilizer actions tracked separately from the 100. Bonus points are added on top — never deducted. Most lifters won't dedicate exercises to these; the lifter who does earns recognition.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wider text-blue-300 font-semibold mb-1">Grabbed ({result.minorBonus.hit.length})</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {result.minorBonus.hit.length === 0 ? (
-                        <span className="text-muted-foreground italic">None yet</span>
-                      ) : result.minorBonus.hit.map((h, i) => (
-                        <span key={i} className="px-2 py-0.5 bg-blue-500/10 text-blue-300 rounded-sm border border-blue-500/30">{h}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Available ({result.minorBonus.missing.length})</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {result.minorBonus.missing.length === 0 ? (
-                        <span className="text-muted-foreground italic">All grabbed</span>
-                      ) : result.minorBonus.missing.map((m, i) => (
-                        <span key={i} className="px-2 py-0.5 bg-secondary/40 text-muted-foreground rounded-sm border border-border">{m}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                {result.minorBonus.notes && (
-                  <p className="text-xs text-muted-foreground leading-relaxed italic">{result.minorBonus.notes}</p>
-                )}
-                {result.minorBonus.opportunityTips && result.minorBonus.opportunityTips.length > 0 && (
-                  <div className="p-3 bg-blue-500/5 border border-blue-500/30 rounded-sm">
-                    <div className="flex items-center gap-1.5 mb-1.5 text-blue-300 font-semibold text-xs">
-                      <Info className="w-3.5 h-3.5" />
-                      Easy bonus pickups
-                    </div>
-                    <ul className="space-y-1.5 text-[11px] text-muted-foreground leading-relaxed list-disc pl-4">
-                      {result.minorBonus.opportunityTips.map((tip, i) => (
-                        <li key={i}>{tip}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             )}
 
@@ -792,15 +935,15 @@ Tue - Pull
               <ExperiencePicker />
             </div>
 
-            {/* Pair-based recommendations — left-to-right diff */}
+            {/* Optimized Routine — pair-based diff view */}
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <h4 className="font-heading font-bold text-sm text-foreground uppercase tracking-wider">
-                    Recommendations · {countActionable(result.recommendations.pairs)} change{countActionable(result.recommendations.pairs) === 1 ? "" : "s"}
+                    Optimized Routine
                   </h4>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Each row maps a current pick to what the engine recommends. Tick a row to accept it; untick to keep your current pick. Favorited exercises are locked.
+                    {countActionable(result.recommendations.pairs)} suggested change{countActionable(result.recommendations.pairs) === 1 ? "" : "s"}. Tick a row to accept, untick to keep your current pick. Favorited exercises are locked.
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -844,15 +987,22 @@ Tue - Pull
 
               {/* Diff rows */}
               <div className="border-2 border-border rounded-sm overflow-hidden">
-                {result.recommendations.pairs.map((pair, idx) => (
-                  <RecommendationRow
-                    key={idx}
-                    pair={pair}
-                    striped={idx % 2 === 1}
-                    accepted={acceptedPairs.has(idx)}
-                    onToggle={() => togglePair(idx)}
-                  />
-                ))}
+                {result.recommendations.pairs.map((pair, idx) => {
+                  // For keep / swap / remove, current item is routine[currentIndex - 1].
+                  // For 'add' pairs (currentIndex = 0), there's no current item.
+                  const currentItem =
+                    pair.currentIndex > 0 ? routine[pair.currentIndex - 1] : undefined;
+                  return (
+                    <RecommendationRow
+                      key={idx}
+                      pair={pair}
+                      currentItem={currentItem}
+                      striped={idx % 2 === 1}
+                      accepted={acceptedPairs.has(idx)}
+                      onToggle={() => togglePair(idx)}
+                    />
+                  );
+                })}
               </div>
 
               {/* Global rationale — mesocycle-perspective summary */}
