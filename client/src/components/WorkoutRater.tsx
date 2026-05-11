@@ -39,6 +39,7 @@ import {
   pairToRoutineItem,
 } from "@/lib/rating";
 import { type RoutineItem } from "@/contexts/WorkoutContext";
+import { scorePool, type PoolScore } from "@/lib/poolScore";
 import { RatingRubric } from "./RatingRubric";
 
 type SourceMode = "routine" | "text" | "image";
@@ -136,6 +137,60 @@ function BreakdownRow({ label, score, max, notes }: { label: string; score: numb
 
 function countActionable(pairs: RecommendationPair[]): number {
   return pairs.filter((p) => p.action !== "keep").length;
+}
+
+/**
+ * Merge the deterministic local PoolScore into the LLM's RatingResult.
+ * Replaces every score number + the coverage / minor / favorite list
+ * fields with the locally-computed values. The LLM's prose (notes,
+ * cueingTips, opportunityTips, reasoning, recommendations) is preserved.
+ *
+ * Result: same routine + same favorites always yields the same numbers.
+ */
+function mergeLocalScoreIntoResult(result: RatingResult, score: PoolScore): RatingResult {
+  return {
+    ...result,
+    score: score.total,
+    selectionBreakdown: {
+      stability: {
+        score: score.stability,
+        notes: result.selectionBreakdown.stability.notes,
+      },
+      stretch: {
+        score: score.stretch,
+        notes: result.selectionBreakdown.stretch.notes,
+      },
+      sfr: {
+        score: score.sfr,
+        notes: result.selectionBreakdown.sfr.notes,
+      },
+      compoundIsolationRatio: {
+        score: score.compoundIsoRatio,
+        notes: result.selectionBreakdown.compoundIsolationRatio.notes,
+      },
+    },
+    coverageBreakdown: {
+      ...result.coverageBreakdown,
+      score: score.coverage,
+      hit: score.coverageHit,
+      // UI shows two buckets: hit (full credit) vs missing (everything
+      // not full). Half-credit actions live in "missing" alongside zero-
+      // coverage ones — both are recoverable via cueing.
+      missing: [...score.coverageHalf, ...score.coverageMissing],
+    },
+    minorBonus: {
+      ...result.minorBonus,
+      score: score.minorBonus,
+      hit: score.minorHit,
+      missing: [...score.minorHalf, ...score.minorMissing],
+    },
+    favoriteBias: {
+      ...result.favoriteBias,
+      delta: score.favoriteBias,
+      goodFavorites: score.favoriteGood,
+      badFavorites: score.favoriteBad,
+    },
+  };
 }
 
 /**
@@ -462,13 +517,21 @@ export default function WorkoutRater() {
   // Indices into result.recommendations.pairs that the user has accepted.
   // Defaults to every non-"keep" pair on a fresh rating. Toggled per row.
   const [acceptedPairs, setAcceptedPairs] = useState<Set<number>>(new Set());
+  // Local deterministic score computed at mutate-time. Stashed here so
+  // onSuccess can merge it into the LLM response (replacing any LLM-
+  // emitted numbers with the deterministic values).
+  const [pendingScore, setPendingScore] = useState<PoolScore | null>(null);
 
   const rateMutation = trpc.rating.rateWorkout.useMutation({
     onSuccess: (data) => {
-      setResult(data as RatingResult);
+      const raw = data as RatingResult;
+      const merged = pendingScore ? mergeLocalScoreIntoResult(raw, pendingScore) : raw;
+      setResult(merged);
+      setPendingScore(null);
       toast.success("Rating complete");
     },
     onError: (err) => {
+      setPendingScore(null);
       toast.error(`Rating failed: ${err.message}`);
     },
   });
@@ -500,16 +563,43 @@ export default function WorkoutRater() {
         ? routine.filter((r) => favorites.includes(r.id)).map((r) => r.exercise)
         : undefined;
     if (mode === "routine") {
+      // Compute the deterministic score locally so the LLM only writes
+      // prose. Same routine + same favorites = same numbers every time.
+      const localScore = scorePool(routine, favorites);
+      setPendingScore(localScore);
       rateMutation.mutate({
         source: "routine",
         text: serializeRoutineToText(routine),
         lifestyle: lifestyleArg,
         experience: experienceArg,
         favorites: favoriteNames,
+        precomputedScores: {
+          total: localScore.total,
+          stability: localScore.stability,
+          stretch: localScore.stretch,
+          sfr: localScore.sfr,
+          compoundIsoRatio: localScore.compoundIsoRatio,
+          coverage: localScore.coverage,
+          compoundPct: localScore.compoundPct,
+          coverageHit: localScore.coverageHit,
+          coverageHalf: localScore.coverageHalf,
+          coverageMissing: localScore.coverageMissing,
+          minorBonus: localScore.minorBonus,
+          minorHit: localScore.minorHit,
+          minorHalf: localScore.minorHalf,
+          minorMissing: localScore.minorMissing,
+          favoriteBias: localScore.favoriteBias,
+          favoriteGood: localScore.favoriteGood,
+          favoriteBad: localScore.favoriteBad,
+        },
       });
     } else if (mode === "text") {
+      // Text / image paths can't be scored locally (no RoutineItem state).
+      // Server falls back to LLM scoring.
+      setPendingScore(null);
       rateMutation.mutate({ source: "text", text: pastedText, lifestyle: lifestyleArg, experience: experienceArg });
     } else if (imageDataUrl) {
+      setPendingScore(null);
       rateMutation.mutate({ source: "image", imageDataUrl, lifestyle: lifestyleArg, experience: experienceArg });
     }
   };

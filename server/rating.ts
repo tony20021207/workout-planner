@@ -416,6 +416,26 @@ const lifestyleEnum = z.enum([
 
 const experienceEnum = z.enum(["beginner", "foot-in-door", "experienced"]);
 
+const precomputedScoresSchema = z.object({
+  total: z.number(),
+  stability: z.number(),
+  stretch: z.number(),
+  sfr: z.number(),
+  compoundIsoRatio: z.number(),
+  coverage: z.number(),
+  compoundPct: z.number(),
+  coverageHit: z.array(z.string()),
+  coverageHalf: z.array(z.string()),
+  coverageMissing: z.array(z.string()),
+  minorBonus: z.number(),
+  minorHit: z.array(z.string()),
+  minorHalf: z.array(z.string()),
+  minorMissing: z.array(z.string()),
+  favoriteBias: z.number(),
+  favoriteGood: z.array(z.string()),
+  favoriteBad: z.array(z.string()),
+});
+
 const inputSchema = z.object({
   source: z.enum(["routine", "text", "image"]),
   text: z.string().optional(),
@@ -425,6 +445,11 @@ const inputSchema = z.object({
   /** Exercise NAMES the user marked as favorites. Locked from swaps;
    * triggers favorite-driven bias correction in the score. */
   favorites: z.array(z.string()).optional(),
+  /** Deterministic score block computed client-side via lib/poolScore.
+   * When present, the LLM treats these as authoritative ground truth
+   * and echoes them in the response. Only sent for source=routine
+   * (text / image sources can't be scored client-side). */
+  precomputedScores: precomputedScoresSchema.optional(),
 });
 
 const EXPERIENCE_RATING_GUIDANCE: Record<z.infer<typeof experienceEnum>, string> = {
@@ -776,6 +801,49 @@ function buildFavoritesLine(favorites: string[] | undefined): string {
   return `\n\nUSER FAVORITES (LOCKED — engine cannot swap): ${favorites.join(", ")}`;
 }
 
+/**
+ * Build the authoritative-scores block when the client has precomputed
+ * deterministic scores (via lib/poolScore). The LLM must echo these
+ * numbers exactly in the response and write coaching that aligns with
+ * them. Empty string if no precomputed block (legacy / text-image paths).
+ */
+function buildPrecomputedScoresBlock(
+  scores: z.infer<typeof precomputedScoresSchema> | undefined,
+): string {
+  if (!scores) return "";
+  const round = (n: number) => Math.round(n * 10) / 10;
+  const lines: string[] = [];
+  lines.push("");
+  lines.push("=== AUTHORITATIVE SCORES (computed locally — DO NOT recalculate) ===");
+  lines.push(`Total: ${round(scores.total)}/100`);
+  lines.push(`Stability: ${round(scores.stability)}/20`);
+  lines.push(`Deep Stretch: ${round(scores.stretch)}/20`);
+  lines.push(`SFR: ${round(scores.sfr)}/20`);
+  lines.push(
+    `Compound vs Isolation Ratio: ${round(scores.compoundIsoRatio)}/20 (compound% = ${Math.round(scores.compoundPct * 100)}%)`,
+  );
+  lines.push(`Major Joint-Action Coverage: ${round(scores.coverage)}/20`);
+  lines.push(`  Hit (≥2 exercises): ${scores.coverageHit.join(", ") || "(none)"}`);
+  lines.push(`  Half (exactly 1):   ${scores.coverageHalf.join(", ") || "(none)"}`);
+  lines.push(`  Missing (0):        ${scores.coverageMissing.join(", ") || "(none)"}`);
+  lines.push(`Minor Bonus: +${round(scores.minorBonus)}/1.5`);
+  lines.push(`  Grabbed: ${scores.minorHit.join(", ") || "(none)"}`);
+  lines.push(`  Half:    ${scores.minorHalf.join(", ") || "(none)"}`);
+  lines.push(`  Missing: ${scores.minorMissing.join(", ") || "(none)"}`);
+  lines.push(`Favorite Bias: ${scores.favoriteBias > 0 ? "+" : ""}${scores.favoriteBias}/±5`);
+  if (scores.favoriteGood.length > 0) {
+    lines.push(`  GOOD favorites (unique source of a major): ${scores.favoriteGood.join(", ")}`);
+  }
+  if (scores.favoriteBad.length > 0) {
+    lines.push(`  BAD favorites (redundant): ${scores.favoriteBad.join(", ")}`);
+  }
+  lines.push("");
+  lines.push(
+    "Your job: ECHO these numbers exactly in the response schema, AND write coaching notes / cueing tips / favorite-bias reasoning that align with these scores. Do NOT recompute or contradict them. Frame recommendations around the LOWEST-scored criteria.",
+  );
+  return lines.join("\n");
+}
+
 export const ratingRouter = router({
   rateWorkout: publicProcedure
     .input(inputSchema)
@@ -786,11 +854,12 @@ export const ratingRouter = router({
       > = [];
 
       const favoritesLine = buildFavoritesLine(input.favorites);
+      const scoresBlock = buildPrecomputedScoresBlock(input.precomputedScores);
       if (input.source === "image") {
         if (!input.imageDataUrl) throw new Error("imageDataUrl required for image source");
         userContent.push({
           type: "text",
-          text: `Evaluate this weekly workout. Read all exercises, angles, and equipment from the image, then apply the Hypertrophy Matrix Rating System.${favoritesLine}`,
+          text: `Evaluate this weekly workout. Read all exercises, angles, and equipment from the image, then apply the Hypertrophy Matrix Rating System.${favoritesLine}${scoresBlock}`,
         });
         userContent.push({
           type: "image_url",
@@ -802,7 +871,7 @@ export const ratingRouter = router({
           input.source === "routine"
             ? "Evaluate the following weekly microcycle (built in the Kinesiology Workout Builder) using the Hypertrophy Matrix Rating System."
             : "Evaluate the following weekly workout (provided by the user as text) using the Hypertrophy Matrix Rating System.";
-        userContent.push({ type: "text", text: `${intro}\n\n${input.text}${favoritesLine}` });
+        userContent.push({ type: "text", text: `${intro}\n\n${input.text}${favoritesLine}${scoresBlock}` });
       }
 
       const result = await invokeLLM({
