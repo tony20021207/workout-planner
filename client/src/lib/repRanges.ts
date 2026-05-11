@@ -71,7 +71,7 @@ export const REP_RANGES: RepRange[] = [
     shortLabel: "12–15",
     defaultSets: 3,
     description:
-      "Pump hypertrophy zone. Default for isolation work — biceps, triceps, side delts, leg curls. Lighter joint load, more metabolic stress per set.",
+      "Pump hypertrophy zone. Default for isolation work — biceps, triceps, leg curls, AND all delt isolation (lateral raises, rear delt flies, face pulls, front raises). Lighter joint load, more metabolic stress per set.",
   },
   {
     id: "high",
@@ -82,7 +82,7 @@ export const REP_RANGES: RepRange[] = [
     shortLabel: "15–30",
     defaultSets: 2,
     description:
-      "Higher reps, lighter loads. Same growth potential as the lower tiers when pushed to failure. Lower joint stress, higher cardio and time cost. Best for small / endurance muscles (calves, abs, cuff, rear delts).",
+      "Higher reps, lighter loads. Same growth potential as the lower tiers when pushed to failure. Lower joint stress, higher cardio and time cost. Reserved for slow-twitch / small-mass muscles where more reps materially improve stimulus: calves (soleus), abs / obliques, rotator cuff, forearms.",
   },
 ];
 
@@ -149,10 +149,15 @@ const DEADLIFT_PATTERN =
   /\bdeadlift\b/i; // matches "Conventional Deadlift", "Sumo Deadlift", "Trap Bar Deadlift", "Deadlift"
 const NOT_CNS_DEADLIFT_PATTERN =
   /romanian|stiff[- ]leg|single[- ]leg/i; // RDL etc. are NOT CNS-heavy deadlifts
+// True endurance-class lifts — High (15-30). Delts are deliberately
+// EXCLUDED here: they're in the Med-High (12-15) zone via the
+// isolation default rule. The High bucket is reserved for calves,
+// abs/obliques, rotator cuff, and forearms — the small-mass /
+// slow-twitch class where more reps materially improve hypertrophy.
 const ENDURANCE_NAME_PATTERN =
-  /calf|calves|crunch|woodchop|pallof|side bend|v-up|ab wheel|face pull|external rotation|lateral raise|cable y/i;
+  /calf|calves|crunch|woodchop|pallof|side bend|v-up|ab wheel|external rotation/i;
 const ENDURANCE_MUSCLE_PATTERN =
-  /soleus|abdomin|oblique|posterior delt|rear delt|forearm|rotator cuff|infraspinatus|teres minor|supraspinatus/i;
+  /soleus|abdomin|oblique|forearm|rotator cuff|infraspinatus|teres minor|supraspinatus/i;
 
 /**
  * Opti-fill matrix — pick a rep range for a routine item given its
@@ -163,17 +168,21 @@ const ENDURANCE_MUSCLE_PATTERN =
  *      Excludes RDL, stiff-leg, single-leg variants.
  *
  *   2. Endurance class by NAME → High (15–30). Calf raises, crunches,
- *      lateral raises, pallof, face pulls, woodchops, etc.
+ *      pallof, woodchops, side bends, v-ups, ab wheel, external
+ *      rotation. (Delt isolations are NOT in this list — see Rule 5.)
  *
  *   3. Endurance class by TARGETED MUSCLE → High (15–30). Soleus,
- *      obliques, rear delts, rotator cuff, forearms — smaller mass
- *      and slow-twitch fibers benefit from higher reps.
+ *      abdominis, obliques, rotator cuff, forearms — small-mass /
+ *      slow-twitch fibers that benefit from higher reps.
  *
  *   4. Compound (category === "systemic") → Med-Low (8–12). Heavy
  *      hypertrophy zone; the Nippard / Israetel default for compounds.
  *
  *   5. Isolation (category === "regional", default) → Med-High (12–15).
- *      Pump hypertrophy zone; the default for curls, extensions, flies.
+ *      Pump hypertrophy zone — including ALL delt isolation work
+ *      (lateral raises, rear delt flies, face pulls, cable Y-raise,
+ *      front raises) since the medial / posterior / anterior delts
+ *      respond well to 12–15 reps with full ROM.
  *
  * The function reads name + targetedMuscles + category. stretchLevel +
  * stability are accepted on the input shape so future revisions can
