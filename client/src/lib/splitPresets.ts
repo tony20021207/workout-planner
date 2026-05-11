@@ -105,6 +105,16 @@ const MUSCLE_NAME_TO_TAGS: Array<{ pattern: RegExp; tags: MuscleTag[] }> = [
   { pattern: /rectus abdominis|abdominals|abs|obliques|core/i, tags: ["core"] },
 ];
 
+/**
+ * Pattern for muscles that are ALWAYS back movers (the user actually
+ * trains them when picking the exercise). Erectors and upper traps are
+ * deliberately NOT in this list — they're stabilizers in deadlifts /
+ * squats / RDLs and shouldn't make those exercises eligible for back
+ * days.
+ */
+const PRIMARY_BACK_PATTERN =
+  /lat\b|latissimus|teres|rhomboid|mid trap|lower trap|upper back/i;
+
 /** Compute the muscle groups an exercise trains (deduped). */
 export function getMuscleTagsForItem(item: RoutineItem): MuscleTag[] {
   const tags = new Set<MuscleTag>();
@@ -114,6 +124,23 @@ export function getMuscleTagsForItem(item: RoutineItem): MuscleTag[] {
         for (const t of rule.tags) tags.add(t);
         break;
       }
+    }
+  }
+  // Strip incidental `back` tag from lower-body lifts. Squat / Leg Press
+  // / RDL / Conventional Deadlift all list 'Spinal Erectors' or 'Upper
+  // Traps' in their targetedMuscles because those stabilize the lift.
+  // Without this cleanup, the muscle-tag matcher would tag those as
+  // 'back' too, and the allocator would happily land squat on an
+  // upper-body day. Only strip when there's NO primary back mover
+  // (lat / teres / rhomboid / mid-or-lower trap / upper back) — that
+  // preserves rows, pulldowns, shrugs etc.
+  const hasLowerBodyTag = tags.has("quads") || tags.has("hams") || tags.has("glutes");
+  if (hasLowerBodyTag && tags.has("back")) {
+    const hasPrimaryBack = item.targetedMuscles.some((m) =>
+      PRIMARY_BACK_PATTERN.test(m),
+    );
+    if (!hasPrimaryBack) {
+      tags.delete("back");
     }
   }
   // Edge case: exercise name reveals muscle group when targetedMuscles is unhelpful.
