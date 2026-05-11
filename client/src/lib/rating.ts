@@ -180,7 +180,12 @@ export function serializeFinalizedWeekToText(
 }
 
 /**
- * Convert the user's current routine into a plaintext description for the LLM.
+ * Convert the user's current routine into a plaintext description for the
+ * pool-stage rating + recommendations. Sets / reps / weight / RIR /
+ * frequency / rest are DELIBERATELY omitted — at this stage the user is
+ * evaluating EXERCISE SELECTION (stability, stretch, SFR, compound
+ * balance, joint-action coverage), not programming detail. Sets/reps
+ * get filled in later, after the split is built.
  */
 export function serializeRoutineToText(routine: RoutineItem[]): string {
   if (routine.length === 0) return "(empty routine)";
@@ -197,8 +202,6 @@ export function serializeRoutineToText(routine: RoutineItem[]): string {
     lines.push(`   Targeted muscles: ${item.targetedMuscles.join(", ")}`);
     if (item.equipment) lines.push(`   Equipment: ${item.equipment}`);
     if (item.angle) lines.push(`   Angle: ${item.angle}`);
-    lines.push(`   Sets (${item.sets.length}): ${item.sets.map((s, i) => `S${i + 1} ${s.reps}reps@${s.weight}lbs`).join(" | ")}`);
-    lines.push(`   Frequency: ${item.parameters.frequency}  Rest: ${item.parameters.rest}  Intensity: ${item.parameters.intensity}`);
     lines.push(`   Difficulty: ${item.difficulty}`);
     lines.push("");
   });

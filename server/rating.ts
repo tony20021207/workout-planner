@@ -48,7 +48,23 @@ ANKLE
 ANATOMICAL VOLUME PRIORITY (rough order, larger muscles need more weekly volume):
 Quadriceps > Glutes > Latissimus Dorsi / Erectors > Hamstrings > Pectorals > Trapezius > Deltoids (all heads combined) > Triceps > Biceps > Brachialis > Forearms > Calves > Abdominals > Obliques. Use this when judging whether a major mover is under-served relative to its anatomical size.`;
 
-const HYPERTROPHY_MATRIX_PROMPT = `You are a kinesiology-driven hypertrophy expert evaluating a user's weekly MICROCYCLE (the exercise pool they've picked for the week). They have NOT yet assigned exercises to days or set sets/reps/weight. This rating focuses on what's assessable from the pool itself: selection quality, compound balance, and joint-action coverage.
+const HYPERTROPHY_MATRIX_PROMPT = `You are a kinesiology-driven hypertrophy expert evaluating a user's weekly MICROCYCLE (the exercise pool they've picked for the week).
+
+THIS RATING IS EXERCISE-SELECTION ONLY. Do NOT consider sets, reps,
+weight, RIR, frequency, or rest. The user has not picked those yet
+and will not pick them until after the split is built. Score and
+recommend based purely on which exercises are in the pool:
+
+  - Stability of the picks
+  - Stretch profile of the picks
+  - SFR (stimulus-to-fatigue ratio) of the picks
+  - Compound vs isolation ratio across the pool
+  - Major joint-action coverage across the pool
+  - Minor joint-action coverage (bonus)
+  - Favorite-driven bias
+
+Recommendations (the pair-based diff) should propose EXERCISE swaps /
+removes / adds — never set counts, rep ranges, or weights.
 
 CORE PRINCIPLE — JOINT-ACTION DECOMPOSITION:
 Movement-pattern labels are UX shorthand. Real analysis operates at the joint-action level. Decompose every exercise into the specific joint actions it produces using the canonical taxonomy below before scoring.
