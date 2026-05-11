@@ -295,6 +295,7 @@ export default function SplitBuilder() {
     collapseToSingleWeek,
     setWeek2DayAssignments,
     rebalanceWeek2,
+    applyLoadDeload,
   } = useWorkout();
   const [open, setOpen] = useState(false);
   const [activeWeek, setActiveWeek] = useState<1 | 2>(1);
@@ -718,7 +719,7 @@ export default function SplitBuilder() {
                   </p>
                 ) : (
                   <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                    2-week mesocycle. Week 2 starts as a clone of Week 1. Use <span className="font-semibold text-purple-300">Rebalance Week 2</span> to pivot leg days (squat-bias ↔ hinge-bias) and swap mirrored upper days.
+                    2-week mesocycle. Week 2 starts as a clone of Week 1. <span className="font-semibold text-purple-300">Rebalance</span> swaps mirrored upper days + pivots leg days; <span className="font-semibold text-purple-300">Load/Deload</span> rebalances per-muscle set counts against the 2-week budget.
                   </p>
                 )}
               </div>
@@ -752,18 +753,39 @@ export default function SplitBuilder() {
                     </button>
                   </div>
                   {isViewingWeek2 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        rebalanceWeek2();
-                        toast.success("Week 2 rebalanced — leg-day pivot + day-pair swap applied");
-                      }}
-                      className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 text-xs"
-                      title="Reshape Week 2: swap mirrored upper days (Upper 1 ↔ Upper 2, Push 1 ↔ Push 2, Pull 1 ↔ Pull 2) and separate squat-pattern from hinge-pattern across Lower and Leg Day"
-                    >
-                      Rebalance Week 2
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          rebalanceWeek2();
+                          toast.success("Week 2 rebalanced — leg-day pivot + day-pair swap applied");
+                        }}
+                        className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 text-xs"
+                        title="Reshape Week 2: swap mirrored upper days (Upper 1 ↔ Upper 2, Push 1 ↔ Push 2, Pull 1 ↔ Pull 2) and separate squat-pattern from hinge-pattern across Lower and Leg Day"
+                      >
+                        Rebalance Week 2
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const summary = applyLoadDeload();
+                          if (!summary) return;
+                          const parts: string[] = [];
+                          if (summary.loaded) parts.push(`${summary.loaded} loaded`);
+                          if (summary.deloaded) parts.push(`${summary.deloaded} deloaded`);
+                          if (summary.matched) parts.push(`${summary.matched} held`);
+                          toast.success(
+                            `Week 2 load/deload applied${parts.length ? ` — ${parts.join(", ")}` : ""}`,
+                          );
+                        }}
+                        className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 text-xs"
+                        title="Recompute Week 2 set counts per muscle: target = max(0.5 × weekly, 2-week budget − Week 1 actual). Muscles you hit hard in Week 1 deload toward the floor; muscles that came in light get loaded up."
+                      >
+                        Apply Load/Deload
+                      </Button>
+                    </>
                   )}
                   <Button
                     size="sm"
@@ -789,7 +811,16 @@ export default function SplitBuilder() {
             >
               {activePreset.days.map((day) => {
                 const ids = activeDayAssignments[day.id] ?? [];
-                const items = ids.map((id) => itemsById.get(id)).filter(Boolean) as RoutineItem[];
+                const items = ids
+                  .map((id) => itemsById.get(id))
+                  .filter(Boolean)
+                  .map((item) => {
+                    // On Week 2, swap in load/deload sets[] override when present.
+                    if (!isViewingWeek2) return item as RoutineItem;
+                    const override = mesocycle.week2ExerciseSets[(item as RoutineItem).id];
+                    if (!override) return item as RoutineItem;
+                    return { ...(item as RoutineItem), sets: override };
+                  }) as RoutineItem[];
                 return (
                   <DayCard
                     key={day.id}

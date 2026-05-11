@@ -59,7 +59,7 @@ export type MuscleTag =
   | "heavy-hinge";
 
 /** Anatomical-mass weights — used to scale weekly volume targets per muscle. */
-const MUSCLE_MASS_WEIGHT: Record<MuscleTag, number> = {
+export const MUSCLE_MASS_WEIGHT: Record<MuscleTag, number> = {
   chest: 1.0,
   back: 1.2,        // Lats + traps + rhomboids = larger combined mass
   shoulders: 0.8,   // Side / rear delts are smaller individually

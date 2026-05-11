@@ -9,8 +9,9 @@ import {
   generateId,
 } from "@/lib/data";
 import { type LifestyleId } from "@/lib/lifestyle";
-import { type ExperienceId } from "@/lib/experience";
+import { type ExperienceId, getExperience } from "@/lib/experience";
 import { rebalanceForWeek2 } from "@/lib/rebalance";
+import { computeWeek2LoadDeload } from "@/lib/loadDeload";
 
 export interface SetDetail {
   reps: number;
@@ -197,6 +198,13 @@ interface WorkoutContextType {
    * engine (mirrored day-pair swap + leg-day hard-binary pivot). Opt-in
    * button on the Week 2 tab. No-op if mesocycle isn't enabled. */
   rebalanceWeek2: () => void;
+  /** Apply per-muscle load/deload to Week 2: target = max(0.5 ×
+   * weekly, 2 × weekly − Week 1 actual). Overwrites mesocycle.week2-
+   * ExerciseSets with the resulting per-item sets[]. Opt-in button on
+   * the Week 2 tab. Returns a per-muscle direction summary for UI
+   * feedback (load/deload/match counts). Returns null if mesocycle
+   * isn't enabled. */
+  applyLoadDeload: () => { loaded: number; deloaded: number; matched: number } | null;
   /** Set per-exercise sets[] override for week 2. Pass empty array to
    * remove the override (week 2 will fall back to week 1's sets). */
   setWeek2ExerciseSets: (exerciseId: string, sets: SetDetail[]) => void;
@@ -516,6 +524,41 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const applyLoadDeload = useCallback((): { loaded: number; deloaded: number; matched: number } | null => {
+    // Like rebalanceWeek2, read latest state via nested setter callbacks
+    // to avoid stale closures. Also closes over `experience` (the
+    // experience id) via deps so we always use the current profile.
+    // Captured in an outer closure variable so we can return summary.
+    let summary: { loaded: number; deloaded: number; matched: number } | null = null;
+    setSplitState((prevSplit) => {
+      setRoutine((prevRoutine) => {
+        setMesocycleState((prevMeso) => {
+          if (!prevMeso.enabled) return prevMeso;
+          const profile = getExperience(experience) ?? getExperience("foot-in-door")!;
+          const result = computeWeek2LoadDeload(
+            prevRoutine,
+            prevSplit.dayAssignments,
+            prevMeso.week2DayAssignments,
+            profile,
+          );
+          let loaded = 0,
+            deloaded = 0,
+            matched = 0;
+          for (const v of Object.values(result.perMuscle)) {
+            if (v.direction === "load") loaded++;
+            else if (v.direction === "deload") deloaded++;
+            else matched++;
+          }
+          summary = { loaded, deloaded, matched };
+          return { ...prevMeso, week2ExerciseSets: result.week2ExerciseSets };
+        });
+        return prevRoutine;
+      });
+      return prevSplit;
+    });
+    return summary;
+  }, [experience]);
+
   const setWeek2ExerciseSets = useCallback((exerciseId: string, sets: SetDetail[]) => {
     setMesocycleState((prev) => {
       const nextMap = { ...prev.week2ExerciseSets };
@@ -700,6 +743,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         collapseToSingleWeek,
         setWeek2DayAssignments,
         rebalanceWeek2,
+        applyLoadDeload,
         setWeek2ExerciseSets,
       }}
     >
