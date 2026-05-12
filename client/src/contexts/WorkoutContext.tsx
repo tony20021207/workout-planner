@@ -275,6 +275,32 @@ interface WorkoutContextType {
    * commitWeek2Snapshot. Returns true if the revert happened, false if
    * there was nothing to revert. One-step undo. */
   revertWeek2Apply: () => boolean;
+  /** When non-null, the user is editing a scheduled calendar workout
+   * (clicked Edit in Planner from CalendarPage). Holds the original
+   * entry + workout info plus a backup of the user's prior routine /
+   * split state so Cancel can restore it. */
+  editingScheduledEntry: {
+    entryId: number;
+    workoutId: number;
+    date: string;
+    workoutName: string;
+    routineBackup: RoutineItem[];
+    splitBackup: SplitState;
+    mesocycleBackup: MesocycleState;
+  } | null;
+  startEditingScheduledEntry: (args: {
+    entryId: number;
+    workoutId: number;
+    date: string;
+    workoutName: string;
+    exercises: RoutineItem[];
+  }) => void;
+  /** Clear the edit flag. Does NOT restore the routine backup — used
+   * after a successful save when the user is done editing. */
+  finishEditingScheduledEntry: () => void;
+  /** Clear the edit flag AND restore the routine backup — used when
+   * the user clicks Cancel in the edit banner. */
+  cancelEditingScheduledEntry: () => void;
 }
 
 const STORAGE_KEY = "kinesiology_routine";
@@ -660,6 +686,75 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     return did;
   }, []);
 
+  // ============================================================
+  // EDIT SCHEDULED WORKOUT (CalendarPage Phase 4)
+  // ============================================================
+  // When the user clicks "Edit in Planner" on a scheduled calendar
+  // entry, we load that workout's exercises into routine state and
+  // route them to the home page. A backup of the prior routine /
+  // split / mesocycle state is captured so Cancel can restore it.
+
+  const [editingScheduledEntry, setEditingScheduledEntry] = useState<
+    | {
+        entryId: number;
+        workoutId: number;
+        date: string;
+        workoutName: string;
+        routineBackup: RoutineItem[];
+        splitBackup: SplitState;
+        mesocycleBackup: MesocycleState;
+      }
+    | null
+  >(null);
+
+  const startEditingScheduledEntry = useCallback(
+    (args: {
+      entryId: number;
+      workoutId: number;
+      date: string;
+      workoutName: string;
+      exercises: RoutineItem[];
+    }) => {
+      // Use setter callbacks to capture the latest backup atomically.
+      setRoutine((prevRoutine) => {
+        setSplitState((prevSplit) => {
+          setMesocycleState((prevMeso) => {
+            setEditingScheduledEntry({
+              entryId: args.entryId,
+              workoutId: args.workoutId,
+              date: args.date,
+              workoutName: args.workoutName,
+              routineBackup: prevRoutine,
+              splitBackup: prevSplit,
+              mesocycleBackup: prevMeso,
+            });
+            // Clear mesocycle (the scheduled workout is a single day).
+            return DEFAULT_MESOCYCLE;
+          });
+          // Clear split (the scheduled workout has no week-context).
+          return DEFAULT_SPLIT;
+        });
+        // Replace routine with the workout's exercises.
+        return args.exercises;
+      });
+    },
+    [],
+  );
+
+  const finishEditingScheduledEntry = useCallback(() => {
+    setEditingScheduledEntry(null);
+  }, []);
+
+  const cancelEditingScheduledEntry = useCallback(() => {
+    setEditingScheduledEntry((prev) => {
+      if (!prev) return null;
+      setRoutine(prev.routineBackup);
+      setSplitState(prev.splitBackup);
+      setMesocycleState(prev.mesocycleBackup);
+      return null;
+    });
+  }, []);
+
   const rebalanceWeek2 = useCallback(() => {
     // Read latest values via setter-callbacks so we never close over stale
     // state (the button can fire after Week 1 edits without remounting).
@@ -974,6 +1069,10 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         setWeek2DayAssignments,
         commitWeek2Snapshot,
         revertWeek2Apply,
+        editingScheduledEntry,
+        startEditingScheduledEntry,
+        finishEditingScheduledEntry,
+        cancelEditingScheduledEntry,
         rebalanceWeek2,
         applyLoadDeload,
         swapVariantsWeek2,

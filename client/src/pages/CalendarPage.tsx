@@ -37,7 +37,7 @@ import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { useWorkout, type RoutineItem } from "@/contexts/WorkoutContext";
 import { toast } from "sonner";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { SPLIT_PRESETS, getMuscleTagsForItem, type MuscleTag } from "@/lib/splitPresets";
 
 interface CalendarExercise {
@@ -61,7 +61,8 @@ interface PickerOption {
 
 export default function CalendarPage() {
   const { user, isAuthenticated, loading } = useAuth();
-  const { routine, split, mesocycle } = useWorkout();
+  const { routine, split, mesocycle, startEditingScheduledEntry } = useWorkout();
+  const [, setLocation] = useLocation();
 
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
@@ -97,6 +98,20 @@ export default function CalendarPage() {
     Array<{ date1: string; date2: string; sharedTags: MuscleTag[] }> | null
   >(null);
 
+  /** Detail modal shown when the user clicks a scheduled workout entry.
+   * Lists the exercises + offers Edit / Mark Complete / Remove / Close. */
+  const [viewingEntry, setViewingEntry] = useState<
+    | {
+        entryId: number;
+        workoutId: number;
+        workoutName: string;
+        exercises: CalendarExercise[];
+        date: string;
+        completed: boolean;
+      }
+    | null
+  >(null);
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       window.location.href = getLoginUrl();
@@ -107,6 +122,11 @@ export default function CalendarPage() {
     { month: currentMonth },
     { enabled: isAuthenticated },
   );
+  /** Full workout list — needed to resolve a calendar entry's
+   * workoutId → name + exercises when opening the detail modal. */
+  const workoutsQuery = trpc.workout.list.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
 
   const createWorkout = trpc.workout.create.useMutation();
   const addEntry = trpc.calendar.addEntry.useMutation({
@@ -393,6 +413,84 @@ export default function CalendarPage() {
     const [y, m] = currentMonth.split("-").map(Number);
     const d = new Date(y, m, 1);
     setCurrentMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
+
+  /** Resolve a calendar entry's workoutId to its saved name + exercises. */
+  const getWorkoutByEntry = (entry: { workoutId: number }) => {
+    const w = (workoutsQuery.data ?? []).find((w) => w.id === entry.workoutId);
+    if (!w) return null;
+    const exercises = ((w.exercises as unknown[]) ?? []) as CalendarExercise[];
+    return { name: w.name, exercises };
+  };
+
+  /** Click handler when user clicks a scheduled workout label on a
+   * calendar cell — opens the detail modal. */
+  const openEntryDetail = (entry: {
+    id: number;
+    workoutId: number;
+    date: string;
+    completed: boolean;
+  }) => {
+    const w = getWorkoutByEntry({ workoutId: entry.workoutId });
+    if (!w) {
+      toast.error("Workout content unavailable — it may have been deleted.");
+      return;
+    }
+    setViewingEntry({
+      entryId: entry.id,
+      workoutId: entry.workoutId,
+      workoutName: w.name,
+      exercises: w.exercises,
+      date: entry.date,
+      completed: entry.completed,
+    });
+  };
+
+  /** Convert a saved workout's exercises (CalendarExercise shape) back
+   * into RoutineItem[] shape so the planner can edit them. The saved
+   * shape was built from RoutineItem in buildWorkoutPayload, so most
+   * fields round-trip. Generates fresh ids for routine. */
+  const handleEditInPlanner = () => {
+    if (!viewingEntry) return;
+    const routineItems: RoutineItem[] = viewingEntry.exercises.map((ex) => {
+      // Generate a fresh id so the planner doesn't conflict with any
+      // routine ids the user may have in state.
+      const id = `edit-${viewingEntry.entryId}-${Math.random().toString(36).slice(2, 9)}`;
+      return {
+        id,
+        exercise: ex.exercise,
+        jointFunction: ex.jointFunction,
+        category: ex.category,
+        // ProgrammingParameters payload is stored as `unknown` in the
+        // workout schema — narrow it back. Fall back to a sensible
+        // default if absent so the planner UI doesn't crash.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        parameters: (ex.parameters as any) ?? {
+          sets: "3 sets",
+          reps: "8-12 reps",
+          frequency: "2x per week",
+          rest: ex.category === "systemic" ? "2–3 minutes" : "60–90 seconds",
+          intensity: ex.category === "systemic" ? "1-2 RIR" : "0 RIR",
+          rationale: "",
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        difficulty: (ex.difficulty as any) ?? "medium",
+        targetedMuscles: ex.targetedMuscles ?? [],
+        sets: ex.sets ?? [],
+        equipment: ex.equipment,
+        angle: ex.angle,
+      };
+    });
+    startEditingScheduledEntry({
+      entryId: viewingEntry.entryId,
+      workoutId: viewingEntry.workoutId,
+      date: viewingEntry.date,
+      workoutName: viewingEntry.workoutName,
+      exercises: routineItems,
+    });
+    setViewingEntry(null);
+    toast.info("Loaded into the planner. Edit, then Save or Save as New.");
+    setLocation("/");
   };
 
   const getEntriesForDate = (day: number) => {
@@ -883,37 +981,36 @@ export default function CalendarPage() {
                         Check in
                       </div>
                     )}
-                    {entries.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className={`group text-[9px] px-1 py-0.5 rounded mb-0.5 flex items-center justify-between ${
-                          entry.completed
-                            ? "bg-green-500/20 text-green-400 line-through"
-                            : "bg-lime/20 text-lime"
-                        }`}
-                      >
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleComplete.mutate({ id: entry.id });
-                          }}
-                          className="truncate flex-1 text-left"
-                          title={entry.completed ? "Mark as not done" : "Mark as completed"}
+                    {entries.map((entry) => {
+                      const w = getWorkoutByEntry({ workoutId: entry.workoutId });
+                      const label = w?.name ?? `Workout ${entry.workoutId}`;
+                      return (
+                        <div
+                          key={entry.id}
+                          className={`group text-[9px] px-1 py-0.5 rounded mb-0.5 flex items-center justify-between ${
+                            entry.completed
+                              ? "bg-green-500/20 text-green-400 line-through"
+                              : "bg-lime/20 text-lime"
+                          }`}
                         >
-                          {entry.workoutId ? `Workout ${entry.workoutId}` : "Workout"}
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeEntry.mutate({ id: entry.id });
-                          }}
-                          className="opacity-0 group-hover:opacity-100 hover:text-destructive ml-1 shrink-0"
-                          title="Remove this scheduled workout"
-                        >
-                          <X className="w-2.5 h-2.5" />
-                        </button>
-                      </div>
-                    ))}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEntryDetail({
+                                id: entry.id,
+                                workoutId: entry.workoutId,
+                                date: entry.date,
+                                completed: entry.completed,
+                              });
+                            }}
+                            className="truncate flex-1 text-left"
+                            title="Open details · edit / mark complete / remove"
+                          >
+                            {label}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
@@ -1038,6 +1135,111 @@ export default function CalendarPage() {
               >
                 <Sparkles className="w-3.5 h-3.5 mr-1" />
                 Yes, schedule more
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ===== SCHEDULED ENTRY DETAIL MODAL =====
+          Opens when the user clicks a scheduled workout label on a
+          calendar cell. Shows the workout's exercises and offers four
+          actions: Edit in Planner (routes to / with edit mode set),
+          Mark Complete, Remove (deletes the calendar entry), Close. */}
+      {viewingEntry && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card border-2 border-border rounded-sm p-5 w-full max-w-lg max-h-[85vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="font-heading font-bold text-base text-foreground">
+                  {viewingEntry.workoutName}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Scheduled {viewingEntry.date} ·{" "}
+                  {viewingEntry.exercises.length} exercise
+                  {viewingEntry.exercises.length === 1 ? "" : "s"}
+                  {viewingEntry.completed ? " · ✓ completed" : ""}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewingEntry(null)}
+                className="text-muted-foreground"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Read-only exercise list */}
+            <div className="space-y-2 mb-4 max-h-[300px] overflow-y-auto">
+              {viewingEntry.exercises.map((ex, i) => (
+                <div
+                  key={i}
+                  className="p-2 bg-secondary/40 rounded-sm border border-border/50 flex items-baseline justify-between gap-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-foreground truncate">
+                      {ex.exercise}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground truncate">
+                      {ex.targetedMuscles.join(", ")}
+                    </div>
+                  </div>
+                  <div className="text-[11px] font-mono tabular-nums text-lime shrink-0">
+                    {ex.sets.length} × {ex.sets[0]?.reps ?? "—"}
+                    {ex.sets[0]?.weight ? ` @ ${ex.sets[0].weight}lb` : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    toggleComplete.mutate({ id: viewingEntry.entryId });
+                    setViewingEntry(null);
+                  }}
+                  className={
+                    viewingEntry.completed
+                      ? "border-muted-foreground/40 text-muted-foreground"
+                      : "border-lime/40 text-lime hover:bg-lime/10"
+                  }
+                  title={viewingEntry.completed ? "Mark as not done" : "Mark as completed"}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                  {viewingEntry.completed ? "Mark not done" : "Mark complete"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    removeEntry.mutate({ id: viewingEntry.entryId });
+                    setViewingEntry(null);
+                  }}
+                  className="text-muted-foreground hover:text-destructive"
+                  title="Remove this scheduled workout"
+                >
+                  <X className="w-3.5 h-3.5 mr-1" />
+                  Remove
+                </Button>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleEditInPlanner}
+                className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold"
+                title="Open this workout in the planner; save changes back or as a new workout"
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-1" />
+                Edit in Planner
               </Button>
             </div>
           </motion.div>
