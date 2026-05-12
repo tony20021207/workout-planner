@@ -30,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { trpc } from "@/lib/trpc";
 import LifestylePicker from "./LifestylePicker";
+import AvailabilityPicker from "./AvailabilityPicker";
 import ExperiencePicker from "./ExperiencePicker";
 import { toast } from "sonner";
 import {
@@ -1098,9 +1099,11 @@ Tue - Pull
               </div>
             )}
 
-            {/* Lifestyle + experience pickers — shown only after a rating exists. */}
+            {/* Lifestyle + availability + experience pickers — shown only after a rating exists. */}
             <div className="p-4 bg-card rounded-sm border-2 border-purple-500/30 space-y-5">
               <LifestylePicker />
+              <div className="border-t border-border" />
+              <AvailabilityPicker />
               <div className="border-t border-border" />
               <ExperiencePicker />
             </div>

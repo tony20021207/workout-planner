@@ -201,23 +201,39 @@ function PresetCard({
   preset,
   selected,
   onSelect,
+  availableDaysPerWeek,
 }: {
   preset: SplitPreset;
   selected: boolean;
   onSelect: () => void;
+  /** When the user stated their availability (post-rating), highlight
+   * presets whose daysPerWeek matches. Non-matching presets are still
+   * selectable — the rest of the system optimizes for any split. */
+  availableDaysPerWeek: number | null;
 }) {
+  const matchesAvailability =
+    availableDaysPerWeek !== null && preset.daysPerWeek === availableDaysPerWeek;
   return (
     <button
       onClick={onSelect}
       className={`text-left p-4 border-2 rounded-sm transition-all ${
         selected
           ? "border-lime bg-lime/5"
-          : "border-border bg-card hover:border-lime/40"
+          : matchesAvailability
+            ? "border-purple-400/50 bg-purple-500/[0.04] hover:border-lime/60"
+            : "border-border bg-card hover:border-lime/40"
       }`}
     >
       <div className="flex items-start justify-between gap-3 mb-2">
         <div>
-          <h4 className="font-heading font-bold text-sm text-foreground">{preset.name}</h4>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h4 className="font-heading font-bold text-sm text-foreground">{preset.name}</h4>
+            {matchesAvailability && (
+              <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-sm bg-purple-500/15 text-purple-300 border border-purple-400/40">
+                matches your {availableDaysPerWeek}/wk
+              </span>
+            )}
+          </div>
           <p className="text-[11px] text-muted-foreground mt-0.5">
             {preset.daysPerWeek} day{preset.daysPerWeek !== 1 ? "s" : ""} / week
           </p>
@@ -474,6 +490,7 @@ export default function SplitBuilder() {
     updateRoutineItem,
     addRoutineItem,
     lifestyle,
+    availableDaysPerWeek,
     experience,
     sessionWarmups,
     setSessionWarmups,
@@ -1021,6 +1038,7 @@ export default function SplitBuilder() {
             preset={preset}
             selected={split.splitId === preset.id}
             onSelect={() => handlePickPreset(preset.id)}
+            availableDaysPerWeek={availableDaysPerWeek}
           />
         ))}
         <CustomCard

@@ -208,6 +208,12 @@ interface WorkoutContextType {
   toggleAntagonistDay: (dayId: string) => void;
   lifestyle: LifestyleId | null;
   setLifestyle: (id: LifestyleId | null) => void;
+  /** How many days per week the user can train. 3 / 4 / 5 / 6.
+   * Drives split-preset recommendations + downstream availability
+   * checks. Reassurance: the rest of the system optimizes for maximal
+   * gain regardless of the split chosen. */
+  availableDaysPerWeek: number | null;
+  setAvailableDaysPerWeek: (n: number | null) => void;
   experience: ExperienceId | null;
   setExperience: (id: ExperienceId | null) => void;
   sessionWarmups: SessionWarmupsByDay | null;
@@ -275,6 +281,7 @@ const STORAGE_KEY = "kinesiology_routine";
 const EFFORT_STORAGE_KEY = "kinesiology_effort";
 const SPLIT_STORAGE_KEY = "kinesiology_split";
 const LIFESTYLE_STORAGE_KEY = "kinesiology_lifestyle";
+const AVAILABILITY_STORAGE_KEY = "kinesiology_availability";
 const EXPERIENCE_STORAGE_KEY = "kinesiology_experience";
 const WARMUPS_STORAGE_KEY = "kinesiology_session_warmups";
 const AUTO_PLAN_STORAGE_KEY = "kinesiology_auto_plan_untouched";
@@ -363,6 +370,31 @@ function loadLifestyleFromStorage(): LifestyleId | null {
     // ignore
   }
   return null;
+}
+
+function loadAvailabilityFromStorage(): number | null {
+  try {
+    const stored = sessionStorage.getItem(AVAILABILITY_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (typeof parsed === "number" && parsed >= 1 && parsed <= 7) return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function saveAvailabilityToStorage(n: number | null) {
+  try {
+    if (n !== null) {
+      sessionStorage.setItem(AVAILABILITY_STORAGE_KEY, JSON.stringify(n));
+    } else {
+      sessionStorage.removeItem(AVAILABILITY_STORAGE_KEY);
+    }
+  } catch {
+    // ignore
+  }
 }
 
 function saveLifestyleToStorage(id: LifestyleId | null) {
@@ -502,6 +534,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [effort, setEffortState] = useState<EffortCalibration>(() => loadEffortFromStorage());
   const [split, setSplitState] = useState<SplitState>(() => loadSplitFromStorage());
   const [lifestyle, setLifestyleState] = useState<LifestyleId | null>(() => loadLifestyleFromStorage());
+  const [availableDaysPerWeek, setAvailableDaysPerWeekState] = useState<number | null>(() => loadAvailabilityFromStorage());
   const [experience, setExperienceState] = useState<ExperienceId | null>(() => loadExperienceFromStorage());
   const [sessionWarmups, setSessionWarmupsState] = useState<SessionWarmupsByDay | null>(() => loadWarmupsFromStorage());
   const [autoPlanUntouched, setAutoPlanUntouchedState] = useState<boolean>(() => loadAutoPlanFromStorage());
@@ -527,6 +560,11 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveLifestyleToStorage(lifestyle);
   }, [lifestyle]);
+
+  // Persist availability on every change
+  useEffect(() => {
+    saveAvailabilityToStorage(availableDaysPerWeek);
+  }, [availableDaysPerWeek]);
 
   // Persist session warmups on every change
   useEffect(() => {
@@ -809,6 +847,10 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     setLifestyleState(next);
   }, []);
 
+  const setAvailableDaysPerWeek = useCallback((next: number | null) => {
+    setAvailableDaysPerWeekState(next);
+  }, []);
+
   // Any direct mutation flips the auto-plan flag to false. Auto paths
   // (handleAutoFillAllSets, handleReallocate, adopt-all from rater)
   // call markAutoPlanFresh AFTER their batch is done, which sets it
@@ -914,6 +956,8 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         toggleAntagonistDay,
         lifestyle,
         setLifestyle,
+        availableDaysPerWeek,
+        setAvailableDaysPerWeek,
         experience,
         setExperience,
         sessionWarmups,
