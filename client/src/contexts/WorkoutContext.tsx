@@ -144,6 +144,16 @@ export interface MesocycleState {
    * Renderers merge routine[] + week2Routine[] when on the Week 2 tab.
    */
   week2Routine: RoutineItem[];
+  /**
+   * One-step undo snapshot. Holds the Week 2 state from BEFORE the
+   * most recent commitWeek2Snapshot call. Cleared by revertWeek2Apply
+   * after restore. null = nothing to revert.
+   */
+  previousSnapshot: {
+    week2DayAssignments: Record<string, string[]>;
+    week2Routine: RoutineItem[];
+    week2ExerciseSets: Record<string, SetDetail[]>;
+  } | null;
 }
 
 const DEFAULT_MESOCYCLE: MesocycleState = {
@@ -151,6 +161,7 @@ const DEFAULT_MESOCYCLE: MesocycleState = {
   week2DayAssignments: {},
   week2ExerciseSets: {},
   week2Routine: [],
+  previousSnapshot: null,
 };
 
 export interface SessionWarmup {
@@ -254,6 +265,10 @@ interface WorkoutContextType {
     week2Routine: RoutineItem[];
     week2ExerciseSets: Record<string, SetDetail[]>;
   }) => void;
+  /** Restore Week 2 state to the snapshot saved before the most recent
+   * commitWeek2Snapshot. Returns true if the revert happened, false if
+   * there was nothing to revert. One-step undo. */
+  revertWeek2Apply: () => boolean;
 }
 
 const STORAGE_KEY = "kinesiology_routine";
@@ -462,6 +477,7 @@ function loadMesocycleFromStorage(): MesocycleState {
           week2DayAssignments: parsed.week2DayAssignments ?? {},
           week2ExerciseSets: parsed.week2ExerciseSets ?? {},
           week2Routine: Array.isArray(parsed.week2Routine) ? parsed.week2Routine : [],
+          previousSnapshot: parsed.previousSnapshot ?? null,
         };
       }
     }
@@ -547,6 +563,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         week2DayAssignments: JSON.parse(JSON.stringify(prevSplit.dayAssignments)) as Record<string, string[]>,
         week2ExerciseSets: {},
         week2Routine: [],
+        previousSnapshot: null,
       });
       return prevSplit;
     });
@@ -568,8 +585,16 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     }) => {
       setMesocycleState((prev) => {
         if (!prev.enabled) return prev;
+        // Save the BEFORE state into previousSnapshot so the user can
+        // revert this commit with one click. Each new commit replaces
+        // the prior snapshot (one-step undo).
         return {
           ...prev,
+          previousSnapshot: {
+            week2DayAssignments: prev.week2DayAssignments,
+            week2Routine: prev.week2Routine,
+            week2ExerciseSets: prev.week2ExerciseSets,
+          },
           week2DayAssignments: snapshot.week2DayAssignments,
           week2Routine: snapshot.week2Routine,
           week2ExerciseSets: snapshot.week2ExerciseSets,
@@ -578,6 +603,24 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     },
     [],
   );
+
+  /** Restore Week 2 state to the snapshot captured before the most
+   * recent commitWeek2Snapshot call. No-op if no snapshot exists. */
+  const revertWeek2Apply = useCallback((): boolean => {
+    let did = false;
+    setMesocycleState((prev) => {
+      if (!prev.enabled || !prev.previousSnapshot) return prev;
+      did = true;
+      return {
+        ...prev,
+        week2DayAssignments: prev.previousSnapshot.week2DayAssignments,
+        week2Routine: prev.previousSnapshot.week2Routine,
+        week2ExerciseSets: prev.previousSnapshot.week2ExerciseSets,
+        previousSnapshot: null,
+      };
+    });
+    return did;
+  }, []);
 
   const rebalanceWeek2 = useCallback(() => {
     // Read latest values via setter-callbacks so we never close over stale
@@ -886,6 +929,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         collapseToSingleWeek,
         setWeek2DayAssignments,
         commitWeek2Snapshot,
+        revertWeek2Apply,
         rebalanceWeek2,
         applyLoadDeload,
         swapVariantsWeek2,

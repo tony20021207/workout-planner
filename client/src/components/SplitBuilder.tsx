@@ -21,6 +21,7 @@ import {
   Zap,
   Target,
   RefreshCw,
+  RotateCw,
   Settings,
   X,
   Wand2,
@@ -482,6 +483,7 @@ export default function SplitBuilder() {
     collapseToSingleWeek,
     setWeek2DayAssignments,
     commitWeek2Snapshot,
+    revertWeek2Apply,
   } = useWorkout();
   const [open, setOpen] = useState(false);
   const [activeWeek, setActiveWeek] = useState<1 | 2>(1);
@@ -1289,6 +1291,26 @@ export default function SplitBuilder() {
                           ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      {/* Revert last apply — shown when previousSnapshot
+                          exists AND no new preview is staged. One-step
+                          undo of the most recent Confirm Apply. */}
+                      {!anyPreviewStaged && mesocycle.previousSnapshot && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const did = revertWeek2Apply();
+                            if (did) {
+                              toast.success("Reverted to previous Week 2 state");
+                            }
+                          }}
+                          className="border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/10 text-xs"
+                          title="Undo the most recent Confirm Apply — restores Week 2 to the state before the last commit."
+                        >
+                          <RotateCw className="w-3.5 h-3.5 mr-1" />
+                          Revert last apply
+                        </Button>
+                      )}
                       {/* Unified Confirm/Cancel — visible when ANY layer is staged. */}
                       {anyPreviewStaged && projection && (
                         <>
