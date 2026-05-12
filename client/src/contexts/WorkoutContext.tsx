@@ -103,6 +103,9 @@ export interface SplitState {
   /** Abs finisher frequency (rectus abdominis only — obliques tracked
    * separately as a minor bonus). null = off. */
   absFrequency: number | null;
+  /** dayIds with the antagonist-superset toggle ON. View-time reorder:
+   * push/pull alternation on upper days, quad/ham on leg days. */
+  antagonistDays: string[];
 }
 
 const DEFAULT_SPLIT: SplitState = {
@@ -110,6 +113,7 @@ const DEFAULT_SPLIT: SplitState = {
   dayAssignments: {},
   calvesFrequency: null,
   absFrequency: null,
+  antagonistDays: [],
 };
 
 /**
@@ -188,6 +192,9 @@ interface WorkoutContextType {
   split: SplitState;
   setSplit: (state: SplitState) => void;
   clearSplit: () => void;
+  /** Toggle antagonist-superset display order on a single day (view-
+   * time reorder; the canonical dayAssignments stay unchanged). */
+  toggleAntagonistDay: (dayId: string) => void;
   lifestyle: LifestyleId | null;
   setLifestyle: (id: LifestyleId | null) => void;
   experience: ExperienceId | null;
@@ -302,6 +309,7 @@ function loadSplitFromStorage(): SplitState {
           dayAssignments: parsed.dayAssignments,
           calvesFrequency: parsed.calvesFrequency ?? null,
           absFrequency: parsed.absFrequency ?? null,
+          antagonistDays: Array.isArray(parsed.antagonistDays) ? parsed.antagonistDays : [],
         };
       }
     }
@@ -712,6 +720,19 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     flipPlanModified();
   }, []);
 
+  /** Toggle antagonist-superset display order on a single day. */
+  const toggleAntagonistDay = useCallback((dayId: string) => {
+    setSplitState((prev) => {
+      const has = prev.antagonistDays.includes(dayId);
+      return {
+        ...prev,
+        antagonistDays: has
+          ? prev.antagonistDays.filter((d) => d !== dayId)
+          : [...prev.antagonistDays, dayId],
+      };
+    });
+  }, []);
+
   const setLifestyle = useCallback((next: LifestyleId | null) => {
     setLifestyleState(next);
   }, []);
@@ -818,6 +839,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         split,
         setSplit,
         clearSplit,
+        toggleAntagonistDay,
         lifestyle,
         setLifestyle,
         experience,

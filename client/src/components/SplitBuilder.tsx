@@ -73,6 +73,7 @@ import {
   type FinisherCatalogPick,
   type FinisherKind,
 } from "@/lib/finisher";
+import { antagonistOrder, canApplyAntagonist } from "@/lib/dayOrdering";
 import { generateId, getProgrammingParameters } from "@/lib/data";
 import FinisherPickerModal from "./FinisherPickerModal";
 import DayExerciseEditor from "./DayExerciseEditor";
@@ -298,6 +299,8 @@ function DayCard({
   onAutoBucketDay,
   stats,
   warmups,
+  antagonistEnabled,
+  onToggleAntagonist,
 }: {
   day: { id: string; name: string; tags: string[]; scheduleHint?: string };
   items: RoutineItem[];
@@ -309,9 +312,19 @@ function DayCard({
   onAutoBucketDay?: (dayId: string) => void;
   stats: { compounds: number; isolations: number; total: number; compoundPct: number };
   warmups?: SessionWarmup[];
+  /** Whether antagonist-superset display order is enabled on this day. */
+  antagonistEnabled: boolean;
+  /** Toggle the antagonist mode. When undefined (Week 2 view), button hidden. */
+  onToggleAntagonist?: () => void;
 }) {
   const compoundPctRounded = Math.round(stats.compoundPct * 100);
   const ratioOnTarget = stats.total > 0 && isCompoundRatioOnTarget(stats.compoundPct);
+
+  // Apply antagonist reorder at render time when the toggle is on. The
+  // underlying dayAssignments stay canonical (sorted by allocator);
+  // this is purely a view-mode override.
+  const canAntagonist = canApplyAntagonist(items);
+  const displayItems = antagonistEnabled && canAntagonist ? antagonistOrder(items) : items;
 
   return (
     <div className="bg-card border-2 border-border rounded-sm overflow-hidden flex flex-col">
@@ -319,11 +332,35 @@ function DayCard({
       <div className="p-3 bg-secondary/30 border-b border-border">
         <div className="flex items-baseline justify-between gap-2 mb-1">
           <h5 className="font-heading font-bold text-foreground">{day.name}</h5>
-          {day.scheduleHint && (
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              {day.scheduleHint}
-            </span>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {onToggleAntagonist && (
+              <button
+                onClick={onToggleAntagonist}
+                disabled={!canAntagonist && !antagonistEnabled}
+                title={
+                  !canAntagonist && !antagonistEnabled
+                    ? "Day has no antagonist pair (no push/pull or quad/ham)"
+                    : antagonistEnabled
+                      ? "Antagonist superset ON — push/pull (or quad/ham) interleaved"
+                      : "Turn on antagonist superset — interleaves push/pull or quad/ham"
+                }
+                className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm border transition-colors ${
+                  antagonistEnabled
+                    ? "bg-purple-500/15 text-purple-200 border-purple-500/40"
+                    : canAntagonist
+                      ? "bg-background text-muted-foreground border-border hover:border-purple-500/40 hover:text-purple-300"
+                      : "bg-background text-muted-foreground/40 border-border cursor-not-allowed"
+                }`}
+              >
+                Superset {antagonistEnabled ? "ON" : "OFF"}
+              </button>
+            )}
+            {day.scheduleHint && (
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {day.scheduleHint}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
           <span className="inline-flex items-center gap-1">
@@ -386,12 +423,12 @@ function DayCard({
 
       {/* Exercise list with inline sets/reps editor */}
       <div className="flex-1">
-        {items.length === 0 ? (
+        {displayItems.length === 0 ? (
           <div className="p-4 text-center text-xs text-muted-foreground italic">
             No exercises assigned. Pool may not have a match for this day's tags ({day.tags.join(", ")}).
           </div>
         ) : (
-          items.map((item, idx) => (
+          displayItems.map((item, idx) => (
             <DayExerciseEditor
               key={item.id}
               item={item}
@@ -413,6 +450,7 @@ export default function SplitBuilder() {
     split,
     setSplit,
     clearSplit,
+    toggleAntagonistDay,
     updateRoutineItem,
     addRoutineItem,
     lifestyle,
@@ -513,6 +551,7 @@ export default function SplitBuilder() {
       dayAssignments: allocation.byDay,
       calvesFrequency: split.calvesFrequency,
       absFrequency: split.absFrequency,
+      antagonistDays: split.antagonistDays,
     });
     // setSplit flips the plan-modified flag; auto-allocate is the canonical
     // "fresh" state, so flip back. This runs after setSplit's state update.
@@ -534,6 +573,7 @@ export default function SplitBuilder() {
       dayAssignments: allocation.byDay,
       calvesFrequency: split.calvesFrequency,
       absFrequency: split.absFrequency,
+      antagonistDays: split.antagonistDays,
     });
     markAutoPlanFresh();
     toast.success("Re-allocated using Opti-split");
@@ -617,6 +657,7 @@ export default function SplitBuilder() {
       dayAssignments: allocation.byDay,
       calvesFrequency: overrides.calvesFrequency,
       absFrequency: overrides.absFrequency,
+      antagonistDays: split.antagonistDays,
     });
     markAutoPlanFresh();
   };
@@ -1141,6 +1182,8 @@ export default function SplitBuilder() {
                     onAutoBucketDay={isViewingWeek2 ? undefined : handleAutoBucketDay}
                     stats={dayStats[day.id] ?? { compounds: 0, isolations: 0, total: 0, compoundPct: 0 }}
                     warmups={isViewingWeek2 ? undefined : sessionWarmups?.[day.id]}
+                    antagonistEnabled={split.antagonistDays.includes(day.id)}
+                    onToggleAntagonist={isViewingWeek2 ? undefined : () => toggleAntagonistDay(day.id)}
                   />
                 );
               })}

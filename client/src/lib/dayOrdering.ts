@@ -95,6 +95,99 @@ function primaryMuscleMass(item: RoutineItem): number {
 // MAIN SORT
 // ============================================================
 
+// ============================================================
+// ANTAGONIST SUPERSET ORDERING
+// ============================================================
+//
+// Per-day toggle. When enabled, the day's exercises interleave
+// antagonist pairs: push/pull alternation on upper days, quad/ham
+// alternation on leg days. "Other" exercises (lateral raises,
+// calves, core) tail-end in their original order.
+//
+// Useful when a lifter is time-constrained and supersetting opposing
+// muscles is efficient (rest the antagonist's primary mover while
+// working the agonist). NOT optimal for max hypertrophy on every set
+// — that's why it's opt-in per day.
+
+type AntagonistCategory = "push" | "pull" | "quad" | "ham" | "other";
+
+function categorizeForAntagonist(item: RoutineItem): AntagonistCategory {
+  const tags = getMuscleTagsForItem(item);
+  const hasPush = tags.includes("chest") || tags.includes("triceps");
+  const hasPull = tags.includes("back") || tags.includes("biceps");
+  const hasQuad = tags.includes("quads");
+  const hasHam = tags.includes("hams");
+  if (hasPush && !hasPull) return "push";
+  if (hasPull && !hasPush) return "pull";
+  if (hasQuad && !hasHam) return "quad";
+  if (hasHam && !hasQuad) return "ham";
+  return "other";
+}
+
+/** Returns true if the day has at least one usable antagonist pair. */
+export function canApplyAntagonist(items: RoutineItem[]): boolean {
+  let hasPush = false,
+    hasPull = false,
+    hasQuad = false,
+    hasHam = false;
+  for (const item of items) {
+    const c = categorizeForAntagonist(item);
+    if (c === "push") hasPush = true;
+    else if (c === "pull") hasPull = true;
+    else if (c === "quad") hasQuad = true;
+    else if (c === "ham") hasHam = true;
+  }
+  return (hasPush && hasPull) || (hasQuad && hasHam);
+}
+
+function interleave<T>(a: T[], b: T[]): T[] {
+  const out: T[] = [];
+  const max = Math.max(a.length, b.length);
+  for (let i = 0; i < max; i++) {
+    if (i < a.length) out.push(a[i]);
+    if (i < b.length) out.push(b[i]);
+  }
+  return out;
+}
+
+/**
+ * Reorder items into antagonist-superset display order. Pure function;
+ * returns a new array. If the day has no usable antagonist pair, the
+ * input order is preserved (no-op).
+ */
+export function antagonistOrder(items: RoutineItem[]): RoutineItem[] {
+  const groups: Record<AntagonistCategory, RoutineItem[]> = {
+    push: [],
+    pull: [],
+    quad: [],
+    ham: [],
+    other: [],
+  };
+  for (const item of items) groups[categorizeForAntagonist(item)].push(item);
+
+  const hasPushPull = groups.push.length > 0 && groups.pull.length > 0;
+  const hasQuadHam = groups.quad.length > 0 && groups.ham.length > 0;
+  if (!hasPushPull && !hasQuadHam) return [...items];
+
+  const result: RoutineItem[] = [];
+  if (hasPushPull) {
+    result.push(...interleave(groups.push, groups.pull));
+  } else {
+    result.push(...groups.push, ...groups.pull);
+  }
+  if (hasQuadHam) {
+    result.push(...interleave(groups.quad, groups.ham));
+  } else {
+    result.push(...groups.quad, ...groups.ham);
+  }
+  result.push(...groups.other);
+  return result;
+}
+
+// ============================================================
+// PRIMING SORT (default order — compound → mass → SFR → stability → stretch)
+// ============================================================
+
 /**
  * Sort a single day's exercise IDs into the priming-first order. Pure
  * function — input array is not mutated; returns a new array.
