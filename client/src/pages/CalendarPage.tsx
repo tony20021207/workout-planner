@@ -384,9 +384,209 @@ export default function CalendarPage() {
         toast.success("Opti-fill: zero muscle-spacing conflicts");
       } else {
         toast.warning(
-          `Opti-fill: minimized to ${bestCount} conflict${bestCount === 1 ? "" : "s"}. Try a different anchor day to fully resolve.`,
+          `Opti-fill: minimized to ${bestCount} conflict${bestCount === 1 ? "" : "s"}. Check 'How to fully resolve' below.`,
         );
       }
+    }
+  };
+
+  /**
+   * Simulate the best Opti-fill conflict count for a hypothetical
+   * (alternative anchor + alternative date set). Used by the
+   * resolution-options engine to surface "drop this date" or "switch
+   * anchor" suggestions that would yield zero conflicts.
+   *
+   * Returns Infinity if no valid permutation exists.
+   */
+  const simulateBestConflictCount = (
+    altAnchorDayId: string,
+    altSelectedDates: Set<string>,
+  ): number => {
+    if (!activePreset || !bulkAnchorDate || !bulkAnchorOption) return Infinity;
+    const anchorIdx = activePreset.days.findIndex((d) => d.id === altAnchorDayId);
+    if (anchorIdx < 0) return Infinity;
+    const sortedAll = [...altSelectedDates].sort();
+    const week1Dates = sortedAll.filter((d) => weekForDate(d) === 1);
+    const week2Dates = sortedAll.filter((d) => weekForDate(d) === 2);
+    const w1Pool = activePreset.days.filter((d, i) => i !== anchorIdx).map((d) => d.id);
+    const w2Pool = activePreset.days.map((d) => d.id);
+
+    const permute = <T,>(arr: T[]): T[][] => {
+      if (arr.length <= 1) return [arr];
+      const out: T[][] = [];
+      for (let i = 0; i < arr.length; i++) {
+        const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+        for (const p of permute(rest)) out.push([arr[i], ...p]);
+      }
+      return out;
+    };
+
+    const conflictsForTrial = (
+      trial: Record<string, string>,
+      altAnchorOpt: { dayId: string; week: 1 | 2 },
+    ): number => {
+      const all: Array<{ date: string; week: 1 | 2; dayId: string }> = [];
+      all.push({
+        date: bulkAnchorDate!,
+        week: altAnchorOpt.week,
+        dayId: altAnchorOpt.dayId,
+      });
+      for (const [date, dayId] of Object.entries(trial)) {
+        all.push({ date, week: weekForDate(date), dayId });
+      }
+      all.sort((a, b) => a.date.localeCompare(b.date));
+      let count = 0;
+      for (let i = 0; i < all.length - 1; i++) {
+        const a = all[i];
+        const b = all[i + 1];
+        const [y1, m1, d1] = a.date.split("-").map(Number);
+        const [y2, m2, d2] = b.date.split("-").map(Number);
+        const dateA = new Date(y1, m1 - 1, d1);
+        const dateB = new Date(y2, m2 - 1, d2);
+        const dayDiff = Math.round(
+          (dateB.getTime() - dateA.getTime()) / (1000 * 60 * 60 * 24),
+        );
+        if (dayDiff !== 1) continue;
+        const tagsA = getMuscleTagsForDay(a.dayId, a.week);
+        const tagsB = getMuscleTagsForDay(b.dayId, b.week);
+        for (const tag of tagsA) if (tagsB.has(tag)) count++;
+      }
+      return count;
+    };
+
+    const w1Perms = w1Pool.length > 0 ? permute(w1Pool) : [[]];
+    const w2Perms = w2Pool.length > 0 ? permute(w2Pool) : [[]];
+    let best = Infinity;
+    const altAnchorWeek = bulkAnchorOption.week;
+    outer: for (const p1 of w1Perms) {
+      for (const p2 of w2Perms) {
+        const trial: Record<string, string> = {};
+        for (let i = 0; i < week1Dates.length && i < p1.length; i++) {
+          trial[week1Dates[i]] = p1[i];
+        }
+        for (let i = 0; i < week2Dates.length && i < p2.length; i++) {
+          trial[week2Dates[i]] = p2[i];
+        }
+        const c = conflictsForTrial(trial, {
+          dayId: altAnchorDayId,
+          week: altAnchorWeek,
+        });
+        if (c < best) {
+          best = c;
+          if (best === 0) break outer;
+        }
+      }
+    }
+    return best;
+  };
+
+  /**
+   * Resolution options surfaced when currentConflicts.length > 0. Two
+   * kinds of suggestions, both filtered to ones that ACTUALLY reach
+   * zero conflicts:
+   *
+   *   - "drop-date":   unmark one specific date so Opti-fill cleanly
+   *                    tiles the rest.
+   *   - "switch-anchor": replace the anchor's split day with a
+   *                      different one so the week's pattern fits.
+   *
+   * If neither yields 0, the bulk banner just shows the override
+   * option (already wired in the conflict-confirm modal).
+   */
+  const resolutionOptions = useMemo(() => {
+    if (!bulkMode || currentConflicts.length === 0 || !activePreset || !bulkAnchorOption) {
+      return { dropDate: [] as string[], switchAnchor: [] as string[] };
+    }
+    const dropDate: string[] = [];
+    for (const date of bulkSelectedDates) {
+      const without = new Set(bulkSelectedDates);
+      without.delete(date);
+      const c = simulateBestConflictCount(bulkAnchorOption.dayId, without);
+      if (c === 0) dropDate.push(date);
+    }
+    const switchAnchor: string[] = [];
+    for (const day of activePreset.days) {
+      if (day.id === bulkAnchorOption.dayId) continue;
+      const c = simulateBestConflictCount(day.id, bulkSelectedDates);
+      if (c === 0) switchAnchor.push(day.id);
+    }
+    return { dropDate, switchAnchor };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    bulkMode,
+    currentConflicts,
+    bulkSelectedDates,
+    bulkAnchorOption,
+    activePreset,
+    routine,
+    mesocycle,
+  ]);
+
+  /** Apply "drop date" resolution — unmark a single date and let
+   * Opti-fill recompute. */
+  const handleDropDate = (date: string) => {
+    setBulkSelectedDates((prev) => {
+      const next = new Set(prev);
+      next.delete(date);
+      return next;
+    });
+    toast.success(`Dropped ${date} — Opti-fill should reach zero conflicts now`);
+  };
+
+  /** Apply "switch anchor" resolution — replace the anchor's split day
+   * with a different one. This requires a mutation cascade: remove the
+   * current anchor's scheduled entry, create a new workout for the
+   * new anchor split day, schedule it on the same date, update local
+   * state. */
+  const handleSwitchAnchor = async (newAnchorDayId: string) => {
+    if (!bulkAnchorDate || !bulkAnchorOption || !activePreset) return;
+    const newSplitDay = activePreset.days.find((d) => d.id === newAnchorDayId);
+    if (!newSplitDay) return;
+
+    // Find the current anchor's calendar entry id by date.
+    const anchorEntry = (calendarQuery.data ?? []).find(
+      (e) => e.date === bulkAnchorDate,
+    );
+    if (!anchorEntry) {
+      toast.error("Couldn't find anchor entry to swap");
+      return;
+    }
+
+    // Build the new workout payload for the new anchor split day.
+    const newOption: PickerOption = {
+      week: bulkAnchorOption.week,
+      dayId: newAnchorDayId,
+      dayName: newSplitDay.name,
+      exerciseCount:
+        bulkAnchorOption.week === 1
+          ? (split.dayAssignments[newAnchorDayId] ?? []).length
+          : (mesocycle.week2DayAssignments[newAnchorDayId] ?? []).length,
+    };
+    const payload = buildWorkoutPayload(newOption);
+    if (!payload || payload.exercises.length === 0) {
+      toast.error("New anchor day has no exercises assigned");
+      return;
+    }
+
+    try {
+      // Delete the old anchor entry.
+      await removeEntry.mutateAsync({ id: anchorEntry.id });
+      // Create the new workout.
+      const createRes = await createWorkout.mutateAsync({
+        name: payload.name,
+        exercises: payload.exercises,
+      });
+      if (!createRes?.id) throw new Error("Workout create returned no id");
+      // Schedule it on the same date.
+      await addEntry.mutateAsync({ workoutId: createRes.id, date: bulkAnchorDate });
+      // Update local state — bulkAnchorOption now reflects the new split day.
+      setBulkAnchorOption(newOption);
+      calendarQuery.refetch();
+      toast.success(`Anchor switched to ${newSplitDay.name}`);
+    } catch (err) {
+      toast.error(
+        `Failed to switch anchor: ${err instanceof Error ? err.message : "unknown error"}`,
+      );
     }
   };
 
@@ -788,6 +988,55 @@ export default function CalendarPage() {
                     </div>
                   )}
                 </div>
+                {/* Resolution hint — only when conflicts exist AND we
+                    found at least one option that fully resolves them.
+                    Otherwise the user just sees the conflict badge +
+                    falls back to override via Confirm Schedule. */}
+                {currentConflicts.length > 0 &&
+                  (resolutionOptions.dropDate.length > 0 ||
+                    resolutionOptions.switchAnchor.length > 0) && (
+                    <details className="mt-2 group">
+                      <summary className="cursor-pointer text-xs text-purple-200 hover:text-purple-100 font-semibold inline-flex items-center gap-1 select-none">
+                        <Sparkles className="w-3 h-3" />
+                        How to fully resolve
+                      </summary>
+                      <div className="mt-2 p-3 bg-purple-500/[0.04] border border-purple-400/30 rounded-sm space-y-2">
+                        {resolutionOptions.dropDate.map((date) => (
+                          <button
+                            key={`drop-${date}`}
+                            onClick={() => handleDropDate(date)}
+                            className="w-full text-left text-xs p-2 bg-background hover:bg-purple-500/10 border border-border hover:border-purple-400/40 rounded-sm transition-colors"
+                          >
+                            <span className="font-semibold text-foreground">
+                              Drop {date}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}— add a rest day, reach zero conflicts.
+                            </span>
+                          </button>
+                        ))}
+                        {resolutionOptions.switchAnchor.map((dayId) => {
+                          const day = activePreset?.days.find((d) => d.id === dayId);
+                          if (!day) return null;
+                          return (
+                            <button
+                              key={`switch-${dayId}`}
+                              onClick={() => handleSwitchAnchor(dayId)}
+                              className="w-full text-left text-xs p-2 bg-background hover:bg-purple-500/10 border border-border hover:border-purple-400/40 rounded-sm transition-colors"
+                            >
+                              <span className="font-semibold text-foreground">
+                                Switch anchor to {day.name}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {" "}— re-schedules the {bulkAnchorDate} entry; same date, new
+                                split day. Should reach zero conflicts.
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </details>
+                  )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Button
