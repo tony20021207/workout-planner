@@ -100,6 +100,14 @@ interface DayExerciseEditorProps {
    * sets[] (e.g., for Week 2 Load/Deload preview before commit). The
    * underlying item.sets stays untouched until the user confirms. */
   previewSets?: { reps: number; weight: number }[];
+  /** If set, this exercise moved to its current day via the staged
+   * Rebalance preview. The value is the name of the day it was on
+   * before — used to render a "(was Day X)" badge. */
+  movedFromDayName?: string | null;
+  /** If set, this exercise was swapped in via the staged Swap preview.
+   * The value is the original exercise name — used to render a
+   * "(was Original Name)" badge. */
+  swappedFromExerciseName?: string | null;
 }
 
 /** Special select values that aren't rep ranges. */
@@ -112,6 +120,8 @@ export default function DayExerciseEditor({
   allDays,
   onMoveExercise,
   previewSets,
+  movedFromDayName,
+  swappedFromExerciseName,
 }: DayExerciseEditorProps) {
   const { updateRoutineItem, routine, split, experience, favorites, toggleFavorite, isFavorite } = useWorkout();
   const [expanded, setExpanded] = useState(false);
@@ -241,6 +251,20 @@ export default function DayExerciseEditor({
               </div>
             );
           })()}
+          {/* Rebalance preview: this exercise moved from a different day. */}
+          {movedFromDayName && (
+            <div className="text-[10px] mt-0.5 text-purple-300/80 flex items-center gap-1">
+              <span className="opacity-70">↩</span>
+              <span className="italic">was {movedFromDayName}</span>
+            </div>
+          )}
+          {/* Swap preview: this exercise was swapped in from a different pick. */}
+          {swappedFromExerciseName && (
+            <div className="text-[10px] mt-0.5 text-yellow-300/80 flex items-center gap-1">
+              <span className="opacity-70">↩</span>
+              <span className="italic">was {swappedFromExerciseName}</span>
+            </div>
+          )}
         </div>
         <div className="flex flex-col gap-0.5 shrink-0">
           <Button

@@ -244,6 +244,16 @@ interface WorkoutContextType {
   /** Set per-exercise sets[] override for week 2. Pass empty array to
    * remove the override (week 2 will fall back to week 1's sets). */
   setWeek2ExerciseSets: (exerciseId: string, sets: SetDetail[]) => void;
+  /** Commit a Week 2 snapshot atomically. Used by the combined preview
+   * flow in SplitBuilder: the projection memo computes the layered
+   * Week 2 state across staged previews (Swap → Rebalance → Load/Deload),
+   * then this action commits the final week2DayAssignments + week2Routine
+   * + week2ExerciseSets in one state update. No-op if mesocycle is off. */
+  commitWeek2Snapshot: (snapshot: {
+    week2DayAssignments: Record<string, string[]>;
+    week2Routine: RoutineItem[];
+    week2ExerciseSets: Record<string, SetDetail[]>;
+  }) => void;
 }
 
 const STORAGE_KEY = "kinesiology_routine";
@@ -549,6 +559,25 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   const setWeek2DayAssignments = useCallback((next: Record<string, string[]>) => {
     setMesocycleState((prev) => ({ ...prev, week2DayAssignments: next }));
   }, []);
+
+  const commitWeek2Snapshot = useCallback(
+    (snapshot: {
+      week2DayAssignments: Record<string, string[]>;
+      week2Routine: RoutineItem[];
+      week2ExerciseSets: Record<string, SetDetail[]>;
+    }) => {
+      setMesocycleState((prev) => {
+        if (!prev.enabled) return prev;
+        return {
+          ...prev,
+          week2DayAssignments: snapshot.week2DayAssignments,
+          week2Routine: snapshot.week2Routine,
+          week2ExerciseSets: snapshot.week2ExerciseSets,
+        };
+      });
+    },
+    [],
+  );
 
   const rebalanceWeek2 = useCallback(() => {
     // Read latest values via setter-callbacks so we never close over stale
@@ -856,6 +885,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         expandToBiweekly,
         collapseToSingleWeek,
         setWeek2DayAssignments,
+        commitWeek2Snapshot,
         rebalanceWeek2,
         applyLoadDeload,
         swapVariantsWeek2,

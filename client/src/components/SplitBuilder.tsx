@@ -60,7 +60,7 @@ import {
   type RepRangeId,
 } from "@/lib/repRanges";
 import { toast } from "sonner";
-import type { SwapSize } from "@/lib/variantSwap";
+import { swapAllNonFavoritesWeek2, type SwapSize } from "@/lib/variantSwap";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -74,7 +74,8 @@ import {
   type FinisherKind,
 } from "@/lib/finisher";
 import { antagonistOrder, canApplyAntagonist } from "@/lib/dayOrdering";
-import { computeWeek2LoadDeload, type LoadDeloadResult } from "@/lib/loadDeload";
+import { computeWeek2LoadDeload } from "@/lib/loadDeload";
+import { rebalanceForWeek2 } from "@/lib/rebalance";
 import { generateId, getProgrammingParameters } from "@/lib/data";
 import FinisherPickerModal from "./FinisherPickerModal";
 import DayExerciseEditor from "./DayExerciseEditor";
@@ -303,6 +304,8 @@ function DayCard({
   antagonistEnabled,
   onToggleAntagonist,
   loadDeloadPreview,
+  rebalanceMovedFrom,
+  swappedFromName,
 }: {
   day: { id: string; name: string; tags: string[]; scheduleHint?: string };
   items: RoutineItem[];
@@ -320,8 +323,14 @@ function DayCard({
   onToggleAntagonist?: () => void;
   /** Optional preview map: exerciseId → projected sets[] from staged
    * Load/Deload. When present, each editor row renders an inline
-   * before/after annotation. */
+   * current → projected annotation. */
   loadDeloadPreview?: Record<string, { reps: number; weight: number }[]>;
+  /** Optional map: exerciseId → original day name (when Rebalance
+   * preview is staged and the exercise moved from another day). */
+  rebalanceMovedFrom?: Map<string, string> | null;
+  /** Optional map: exerciseId → original exercise name (when Swap
+   * preview is staged and this id is a swap target). */
+  swappedFromName?: Map<string, string> | null;
 }) {
   const compoundPctRounded = Math.round(stats.compoundPct * 100);
   const ratioOnTarget = stats.total > 0 && isCompoundRatioOnTarget(stats.compoundPct);
@@ -443,6 +452,8 @@ function DayCard({
               allDays={allDays}
               onMoveExercise={onMoveExercise}
               previewSets={loadDeloadPreview?.[item.id]}
+              movedFromDayName={rebalanceMovedFrom?.get(item.id) ?? null}
+              swappedFromExerciseName={swappedFromName?.get(item.id) ?? null}
             />
           ))
         )}
@@ -470,9 +481,7 @@ export default function SplitBuilder() {
     expandToBiweekly,
     collapseToSingleWeek,
     setWeek2DayAssignments,
-    rebalanceWeek2,
-    applyLoadDeload,
-    swapVariantsWeek2,
+    commitWeek2Snapshot,
   } = useWorkout();
   const [open, setOpen] = useState(false);
   const [activeWeek, setActiveWeek] = useState<1 | 2>(1);
@@ -483,10 +492,22 @@ export default function SplitBuilder() {
   const [finisherPickerKind, setFinisherPickerKind] = useState<FinisherKind | null>(null);
   const [pendingFinisherFreq, setPendingFinisherFreq] = useState<number | null>(null);
 
-  // Load/Deload preview — staged result of computeWeek2LoadDeload that
-  // shows per-exercise projected changes inline before the user commits
-  // them. Null = no preview active; preview button reverts to "Apply".
-  const [loadDeloadPreview, setLoadDeloadPreview] = useState<LoadDeloadResult | null>(null);
+  // Week 2 preview staging — three independent layer flags. Each can be
+  // toggled on / off; the projection memo computes the combined Week 2
+  // state across all currently-staged layers in dependency order
+  // (Swap → Rebalance → Load/Deload). One Confirm Apply commits the
+  // composite snapshot atomically; one Cancel All discards every layer.
+  const [rebalanceStaged, setRebalanceStaged] = useState(false);
+  const [loadDeloadStaged, setLoadDeloadStaged] = useState(false);
+  const [swapStaged, setSwapStaged] = useState<SwapSize | null>(null);
+  const anyPreviewStaged = rebalanceStaged || loadDeloadStaged || swapStaged !== null;
+
+  /** Discard every staged preview layer. */
+  const cancelAllPreviews = () => {
+    setRebalanceStaged(false);
+    setLoadDeloadStaged(false);
+    setSwapStaged(null);
+  };
 
   const warmupMutation = trpc.sessionWarmups.generate.useMutation({
     onSuccess: (data: { days: Array<{ dayName: string; warmups: SessionWarmup[] }> }) => {
@@ -510,23 +531,152 @@ export default function SplitBuilder() {
   const activePreset: SplitPreset | null =
     split.splitId && split.splitId !== "custom" ? SPLIT_PRESETS[split.splitId] : null;
 
+  const expProfile = getExperience(experience) ?? getExperience("foot-in-door")!;
+
+  const isViewingWeek2 = mesocycle.enabled && activeWeek === 2;
+
+  /**
+   * Combined Week 2 preview projection. Returns the layered Week 2
+   * state if any layer is staged; null otherwise. Layers compose in
+   * dependency order: Swap → Rebalance → Load/Deload. Each layer reads
+   * the output of the prior, so toggling them produces the same result
+   * as if they were committed in that order.
+   */
+  const projection = useMemo(() => {
+    if (!isViewingWeek2 || !anyPreviewStaged || !split.splitId) return null;
+
+    // Baseline = current committed Week 2 state.
+    let dayAssignments: Record<string, string[]> = { ...mesocycle.week2DayAssignments };
+    let week2Routine: RoutineItem[] = [...mesocycle.week2Routine];
+    let exerciseSets: Record<string, { reps: number; weight: number }[]> = {
+      ...mesocycle.week2ExerciseSets,
+    };
+
+    const swappedFromName = new Map<string, string>();
+    const movedFromDay = new Map<string, string>();
+
+    // Name lookup that grows as swap layer adds new items.
+    const nameById = new Map<string, string>();
+    for (const r of routine) nameById.set(r.id, r.exercise);
+    for (const r of mesocycle.week2Routine) nameById.set(r.id, r.exercise);
+
+    // ---- Layer 1: Swap ----
+    let swapCount = 0;
+    if (swapStaged) {
+      const sourcePool = [...routine, ...week2Routine];
+      const swapResult = swapAllNonFavoritesWeek2(
+        sourcePool,
+        dayAssignments,
+        new Set(favorites),
+        swapStaged,
+      );
+      // Migrate exerciseSets to new ids.
+      const newSets: Record<string, { reps: number; weight: number }[]> = {};
+      for (const [oldId, sets] of Object.entries(exerciseSets)) {
+        const newId = swapResult.idMap[oldId] ?? oldId;
+        newSets[newId] = sets;
+      }
+      exerciseSets = newSets;
+      const swappedOutIds = new Set(Object.keys(swapResult.idMap));
+      week2Routine = [
+        ...week2Routine.filter((r) => !swappedOutIds.has(r.id)),
+        ...swapResult.swappedItems,
+      ];
+      for (const r of swapResult.swappedItems) nameById.set(r.id, r.exercise);
+      for (const [oldId, newId] of Object.entries(swapResult.idMap)) {
+        swappedFromName.set(newId, nameById.get(oldId) ?? "(unknown)");
+      }
+      dayAssignments = swapResult.newWeek2DayAssignments;
+      swapCount = swapResult.swappedCount;
+    }
+
+    // ---- Layer 2: Rebalance ----
+    let rebalanceMoves = 0;
+    if (rebalanceStaged) {
+      const beforeRebalance = dayAssignments;
+      dayAssignments = rebalanceForWeek2(
+        [...routine, ...week2Routine],
+        split.splitId,
+        split.dayAssignments,
+      );
+      const dayNameById = new Map<string, string>();
+      if (activePreset) for (const d of activePreset.days) dayNameById.set(d.id, d.name);
+      for (const [dayId, newIds] of Object.entries(dayAssignments)) {
+        const oldIds = new Set(beforeRebalance[dayId] ?? []);
+        for (const id of newIds) {
+          if (oldIds.has(id)) continue;
+          for (const [otherDayId, otherIds] of Object.entries(beforeRebalance)) {
+            if (otherDayId !== dayId && otherIds.includes(id)) {
+              movedFromDay.set(id, dayNameById.get(otherDayId) ?? otherDayId);
+              rebalanceMoves++;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // ---- Layer 3: Load/Deload ----
+    let loaded = 0,
+      deloaded = 0,
+      matched = 0;
+    if (loadDeloadStaged) {
+      const result = computeWeek2LoadDeload(
+        [...routine, ...week2Routine],
+        split.dayAssignments,
+        dayAssignments,
+        expProfile,
+      );
+      exerciseSets = result.week2ExerciseSets;
+      for (const v of Object.values(result.perMuscle)) {
+        if (v.direction === "load") loaded++;
+        else if (v.direction === "deload") deloaded++;
+        else matched++;
+      }
+    }
+
+    return {
+      week2DayAssignments: dayAssignments,
+      week2Routine,
+      week2ExerciseSets: exerciseSets,
+      swappedFromName,
+      movedFromDay,
+      swapCount,
+      rebalanceMoves,
+      loadDeloadDirections: { loaded, deloaded, matched },
+    };
+  }, [
+    isViewingWeek2,
+    anyPreviewStaged,
+    swapStaged,
+    rebalanceStaged,
+    loadDeloadStaged,
+    routine,
+    mesocycle,
+    favorites,
+    split,
+    activePreset,
+    expProfile,
+  ]);
+
+  // Active week's day assignments — Week 1 reads split.dayAssignments;
+  // Week 2 reads the projection if any preview is staged, else the
+  // committed mesocycle.week2DayAssignments.
+  const activeDayAssignments = isViewingWeek2
+    ? (projection?.week2DayAssignments ?? mesocycle.week2DayAssignments)
+    : split.dayAssignments;
+
   const itemsById = useMemo(() => {
     const m = new Map<string, RoutineItem>();
     routine.forEach((r) => m.set(r.id, r));
-    // Merge in Week 2's parallel routine (variant-swapped items). These
-    // ids only appear in mesocycle.week2DayAssignments — on Week 1 the
-    // merge is a no-op since Week 1 day assignments reference routine[]
-    // exclusively.
+    // Merge in Week 2's parallel routine (variant-swapped items).
     mesocycle.week2Routine.forEach((r) => m.set(r.id, r));
+    // If a Swap preview is staged, the projection's week2Routine
+    // includes the projected swap items — merge those too so they can
+    // be rendered in the day grid.
+    if (projection) projection.week2Routine.forEach((r) => m.set(r.id, r));
     return m;
-  }, [routine, mesocycle.week2Routine]);
-
-  // Active week's day assignments — Week 1 reads split.dayAssignments,
-  // Week 2 (when mesocycle is enabled) reads mesocycle.week2DayAssignments.
-  const isViewingWeek2 = mesocycle.enabled && activeWeek === 2;
-  const activeDayAssignments = isViewingWeek2
-    ? mesocycle.week2DayAssignments
-    : split.dayAssignments;
+  }, [routine, mesocycle.week2Routine, projection]);
 
   const dayStats = useMemo(() => {
     const stats: Record<string, { compounds: number; isolations: number; total: number; compoundPct: number }> = {};
@@ -690,7 +840,7 @@ export default function SplitBuilder() {
   // session-instances of all exercises hitting that muscle. Beginner
   // shifts the range UP (more reps, skill bias); experienced shifts DOWN
   // (fewer reps, push-to-failure bias); foot-in-door uses matrix as-is.
-  const expProfile = getExperience(experience) ?? getExperience("foot-in-door")!;
+  // (expProfile is hoisted above the projection memo for ordering.)
 
   // Pre-Set: stamp every exercise in the routine with the same range.
   // Uses the rep-range's natural defaultSets (4/3/2 for Low/Med/High).
@@ -1028,7 +1178,7 @@ export default function SplitBuilder() {
                   </p>
                 ) : (
                   <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                    2-week mesocycle. Week 2 starts as a clone of Week 1. <span className="font-semibold text-purple-300">Rebalance</span> swaps mirrored upper days + pivots leg days; <span className="font-semibold text-purple-300">Preview Load/Deload</span> shows per-exercise changes inline before commit; <span className="font-semibold text-purple-300">Swap Variants</span> rotates non-favorited exercises (favorites are locked).
+                    2-week mesocycle. Toggle any combination of preview layers — Rebalance / Load-Deload / Swap — to see the combined projected state inline, then Confirm Apply commits everything atomically. Re-click any staged toggle to unstage; Cancel All wipes the preview.
                   </p>
                 )}
               </div>
@@ -1063,117 +1213,75 @@ export default function SplitBuilder() {
                   </div>
                   {isViewingWeek2 && (
                     <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          rebalanceWeek2();
-                          toast.success("Week 2 rebalanced — leg-day pivot + day-pair swap applied");
-                        }}
-                        className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 text-xs"
-                        title="Reshape Week 2: swap mirrored upper days (Upper 1 ↔ Upper 2, Push 1 ↔ Push 2, Pull 1 ↔ Pull 2) and separate squat-pattern from hinge-pattern across Lower and Leg Day"
+                      {/* Three Preview toggle buttons — re-click to unstage.
+                          Only show when no preview is staged OR when this
+                          specific button's layer is what's staged. The
+                          Confirm Apply / Cancel All pair below covers commit. */}
+                      <button
+                        onClick={() => setRebalanceStaged((v) => !v)}
+                        disabled={!split.splitId}
+                        className={`text-xs px-2.5 py-1 rounded-sm border transition-colors ${
+                          rebalanceStaged
+                            ? "bg-purple-500/20 border-purple-400 text-purple-100 font-semibold"
+                            : "border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
+                        }`}
+                        title={
+                          rebalanceStaged
+                            ? "Rebalance staged — re-click to unstage"
+                            : "Stage Rebalance preview: swap mirrored upper days + pivot leg days"
+                        }
                       >
-                        Rebalance Week 2
-                      </Button>
-                      {loadDeloadPreview === null ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            // Stage a preview — compute Load/Deload but
-                            // don't commit. The preview annotations land
-                            // beneath each exercise row in the day grid.
-                            const preview = computeWeek2LoadDeload(
-                              routine,
-                              split.dayAssignments,
-                              mesocycle.week2DayAssignments,
-                              expProfile,
-                            );
-                            setLoadDeloadPreview(preview);
-                          }}
-                          className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 text-xs"
-                          title="Preview Load/Deload: recompute Week 2 set counts per muscle. Confirm to commit."
-                        >
-                          Preview Load/Deload
-                        </Button>
-                      ) : (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              const summary = applyLoadDeload();
-                              setLoadDeloadPreview(null);
-                              if (!summary) return;
-                              const parts: string[] = [];
-                              if (summary.loaded) parts.push(`${summary.loaded} loaded`);
-                              if (summary.deloaded) parts.push(`${summary.deloaded} deloaded`);
-                              if (summary.matched) parts.push(`${summary.matched} held`);
-                              toast.success(
-                                `Week 2 load/deload applied${parts.length ? ` — ${parts.join(", ")}` : ""}`,
-                              );
-                            }}
-                            className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold text-xs"
-                            title="Commit the previewed Load/Deload changes to Week 2"
-                          >
-                            Confirm Apply
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setLoadDeloadPreview(null)}
-                            className="text-muted-foreground text-xs"
-                            title="Cancel — discard the Load/Deload preview"
-                          >
-                            Cancel
-                          </Button>
-                        </>
-                      )}
+                        {rebalanceStaged ? "▸ Rebalance" : "Preview Rebalance"}
+                      </button>
+                      <button
+                        onClick={() => setLoadDeloadStaged((v) => !v)}
+                        className={`text-xs px-2.5 py-1 rounded-sm border transition-colors ${
+                          loadDeloadStaged
+                            ? "bg-purple-500/20 border-purple-400 text-purple-100 font-semibold"
+                            : "border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
+                        }`}
+                        title={
+                          loadDeloadStaged
+                            ? "Load/Deload staged — re-click to unstage"
+                            : "Stage Load/Deload preview: recompute set counts per muscle against the 2-week budget"
+                        }
+                      >
+                        {loadDeloadStaged ? "▸ Load/Deload" : "Preview Load/Deload"}
+                      </button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 text-xs"
-                            title="Replace non-favorited Week 2 exercises with biomechanically similar variants. Favorites are hard-locked and never swapped."
+                          <button
+                            className={`text-xs px-2.5 py-1 rounded-sm border transition-colors inline-flex items-center gap-1 ${
+                              swapStaged
+                                ? "bg-purple-500/20 border-purple-400 text-purple-100 font-semibold"
+                                : "border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
+                            }`}
+                            title={
+                              swapStaged
+                                ? `Swap (${swapStaged}) staged — re-click to change size or unstage`
+                                : "Stage variant Swap preview at small / medium / large scope"
+                            }
                           >
-                            <Shuffle className="w-3.5 h-3.5 mr-1" />
-                            Swap Variants
-                          </Button>
+                            <Shuffle className="w-3.5 h-3.5" />
+                            {swapStaged ? `▸ Swap (${swapStaged})` : "Preview Swap"}
+                          </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-72">
                           {([
-                            {
-                              size: "small" as SwapSize,
-                              label: "Small — same lane",
-                              detail: "Equipment / angle variant (BB Bench → DB Bench)",
-                            },
-                            {
-                              size: "medium" as SwapSize,
-                              label: "Medium — same muscle",
-                              detail: "Different SFR / ROM (Bayesian Curl → Preacher Curl)",
-                            },
-                            {
-                              size: "large" as SwapSize,
-                              label: "Large — same group",
-                              detail: "Different sub-bucket (Quads → Glutes within Legs)",
-                            },
+                            { size: "small" as SwapSize, label: "Small — same lane", detail: "Equipment / angle variant" },
+                            { size: "medium" as SwapSize, label: "Medium — same muscle", detail: "Different SFR / ROM" },
+                            { size: "large" as SwapSize, label: "Large — same group", detail: "Different sub-bucket" },
                           ]).map((opt) => (
                             <DropdownMenuItem
                               key={opt.size}
-                              onClick={() => {
-                                const summary = swapVariantsWeek2(opt.size);
-                                if (!summary) return;
-                                const parts: string[] = [];
-                                if (summary.swapped) parts.push(`${summary.swapped} swapped`);
-                                if (summary.locked) parts.push(`${summary.locked} locked / favorited`);
-                                if (summary.noVariant) parts.push(`${summary.noVariant} no variant available`);
-                                toast.success(
-                                  `Week 2 ${opt.size} swap applied${parts.length ? ` — ${parts.join(", ")}` : ""}`,
-                                );
-                              }}
+                              onClick={() =>
+                                setSwapStaged((cur) => (cur === opt.size ? null : opt.size))
+                              }
                               className="flex-col items-start gap-0.5 py-2"
                             >
-                              <span className="font-semibold text-foreground">{opt.label}</span>
+                              <span className="font-semibold text-foreground">
+                                {swapStaged === opt.size ? "▸ " : ""}{opt.label}
+                              </span>
                               <span className="text-[11px] text-muted-foreground leading-snug">
                                 {opt.detail}
                               </span>
@@ -1181,6 +1289,51 @@ export default function SplitBuilder() {
                           ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      {/* Unified Confirm/Cancel — visible when ANY layer is staged. */}
+                      {anyPreviewStaged && projection && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              commitWeek2Snapshot({
+                                week2DayAssignments: projection.week2DayAssignments,
+                                week2Routine: projection.week2Routine,
+                                week2ExerciseSets: projection.week2ExerciseSets,
+                              });
+                              const parts: string[] = [];
+                              if (projection.swapCount)
+                                parts.push(`${projection.swapCount} swapped`);
+                              if (projection.rebalanceMoves)
+                                parts.push(`${projection.rebalanceMoves} moved`);
+                              const ldd = projection.loadDeloadDirections;
+                              if (ldd.loaded || ldd.deloaded) {
+                                const ldParts: string[] = [];
+                                if (ldd.loaded) ldParts.push(`${ldd.loaded} loaded`);
+                                if (ldd.deloaded) ldParts.push(`${ldd.deloaded} deloaded`);
+                                parts.push(ldParts.join("/"));
+                              }
+                              cancelAllPreviews();
+                              toast.success(
+                                `Week 2 changes applied${parts.length ? ` — ${parts.join(", ")}` : ""}`,
+                              );
+                              markAutoPlanFresh();
+                            }}
+                            className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold text-xs"
+                            title="Commit all staged Week 2 preview layers atomically"
+                          >
+                            Confirm Apply
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={cancelAllPreviews}
+                            className="text-muted-foreground text-xs"
+                            title="Cancel — discard every staged preview"
+                          >
+                            Cancel All
+                          </Button>
+                        </>
+                      )}
                     </>
                   )}
                   <Button
@@ -1211,9 +1364,12 @@ export default function SplitBuilder() {
                   .map((id) => itemsById.get(id))
                   .filter(Boolean)
                   .map((item) => {
-                    // On Week 2, swap in load/deload sets[] override when present.
+                    // On Week 2, render the COMMITTED state. Load/Deload's
+                    // projected sets are passed separately as a preview
+                    // annotation (so the user sees current → projected).
                     if (!isViewingWeek2) return item as RoutineItem;
-                    const override = mesocycle.week2ExerciseSets[(item as RoutineItem).id];
+                    const id = (item as RoutineItem).id;
+                    const override = mesocycle.week2ExerciseSets[id];
                     if (!override) return item as RoutineItem;
                     return { ...(item as RoutineItem), sets: override };
                   }) as RoutineItem[];
@@ -1231,7 +1387,19 @@ export default function SplitBuilder() {
                     antagonistEnabled={split.antagonistDays.includes(day.id)}
                     onToggleAntagonist={isViewingWeek2 ? undefined : () => toggleAntagonistDay(day.id)}
                     loadDeloadPreview={
-                      isViewingWeek2 ? loadDeloadPreview?.week2ExerciseSets : undefined
+                      isViewingWeek2 && loadDeloadStaged && projection
+                        ? projection.week2ExerciseSets
+                        : undefined
+                    }
+                    rebalanceMovedFrom={
+                      isViewingWeek2 && rebalanceStaged && projection
+                        ? projection.movedFromDay
+                        : null
+                    }
+                    swappedFromName={
+                      isViewingWeek2 && swapStaged && projection
+                        ? projection.swappedFromName
+                        : null
                     }
                   />
                 );
