@@ -71,9 +71,21 @@ export default function CalendarPage() {
   // New flow state
   const [pickerDate, setPickerDate] = useState<string | null>(null);
   const [showMorePrompt, setShowMorePrompt] = useState<
-    | { date: string; workoutLabel: string }
+    | { date: string; workoutLabel: string; anchorOption: PickerOption }
     | null
   >(null);
+
+  /**
+   * Bulk Schedule mode — entered after the user accepts the "Schedule
+   * more?" prompt. Anchored on a date + the split day that was just
+   * scheduled there. The calendar highlights the next 7 or 14 days
+   * (depending on mesocycle.enabled). The user clicks days within the
+   * window to mark them; confirm assigns split days chronologically.
+   */
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkAnchorDate, setBulkAnchorDate] = useState<string | null>(null);
+  const [bulkAnchorOption, setBulkAnchorOption] = useState<PickerOption | null>(null);
+  const [bulkSelectedDates, setBulkSelectedDates] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -127,6 +139,36 @@ export default function CalendarPage() {
     }
     return opts;
   }, [hasSavedSplit, activePreset, split.dayAssignments, mesocycle]);
+
+  /** Bulk Schedule window — the next 7 or 14 days starting from the
+   * anchor date. Empty when not in bulk mode. Used to highlight cells
+   * in the calendar grid and gate "click to mark" interactions. */
+  const bulkScope: 1 | 2 = mesocycle.enabled ? 2 : 1;
+  const bulkWindow = useMemo(() => {
+    if (!bulkMode || !bulkAnchorDate) return new Set<string>();
+    const set = new Set<string>();
+    const [y, m, d] = bulkAnchorDate.split("-").map(Number);
+    const start = new Date(y, m - 1, d);
+    const days = bulkScope * 7;
+    for (let i = 0; i < days; i++) {
+      const dt = new Date(start);
+      dt.setDate(start.getDate() + i);
+      const iso = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+      set.add(iso);
+    }
+    return set;
+  }, [bulkMode, bulkAnchorDate, bulkScope]);
+
+  /** How many additional days the user needs to mark to fill the
+   * mesocycle. Total required = daysPerWeek × scope; subtract 1 for
+   * the anchor already scheduled. */
+  const bulkRequiredCount = useMemo(() => {
+    if (!activePreset) return 0;
+    return Math.max(0, activePreset.daysPerWeek * bulkScope - 1);
+  }, [activePreset, bulkScope]);
+
+  const bulkDaysLeft = Math.max(0, bulkRequiredCount - bulkSelectedDates.size);
+  const bulkComplete = bulkSelectedDates.size === bulkRequiredCount;
 
   // Calendar helpers
   const monthDate = useMemo(() => {
@@ -202,6 +244,128 @@ export default function CalendarPage() {
     return { name, exercises };
   };
 
+  /** Enter Bulk Schedule mode anchored at a date with a chosen split day.
+   * Called from the "Schedule more?" prompt after the user confirms. */
+  const enterBulkMode = (anchorDate: string, anchorOption: PickerOption) => {
+    setBulkMode(true);
+    setBulkAnchorDate(anchorDate);
+    setBulkAnchorOption(anchorOption);
+    setBulkSelectedDates(new Set());
+    setShowMorePrompt(null);
+    // Make sure the calendar is showing the month containing the anchor.
+    const [y, m] = anchorDate.split("-");
+    setCurrentMonth(`${y}-${m}`);
+  };
+
+  const exitBulkMode = () => {
+    setBulkMode(false);
+    setBulkAnchorDate(null);
+    setBulkAnchorOption(null);
+    setBulkSelectedDates(new Set());
+  };
+
+  const toggleBulkDate = (dateStr: string) => {
+    setBulkSelectedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(dateStr)) next.delete(dateStr);
+      else next.add(dateStr);
+      return next;
+    });
+  };
+
+  /** Commit all marked bulk dates by assigning split days chronologically.
+   * Anchor day's split day is already scheduled; remaining split days
+   * map to the user's marked dates in order, week-by-week. */
+  const handleConfirmBulk = async () => {
+    if (!activePreset || !bulkAnchorOption || !bulkAnchorDate) return;
+    if (bulkSelectedDates.size === 0) {
+      toast.error("Pick at least one day to schedule");
+      return;
+    }
+
+    const sorted = [...bulkSelectedDates].sort();
+    // Anchor option's split day is taken; build the remaining sequence
+    // in split-day order for week 1, then week 2 if applicable.
+    const anchorIdx = activePreset.days.findIndex((d) => d.id === bulkAnchorOption.dayId);
+
+    /** Helper: rotate the split's days so the anchor is at the front,
+     * then strip the anchor. Result is the natural play-out order. */
+    const rotatedWithoutAnchor = (() => {
+      const days = activePreset.days;
+      if (anchorIdx < 0) return days.slice();
+      return [...days.slice(anchorIdx + 1), ...days.slice(0, anchorIdx)];
+    })();
+
+    type Assignment = { date: string; option: PickerOption };
+    const assignments: Assignment[] = [];
+
+    // First, fill Week 1 remaining days (daysPerWeek - 1 slots).
+    const w1RemainingCount = activePreset.daysPerWeek - 1;
+    for (let i = 0; i < w1RemainingCount && i < sorted.length; i++) {
+      const splitDay = rotatedWithoutAnchor[i];
+      if (!splitDay) break;
+      const exerciseCount = (split.dayAssignments[splitDay.id] ?? []).length;
+      assignments.push({
+        date: sorted[i],
+        option: {
+          week: 1,
+          dayId: splitDay.id,
+          dayName: splitDay.name,
+          exerciseCount,
+        },
+      });
+    }
+
+    // Then, fill Week 2 days if mesocycle enabled.
+    if (mesocycle.enabled && bulkScope === 2) {
+      const offset = w1RemainingCount;
+      // Week 2 plays through ALL split days starting from the anchor's
+      // day-of-the-split. (Anchor was Week 1; Week 2 starts fresh.)
+      for (let i = 0; i < activePreset.daysPerWeek && offset + i < sorted.length; i++) {
+        const dayIdx = (anchorIdx + i) % activePreset.days.length;
+        const splitDay = activePreset.days[dayIdx];
+        const exerciseCount = (mesocycle.week2DayAssignments[splitDay.id] ?? []).length;
+        assignments.push({
+          date: sorted[offset + i],
+          option: {
+            week: 2,
+            dayId: splitDay.id,
+            dayName: splitDay.name,
+            exerciseCount,
+          },
+        });
+      }
+    }
+
+    if (assignments.length === 0) {
+      toast.error("Could not build a schedule from the marked days");
+      return;
+    }
+
+    // Schedule each assignment sequentially. Skip failures gracefully.
+    let succeeded = 0;
+    for (const { date, option } of assignments) {
+      const payload = buildWorkoutPayload(option);
+      if (!payload || payload.exercises.length === 0) continue;
+      try {
+        const createRes = await createWorkout.mutateAsync({
+          name: payload.name,
+          exercises: payload.exercises,
+        });
+        if (createRes?.id) {
+          await addEntry.mutateAsync({ workoutId: createRes.id, date });
+          succeeded++;
+        }
+      } catch {
+        // Continue with the rest; the user will see partial success.
+      }
+    }
+
+    toast.success(`Scheduled ${succeeded} workout${succeeded === 1 ? "" : "s"}`);
+    calendarQuery.refetch();
+    exitBulkMode();
+  };
+
   const handlePickSplitDay = (option: PickerOption) => {
     if (!pickerDate) return;
     const payload = buildWorkoutPayload(option);
@@ -227,6 +391,7 @@ export default function CalendarPage() {
                 setShowMorePrompt({
                   date: scheduledDate,
                   workoutLabel: payload.name,
+                  anchorOption: option,
                 });
               },
             },
@@ -310,6 +475,66 @@ export default function CalendarPage() {
           </div>
         </div>
 
+        {/* Bulk Schedule mode banner — shown only when bulkMode is active.
+            Anchor day is in lime; user clicks highlighted (purple) days
+            within the 1- or 2-week window to mark them. */}
+        {bulkMode && bulkAnchorDate && bulkAnchorOption && activePreset && (
+          <div className="p-4 bg-purple-500/[0.06] border-2 border-purple-400/40 rounded-sm">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex-1 min-w-[260px]">
+                <h3 className="font-heading font-bold text-base text-foreground mb-1 flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-purple-300" />
+                  Bulk Schedule · {bulkScope === 2 ? "2-week" : "1-week"} mesocycle
+                </h3>
+                <p className="text-xs text-muted-foreground leading-snug">
+                  Anchor: <span className="font-semibold text-lime">{bulkAnchorDate}</span> ·{" "}
+                  {bulkAnchorOption.dayName}. Click days within the highlighted window to mark
+                  your remaining training days. Counter ticks down toward zero.
+                </p>
+                <div className="mt-2 flex items-center gap-3 flex-wrap">
+                  <div
+                    className={`text-xs font-mono tabular-nums px-2 py-1 rounded-sm border ${
+                      bulkComplete
+                        ? "bg-lime/15 text-lime border-lime/40"
+                        : "bg-purple-500/15 text-purple-200 border-purple-400/40"
+                    }`}
+                  >
+                    {bulkComplete ? (
+                      <span className="inline-flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> All {bulkRequiredCount} days picked
+                      </span>
+                    ) : (
+                      <>
+                        {bulkDaysLeft} day{bulkDaysLeft === 1 ? "" : "s"} left ·{" "}
+                        {bulkSelectedDates.size}/{bulkRequiredCount} picked
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  onClick={handleConfirmBulk}
+                  disabled={bulkSelectedDates.size === 0}
+                  className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                  Confirm Schedule
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={exitBulkMode}
+                  className="text-muted-foreground"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Calendar */}
         <section>
           <div className="flex items-center justify-between mb-4">
@@ -366,15 +591,35 @@ export default function CalendarPage() {
                 const entries = getEntriesForDate(day);
                 const isToday = dateStr === new Date().toISOString().split("T")[0];
                 const clickable = hasSavedSplit;
+                const inBulkWindow = bulkMode && bulkWindow.has(dateStr);
+                const isBulkAnchor = bulkMode && dateStr === bulkAnchorDate;
+                const isBulkSelected = bulkSelectedDates.has(dateStr);
+
+                // Bulk-mode styling: highlight window with soft purple
+                // background; mark anchor with lime; mark selected days
+                // with stronger purple + check.
+                const bulkBg = bulkMode
+                  ? isBulkAnchor
+                    ? "bg-lime/15"
+                    : isBulkSelected
+                      ? "bg-purple-500/25"
+                      : inBulkWindow
+                        ? "bg-purple-500/[0.06]"
+                        : "bg-secondary/10"
+                  : "";
 
                 return (
                   <div
                     key={day}
                     className={`p-1.5 min-h-[80px] border-b border-r border-border transition-colors ${
                       isToday ? "bg-lime/5" : ""
-                    } ${
+                    } ${bulkBg} ${
                       clickable
-                        ? "cursor-pointer hover:bg-lime/10 hover:border-lime/30"
+                        ? bulkMode
+                          ? inBulkWindow && !isBulkAnchor
+                            ? "cursor-pointer hover:bg-purple-500/15"
+                            : "cursor-not-allowed opacity-70"
+                          : "cursor-pointer hover:bg-lime/10 hover:border-lime/30"
                         : "cursor-not-allowed opacity-70"
                     }`}
                     onClick={() => {
@@ -382,15 +627,36 @@ export default function CalendarPage() {
                         toast.info("Build a routine + split first to schedule");
                         return;
                       }
+                      if (bulkMode) {
+                        if (isBulkAnchor) return; // anchor is fixed
+                        if (!inBulkWindow) {
+                          toast.info(
+                            `Click days within the highlighted ${bulkScope === 2 ? "2-week" : "week"} window`,
+                          );
+                          return;
+                        }
+                        toggleBulkDate(dateStr);
+                        return;
+                      }
                       setPickerDate(dateStr);
                     }}
                   >
-                    <div
-                      className={`text-xs font-semibold mb-1 ${
-                        isToday ? "text-lime" : "text-muted-foreground"
-                      }`}
-                    >
-                      {day}
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={`text-xs font-semibold mb-1 ${
+                          isToday ? "text-lime" : isBulkAnchor ? "text-lime" : isBulkSelected ? "text-purple-200" : "text-muted-foreground"
+                        }`}
+                      >
+                        {day}
+                      </div>
+                      {isBulkAnchor && (
+                        <span className="text-[8px] uppercase tracking-wider text-lime font-bold">
+                          anchor
+                        </span>
+                      )}
+                      {isBulkSelected && !isBulkAnchor && (
+                        <CheckCircle2 className="w-3 h-3 text-purple-300" />
+                      )}
                     </div>
                     {isToday && entries.length > 0 && (
                       <div className="text-[9px] uppercase tracking-wider text-lime font-bold mb-1">
@@ -545,8 +811,8 @@ export default function CalendarPage() {
               <Button
                 size="sm"
                 onClick={() => {
-                  setShowMorePrompt(null);
-                  toast.info("Bulk Schedule coming next — for now click any day on the calendar");
+                  if (!showMorePrompt) return;
+                  enterBulkMode(showMorePrompt.date, showMorePrompt.anchorOption);
                 }}
                 className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold"
               >
