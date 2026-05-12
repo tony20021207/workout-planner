@@ -74,6 +74,7 @@ import {
   type FinisherKind,
 } from "@/lib/finisher";
 import { antagonistOrder, canApplyAntagonist } from "@/lib/dayOrdering";
+import { computeWeek2LoadDeload, type LoadDeloadResult } from "@/lib/loadDeload";
 import { generateId, getProgrammingParameters } from "@/lib/data";
 import FinisherPickerModal from "./FinisherPickerModal";
 import DayExerciseEditor from "./DayExerciseEditor";
@@ -301,6 +302,7 @@ function DayCard({
   warmups,
   antagonistEnabled,
   onToggleAntagonist,
+  loadDeloadPreview,
 }: {
   day: { id: string; name: string; tags: string[]; scheduleHint?: string };
   items: RoutineItem[];
@@ -316,6 +318,10 @@ function DayCard({
   antagonistEnabled: boolean;
   /** Toggle the antagonist mode. When undefined (Week 2 view), button hidden. */
   onToggleAntagonist?: () => void;
+  /** Optional preview map: exerciseId → projected sets[] from staged
+   * Load/Deload. When present, each editor row renders an inline
+   * before/after annotation. */
+  loadDeloadPreview?: Record<string, { reps: number; weight: number }[]>;
 }) {
   const compoundPctRounded = Math.round(stats.compoundPct * 100);
   const ratioOnTarget = stats.total > 0 && isCompoundRatioOnTarget(stats.compoundPct);
@@ -436,6 +442,7 @@ function DayCard({
               dayId={day.id}
               allDays={allDays}
               onMoveExercise={onMoveExercise}
+              previewSets={loadDeloadPreview?.[item.id]}
             />
           ))
         )}
@@ -475,6 +482,11 @@ export default function SplitBuilder() {
   // for them to pick an exercise from the modal first."
   const [finisherPickerKind, setFinisherPickerKind] = useState<FinisherKind | null>(null);
   const [pendingFinisherFreq, setPendingFinisherFreq] = useState<number | null>(null);
+
+  // Load/Deload preview — staged result of computeWeek2LoadDeload that
+  // shows per-exercise projected changes inline before the user commits
+  // them. Null = no preview active; preview button reverts to "Apply".
+  const [loadDeloadPreview, setLoadDeloadPreview] = useState<LoadDeloadResult | null>(null);
 
   const warmupMutation = trpc.sessionWarmups.generate.useMutation({
     onSuccess: (data: { days: Array<{ dayName: string; warmups: SessionWarmup[] }> }) => {
@@ -1016,7 +1028,7 @@ export default function SplitBuilder() {
                   </p>
                 ) : (
                   <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                    2-week mesocycle. Week 2 starts as a clone of Week 1. <span className="font-semibold text-purple-300">Rebalance</span> swaps mirrored upper days + pivots leg days; <span className="font-semibold text-purple-300">Load/Deload</span> redistributes set counts against the 2-week budget; <span className="font-semibold text-purple-300">Swap Variants</span> rotates non-favorited exercises (favorites are locked).
+                    2-week mesocycle. Week 2 starts as a clone of Week 1. <span className="font-semibold text-purple-300">Rebalance</span> swaps mirrored upper days + pivots leg days; <span className="font-semibold text-purple-300">Preview Load/Deload</span> shows per-exercise changes inline before commit; <span className="font-semibold text-purple-300">Swap Variants</span> rotates non-favorited exercises (favorites are locked).
                   </p>
                 )}
               </div>
@@ -1063,25 +1075,59 @@ export default function SplitBuilder() {
                       >
                         Rebalance Week 2
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const summary = applyLoadDeload();
-                          if (!summary) return;
-                          const parts: string[] = [];
-                          if (summary.loaded) parts.push(`${summary.loaded} loaded`);
-                          if (summary.deloaded) parts.push(`${summary.deloaded} deloaded`);
-                          if (summary.matched) parts.push(`${summary.matched} held`);
-                          toast.success(
-                            `Week 2 load/deload applied${parts.length ? ` — ${parts.join(", ")}` : ""}`,
-                          );
-                        }}
-                        className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 text-xs"
-                        title="Recompute Week 2 set counts per muscle: target = max(0.5 × weekly, 2-week budget − Week 1 actual). Muscles you hit hard in Week 1 deload toward the floor; muscles that came in light get loaded up."
-                      >
-                        Apply Load/Deload
-                      </Button>
+                      {loadDeloadPreview === null ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            // Stage a preview — compute Load/Deload but
+                            // don't commit. The preview annotations land
+                            // beneath each exercise row in the day grid.
+                            const preview = computeWeek2LoadDeload(
+                              routine,
+                              split.dayAssignments,
+                              mesocycle.week2DayAssignments,
+                              expProfile,
+                            );
+                            setLoadDeloadPreview(preview);
+                          }}
+                          className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10 text-xs"
+                          title="Preview Load/Deload: recompute Week 2 set counts per muscle. Confirm to commit."
+                        >
+                          Preview Load/Deload
+                        </Button>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              const summary = applyLoadDeload();
+                              setLoadDeloadPreview(null);
+                              if (!summary) return;
+                              const parts: string[] = [];
+                              if (summary.loaded) parts.push(`${summary.loaded} loaded`);
+                              if (summary.deloaded) parts.push(`${summary.deloaded} deloaded`);
+                              if (summary.matched) parts.push(`${summary.matched} held`);
+                              toast.success(
+                                `Week 2 load/deload applied${parts.length ? ` — ${parts.join(", ")}` : ""}`,
+                              );
+                            }}
+                            className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold text-xs"
+                            title="Commit the previewed Load/Deload changes to Week 2"
+                          >
+                            Confirm Apply
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setLoadDeloadPreview(null)}
+                            className="text-muted-foreground text-xs"
+                            title="Cancel — discard the Load/Deload preview"
+                          >
+                            Cancel
+                          </Button>
+                        </>
+                      )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -1184,6 +1230,9 @@ export default function SplitBuilder() {
                     warmups={isViewingWeek2 ? undefined : sessionWarmups?.[day.id]}
                     antagonistEnabled={split.antagonistDays.includes(day.id)}
                     onToggleAntagonist={isViewingWeek2 ? undefined : () => toggleAntagonistDay(day.id)}
+                    loadDeloadPreview={
+                      isViewingWeek2 ? loadDeloadPreview?.week2ExerciseSets : undefined
+                    }
                   />
                 );
               })}

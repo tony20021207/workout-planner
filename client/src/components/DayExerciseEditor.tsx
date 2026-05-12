@@ -96,6 +96,10 @@ interface DayExerciseEditorProps {
   dayId: string;
   allDays: { id: string; name: string }[];
   onMoveExercise: (exerciseId: string, fromDayId: string, toDayId: string) => void;
+  /** If set, renders an inline preview annotation showing the projected
+   * sets[] (e.g., for Week 2 Load/Deload preview before commit). The
+   * underlying item.sets stays untouched until the user confirms. */
+  previewSets?: { reps: number; weight: number }[];
 }
 
 /** Special select values that aren't rep ranges. */
@@ -107,6 +111,7 @@ export default function DayExerciseEditor({
   dayId,
   allDays,
   onMoveExercise,
+  previewSets,
 }: DayExerciseEditorProps) {
   const { updateRoutineItem, routine, split, experience, favorites, toggleFavorite, isFavorite } = useWorkout();
   const [expanded, setExpanded] = useState(false);
@@ -203,6 +208,39 @@ export default function DayExerciseEditor({
               </span>
             )}
           </div>
+          {/* Load/Deload preview annotation — shown right below the
+              current sets when a preview is staged. Color-coded by
+              direction: lime for load (sets going up), red for deload
+              (sets going down), muted for no change. */}
+          {previewSets && (() => {
+            const currentCount = item.sets.length;
+            const projCount = previewSets.length;
+            const delta = projCount - currentCount;
+            const color =
+              delta > 0
+                ? "text-lime"
+                : delta < 0
+                  ? "text-red-400"
+                  : "text-muted-foreground";
+            const label =
+              delta > 0
+                ? `load +${delta}`
+                : delta < 0
+                  ? `deload ${delta}`
+                  : "held";
+            const projReps = previewSets[0]?.reps ?? customReps;
+            return (
+              <div className={`text-[10px] mt-0.5 font-mono ${color} flex items-center gap-1.5`}>
+                <span className="opacity-70">→</span>
+                <span className="font-semibold">
+                  {projCount} × {projReps} reps
+                </span>
+                <span className="text-[9px] uppercase tracking-wider opacity-80">
+                  ({label})
+                </span>
+              </div>
+            );
+          })()}
         </div>
         <div className="flex flex-col gap-0.5 shrink-0">
           <Button
