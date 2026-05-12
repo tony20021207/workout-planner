@@ -145,6 +145,12 @@ export interface PostSplitRatingResult {
 /**
  * Serialize a finalized week (split + dayAssignments + per-day sets/reps)
  * into a plaintext block the post-split rating prompt can read.
+ *
+ * Weight is DELIBERATELY excluded — none of the 8 post-split criteria
+ * (stability / stretch / SFR / compound-iso ratio / coverage / session
+ * caps / rep-range distribution / total weekly volume) score load.
+ * Weight is a Check-in concern (what the lifter actually pushed) and
+ * doesn't belong in the plan-quality evaluation.
  */
 export function serializeFinalizedWeekToText(
   routine: import("@/contexts/WorkoutContext").RoutineItem[],
@@ -170,7 +176,12 @@ export function serializeFinalizedWeekToText(
         lines.push(`  ${idx + 1}. ${name}`);
         lines.push(`     Tier: ${item.category === "systemic" ? "Tier 1 compound" : "Tier 2 isolation"}`);
         lines.push(`     Targets: ${item.targetedMuscles.join(", ")}`);
-        const setSummary = item.sets.map((s, i) => `S${i + 1} ${s.reps}r@${s.weight}lb`).join(" ");
+        // Weight is intentionally omitted from the post-split rater:
+        // none of the 8 criteria (stability / stretch / SFR / compound-
+        // iso / coverage / session caps / rep-range distribution /
+        // total weekly volume) depend on load. Weight is a Check-in
+        // concern — what the lifter actually pushed on the day.
+        const setSummary = item.sets.map((s, i) => `S${i + 1} ${s.reps}r`).join(" ");
         lines.push(`     Sets (${item.sets.length}): ${setSummary}`);
       });
     }
