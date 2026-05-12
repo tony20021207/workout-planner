@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import MuscleGroupSelector from "@/components/MuscleGroupSelector";
 import RoutineTable from "@/components/RoutineTable";
 import SplitBuilder from "@/components/SplitBuilder";
+import ScheduledEditBanner from "@/components/ScheduledEditBanner";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { Link } from "wouter";
 
@@ -59,6 +60,11 @@ export default function Home() {
           </div>
         </div>
       </nav>
+
+      {/* Scheduled-workout edit banner — only renders when the user is
+          editing a calendar workout (clicked "Edit in Planner" from
+          CalendarPage). Provides Save / Save as new / Cancel actions. */}
+      <ScheduledEditBanner />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
