@@ -38,7 +38,7 @@ import { trpc } from "@/lib/trpc";
 import { useWorkout, type RoutineItem } from "@/contexts/WorkoutContext";
 import { toast } from "sonner";
 import { Link } from "wouter";
-import { SPLIT_PRESETS } from "@/lib/splitPresets";
+import { SPLIT_PRESETS, getMuscleTagsForItem, type MuscleTag } from "@/lib/splitPresets";
 
 interface CalendarExercise {
   exercise: string;
@@ -86,6 +86,16 @@ export default function CalendarPage() {
   const [bulkAnchorDate, setBulkAnchorDate] = useState<string | null>(null);
   const [bulkAnchorOption, setBulkAnchorOption] = useState<PickerOption | null>(null);
   const [bulkSelectedDates, setBulkSelectedDates] = useState<Set<string>>(new Set());
+  /** Projected assignment: dateStr → split day id. Driven by chronological
+   * default initially; mutated by Opti-fill to minimize muscle-spacing
+   * conflicts. Surfaced in calendar cells so the user sees what each
+   * marked date will become. */
+  const [bulkAssignments, setBulkAssignments] = useState<Record<string, string>>({});
+  /** "Are you sure?" override modal when Confirm Schedule is clicked
+   * while muscle-spacing conflicts remain. */
+  const [conflictConfirm, setConflictConfirm] = useState<
+    Array<{ date1: string; date2: string; sharedTags: MuscleTag[] }> | null
+  >(null);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -169,6 +179,196 @@ export default function CalendarPage() {
 
   const bulkDaysLeft = Math.max(0, bulkRequiredCount - bulkSelectedDates.size);
   const bulkComplete = bulkSelectedDates.size === bulkRequiredCount;
+
+  /**
+   * Get the major muscle tags trained by a split day. Reads items from
+   * the day's assignments and aggregates their tags. Calves / core /
+   * routing-only tags are excluded — those don't drive spacing
+   * conflicts since they're small-mass and can be trained frequently.
+   */
+  const getMuscleTagsForDay = (dayId: string, week: 1 | 2): Set<MuscleTag> => {
+    const ids =
+      week === 1
+        ? split.dayAssignments[dayId] ?? []
+        : mesocycle.week2DayAssignments[dayId] ?? [];
+    const itemsById = new Map<string, RoutineItem>();
+    routine.forEach((r) => itemsById.set(r.id, r));
+    mesocycle.week2Routine.forEach((r) => itemsById.set(r.id, r));
+
+    const tags = new Set<MuscleTag>();
+    for (const id of ids) {
+      const item = itemsById.get(id);
+      if (!item) continue;
+      for (const tag of getMuscleTagsForItem(item)) {
+        if (tag === "heavy-hinge" || tag === "calves" || tag === "core") continue;
+        tags.add(tag);
+      }
+    }
+    return tags;
+  };
+
+  /** Determine the week (1 or 2) for a given date relative to the anchor. */
+  const weekForDate = (dateStr: string): 1 | 2 => {
+    if (!bulkAnchorDate) return 1;
+    const [y1, m1, d1] = bulkAnchorDate.split("-").map(Number);
+    const [y2, m2, d2] = dateStr.split("-").map(Number);
+    const anchorDt = new Date(y1, m1 - 1, d1);
+    const dt = new Date(y2, m2 - 1, d2);
+    const diffDays = Math.floor((dt.getTime() - anchorDt.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays >= 7 ? 2 : 1;
+  };
+
+  /**
+   * Compute conflicts for a given dateStr → splitDayId assignment.
+   * Conflict = consecutive calendar days both training a shared major
+   * muscle tag. Anchor's day is included in the chain.
+   */
+  const conflictsForAssignment = (
+    assignment: Record<string, string>,
+  ): Array<{ date1: string; date2: string; sharedTags: MuscleTag[] }> => {
+    if (!bulkAnchorDate || !bulkAnchorOption || !activePreset) return [];
+    const all: Array<{ date: string; week: 1 | 2; dayId: string }> = [];
+    all.push({
+      date: bulkAnchorDate,
+      week: bulkAnchorOption.week,
+      dayId: bulkAnchorOption.dayId,
+    });
+    for (const [date, dayId] of Object.entries(assignment)) {
+      all.push({ date, week: weekForDate(date), dayId });
+    }
+    all.sort((a, b) => a.date.localeCompare(b.date));
+    const conflicts: Array<{ date1: string; date2: string; sharedTags: MuscleTag[] }> = [];
+    for (let i = 0; i < all.length - 1; i++) {
+      const a = all[i];
+      const b = all[i + 1];
+      const [y1, m1, d1] = a.date.split("-").map(Number);
+      const [y2, m2, d2] = b.date.split("-").map(Number);
+      const dateA = new Date(y1, m1 - 1, d1);
+      const dateB = new Date(y2, m2 - 1, d2);
+      const dayDiff = Math.round(
+        (dateB.getTime() - dateA.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      if (dayDiff !== 1) continue;
+      const tagsA = getMuscleTagsForDay(a.dayId, a.week);
+      const tagsB = getMuscleTagsForDay(b.dayId, b.week);
+      const shared: MuscleTag[] = [];
+      for (const tag of tagsA) if (tagsB.has(tag)) shared.push(tag);
+      if (shared.length > 0) {
+        conflicts.push({ date1: a.date, date2: b.date, sharedTags: shared });
+      }
+    }
+    return conflicts;
+  };
+
+  // Rebuild the default chronological assignment whenever the marked
+  // dates change. Anchor's day is excluded from the rotation; remaining
+  // dates get remaining split days in chronological + split order.
+  useEffect(() => {
+    if (!bulkMode || !bulkAnchorDate || !bulkAnchorOption || !activePreset) {
+      setBulkAssignments({});
+      return;
+    }
+    const sorted = [...bulkSelectedDates].sort();
+    const anchorIdx = activePreset.days.findIndex((d) => d.id === bulkAnchorOption.dayId);
+    const rotated = anchorIdx >= 0
+      ? [...activePreset.days.slice(anchorIdx + 1), ...activePreset.days.slice(0, anchorIdx)]
+      : activePreset.days.slice();
+    const next: Record<string, string> = {};
+    let week1Filled = 0;
+    let week2Slot = 0;
+    for (const dateStr of sorted) {
+      const week = weekForDate(dateStr);
+      if (week === 1 && week1Filled < rotated.length) {
+        next[dateStr] = rotated[week1Filled].id;
+        week1Filled++;
+      } else if (week === 2) {
+        // Week 2: cycle from anchor index again, since Week 2 starts fresh.
+        const dayIdx = (anchorIdx + week2Slot) % activePreset.days.length;
+        next[dateStr] = activePreset.days[dayIdx].id;
+        week2Slot++;
+      }
+    }
+    setBulkAssignments(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulkMode, bulkAnchorDate, bulkAnchorOption, activePreset, bulkSelectedDates]);
+
+  const currentConflicts = useMemo(
+    () => conflictsForAssignment(bulkAssignments),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bulkAssignments, bulkAnchorDate, bulkAnchorOption, activePreset],
+  );
+
+  // Build a Set of date strings involved in any conflict so the calendar
+  // can paint them red.
+  const conflictingDates = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of currentConflicts) {
+      set.add(c.date1);
+      set.add(c.date2);
+    }
+    return set;
+  }, [currentConflicts]);
+
+  /**
+   * Opti-fill: permute the assignment of selected dates to split days
+   * (within each week independently) to minimize the conflict count.
+   * Anchor stays fixed. Tractable for any of our presets (≤6 days/wk).
+   */
+  const handleOptiFill = () => {
+    if (!bulkMode || !bulkAnchorDate || !bulkAnchorOption || !activePreset) return;
+    const sortedAll = [...bulkSelectedDates].sort();
+    const week1Dates = sortedAll.filter((d) => weekForDate(d) === 1);
+    const week2Dates = sortedAll.filter((d) => weekForDate(d) === 2);
+    const anchorIdx = activePreset.days.findIndex((d) => d.id === bulkAnchorOption.dayId);
+    const w1Pool = activePreset.days.filter((d, i) => i !== anchorIdx).map((d) => d.id);
+    const w2Pool = activePreset.days.map((d) => d.id); // Week 2 fresh play-through
+
+    // Build a candidate from permutations within each week.
+    const permute = <T,>(arr: T[]): T[][] => {
+      if (arr.length <= 1) return [arr];
+      const out: T[][] = [];
+      for (let i = 0; i < arr.length; i++) {
+        const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+        for (const p of permute(rest)) out.push([arr[i], ...p]);
+      }
+      return out;
+    };
+
+    const week1Perms = w1Pool.length > 0 ? permute(w1Pool) : [[]];
+    const week2Perms = w2Pool.length > 0 ? permute(w2Pool) : [[]];
+
+    let best: Record<string, string> | null = null;
+    let bestCount = Infinity;
+
+    outer: for (const p1 of week1Perms) {
+      for (const p2 of week2Perms) {
+        const trial: Record<string, string> = {};
+        for (let i = 0; i < week1Dates.length && i < p1.length; i++) {
+          trial[week1Dates[i]] = p1[i];
+        }
+        for (let i = 0; i < week2Dates.length && i < p2.length; i++) {
+          trial[week2Dates[i]] = p2[i];
+        }
+        const conflicts = conflictsForAssignment(trial);
+        if (conflicts.length < bestCount) {
+          best = trial;
+          bestCount = conflicts.length;
+          if (bestCount === 0) break outer;
+        }
+      }
+    }
+
+    if (best) {
+      setBulkAssignments(best);
+      if (bestCount === 0) {
+        toast.success("Opti-fill: zero muscle-spacing conflicts");
+      } else {
+        toast.warning(
+          `Opti-fill: minimized to ${bestCount} conflict${bestCount === 1 ? "" : "s"}. Try a different anchor day to fully resolve.`,
+        );
+      }
+    }
+  };
 
   // Calendar helpers
   const monthDate = useMemo(() => {
@@ -273,76 +473,47 @@ export default function CalendarPage() {
     });
   };
 
-  /** Commit all marked bulk dates by assigning split days chronologically.
-   * Anchor day's split day is already scheduled; remaining split days
-   * map to the user's marked dates in order, week-by-week. */
+  /** Commit all marked bulk dates using the current bulkAssignments
+   * projection. Each date → split day pairing comes from bulkAssignments
+   * (chronological default, mutable via Opti-fill). Conflicts trigger
+   * an "are you sure?" override before committing. */
   const handleConfirmBulk = async () => {
     if (!activePreset || !bulkAnchorOption || !bulkAnchorDate) return;
     if (bulkSelectedDates.size === 0) {
       toast.error("Pick at least one day to schedule");
       return;
     }
+    if (currentConflicts.length > 0 && !conflictConfirm) {
+      // Surface conflicts before committing. User can choose to override
+      // or stay and try Opti-fill / change dates.
+      setConflictConfirm(currentConflicts);
+      return;
+    }
+    setConflictConfirm(null);
+    await commitBulkAssignment();
+  };
 
-    const sorted = [...bulkSelectedDates].sort();
-    // Anchor option's split day is taken; build the remaining sequence
-    // in split-day order for week 1, then week 2 if applicable.
-    const anchorIdx = activePreset.days.findIndex((d) => d.id === bulkAnchorOption.dayId);
-
-    /** Helper: rotate the split's days so the anchor is at the front,
-     * then strip the anchor. Result is the natural play-out order. */
-    const rotatedWithoutAnchor = (() => {
-      const days = activePreset.days;
-      if (anchorIdx < 0) return days.slice();
-      return [...days.slice(anchorIdx + 1), ...days.slice(0, anchorIdx)];
-    })();
-
+  const commitBulkAssignment = async () => {
+    if (!activePreset || !bulkAnchorOption) return;
     type Assignment = { date: string; option: PickerOption };
     const assignments: Assignment[] = [];
-
-    // First, fill Week 1 remaining days (daysPerWeek - 1 slots).
-    const w1RemainingCount = activePreset.daysPerWeek - 1;
-    for (let i = 0; i < w1RemainingCount && i < sorted.length; i++) {
-      const splitDay = rotatedWithoutAnchor[i];
-      if (!splitDay) break;
-      const exerciseCount = (split.dayAssignments[splitDay.id] ?? []).length;
+    for (const [date, dayId] of Object.entries(bulkAssignments)) {
+      const week = weekForDate(date);
+      const splitDay = activePreset.days.find((d) => d.id === dayId);
+      if (!splitDay) continue;
+      const exerciseCount =
+        week === 1
+          ? (split.dayAssignments[dayId] ?? []).length
+          : (mesocycle.week2DayAssignments[dayId] ?? []).length;
       assignments.push({
-        date: sorted[i],
-        option: {
-          week: 1,
-          dayId: splitDay.id,
-          dayName: splitDay.name,
-          exerciseCount,
-        },
+        date,
+        option: { week, dayId, dayName: splitDay.name, exerciseCount },
       });
     }
-
-    // Then, fill Week 2 days if mesocycle enabled.
-    if (mesocycle.enabled && bulkScope === 2) {
-      const offset = w1RemainingCount;
-      // Week 2 plays through ALL split days starting from the anchor's
-      // day-of-the-split. (Anchor was Week 1; Week 2 starts fresh.)
-      for (let i = 0; i < activePreset.daysPerWeek && offset + i < sorted.length; i++) {
-        const dayIdx = (anchorIdx + i) % activePreset.days.length;
-        const splitDay = activePreset.days[dayIdx];
-        const exerciseCount = (mesocycle.week2DayAssignments[splitDay.id] ?? []).length;
-        assignments.push({
-          date: sorted[offset + i],
-          option: {
-            week: 2,
-            dayId: splitDay.id,
-            dayName: splitDay.name,
-            exerciseCount,
-          },
-        });
-      }
-    }
-
     if (assignments.length === 0) {
       toast.error("Could not build a schedule from the marked days");
       return;
     }
-
-    // Schedule each assignment sequentially. Skip failures gracefully.
     let succeeded = 0;
     for (const { date, option } of assignments) {
       const payload = buildWorkoutPayload(option);
@@ -360,7 +531,6 @@ export default function CalendarPage() {
         // Continue with the rest; the user will see partial success.
       }
     }
-
     toast.success(`Scheduled ${succeeded} workout${succeeded === 1 ? "" : "s"}`);
     calendarQuery.refetch();
     exitBulkMode();
@@ -491,7 +661,7 @@ export default function CalendarPage() {
                   {bulkAnchorOption.dayName}. Click days within the highlighted window to mark
                   your remaining training days. Counter ticks down toward zero.
                 </p>
-                <div className="mt-2 flex items-center gap-3 flex-wrap">
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
                   <div
                     className={`text-xs font-mono tabular-nums px-2 py-1 rounded-sm border ${
                       bulkComplete
@@ -510,9 +680,29 @@ export default function CalendarPage() {
                       </>
                     )}
                   </div>
+                  {currentConflicts.length > 0 && (
+                    <div
+                      className="text-xs font-mono tabular-nums px-2 py-1 rounded-sm border bg-red-500/15 text-red-300 border-red-500/40 inline-flex items-center gap-1"
+                      title="Adjacent calendar days training the same major muscle group"
+                    >
+                      ⚠ {currentConflicts.length} muscle-spacing conflict
+                      {currentConflicts.length === 1 ? "" : "s"}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleOptiFill}
+                  disabled={bulkSelectedDates.size === 0}
+                  className="border-purple-400/50 text-purple-200 hover:bg-purple-500/15 text-xs"
+                  title="Auto-arrange the split day assignment to minimize muscle-spacing conflicts"
+                >
+                  <Sparkles className="w-3.5 h-3.5 mr-1" />
+                  Opti-fill
+                </Button>
                 <Button
                   size="sm"
                   onClick={handleConfirmBulk}
@@ -658,6 +848,36 @@ export default function CalendarPage() {
                         <CheckCircle2 className="w-3 h-3 text-purple-300" />
                       )}
                     </div>
+                    {/* Projected split-day label for marked dates in bulk
+                        mode — shows what this date will become on Confirm.
+                        Includes anchor for visual completeness. */}
+                    {bulkMode && (isBulkAnchor || isBulkSelected) && (() => {
+                      const splitDayId = isBulkAnchor
+                        ? bulkAnchorOption?.dayId
+                        : bulkAssignments[dateStr];
+                      if (!splitDayId || !activePreset) return null;
+                      const splitDay = activePreset.days.find((d) => d.id === splitDayId);
+                      if (!splitDay) return null;
+                      const week = isBulkAnchor
+                        ? bulkAnchorOption?.week ?? 1
+                        : weekForDate(dateStr);
+                      const isConflict = conflictingDates.has(dateStr);
+                      return (
+                        <div
+                          className={`text-[9px] mt-0.5 leading-tight ${
+                            isConflict
+                              ? "text-red-300"
+                              : isBulkAnchor
+                                ? "text-lime/90"
+                                : "text-purple-200/90"
+                          }`}
+                          title={isConflict ? "Adjacent to a day training the same major muscle" : splitDay.name}
+                        >
+                          {isConflict && "⚠ "}
+                          W{week} · {splitDay.name.split("—")[0]?.trim() ?? splitDay.name}
+                        </div>
+                      );
+                    })()}
                     {isToday && entries.length > 0 && (
                       <div className="text-[9px] uppercase tracking-wider text-lime font-bold mb-1">
                         Check in
@@ -818,6 +1038,71 @@ export default function CalendarPage() {
               >
                 <Sparkles className="w-3.5 h-3.5 mr-1" />
                 Yes, schedule more
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ===== CONFLICT OVERRIDE MODAL =====
+          Shown when the user clicks Confirm Schedule with muscle-spacing
+          conflicts remaining. They can override and commit anyway, or
+          go back to fix the schedule (try Opti-fill or change marked days). */}
+      {conflictConfirm && conflictConfirm.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card border-2 border-red-500/40 rounded-sm p-5 w-full max-w-md"
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2 bg-red-500/15 rounded-sm shrink-0">
+                <X className="w-5 h-5 text-red-300" />
+              </div>
+              <div>
+                <h3 className="font-heading font-bold text-base text-foreground mb-1">
+                  Muscle-spacing conflicts detected
+                </h3>
+                <p className="text-xs text-muted-foreground leading-snug">
+                  Some adjacent calendar days train the same major muscle group, which
+                  hurts recovery. Try <span className="font-semibold text-foreground">Opti-fill</span>
+                  {" "}or change your marked days, or override if you know what you're doing.
+                </p>
+              </div>
+            </div>
+            <ul className="space-y-1.5 mb-4 text-[11px] text-muted-foreground max-h-[200px] overflow-y-auto">
+              {conflictConfirm.map((c, i) => (
+                <li
+                  key={i}
+                  className="p-2 bg-red-500/[0.05] border border-red-500/20 rounded-sm leading-snug"
+                >
+                  <span className="font-mono text-red-300">{c.date1} → {c.date2}</span>:{" "}
+                  shared majors{" "}
+                  <span className="text-red-300 font-semibold">
+                    {c.sharedTags.join(", ")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setConflictConfirm(null)}
+                className="text-muted-foreground"
+              >
+                Back to fix
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  setConflictConfirm(null);
+                  await commitBulkAssignment();
+                }}
+                className="border-red-500/40 text-red-300 hover:bg-red-500/10"
+              >
+                I'm sure — schedule anyway
               </Button>
             </div>
           </motion.div>
