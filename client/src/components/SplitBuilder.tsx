@@ -28,6 +28,7 @@ import {
   Flame,
   Loader2,
   Shuffle,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -1250,47 +1251,72 @@ export default function SplitBuilder() {
                       >
                         {loadDeloadStaged ? "▸ Load/Deload" : "Preview Load/Deload"}
                       </button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            className={`text-xs px-2.5 py-1 rounded-sm border transition-colors inline-flex items-center gap-1 ${
-                              swapStaged
-                                ? "bg-purple-500/20 border-purple-400 text-purple-100 font-semibold"
-                                : "border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
-                            }`}
-                            title={
-                              swapStaged
-                                ? `Swap (${swapStaged}) staged — re-click to change size or unstage`
-                                : "Stage variant Swap preview at small / medium / large scope"
-                            }
-                          >
-                            <Shuffle className="w-3.5 h-3.5" />
-                            {swapStaged ? `▸ Swap (${swapStaged})` : "Preview Swap"}
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-72">
-                          {([
-                            { size: "small" as SwapSize, label: "Small — same lane", detail: "Equipment / angle variant" },
-                            { size: "medium" as SwapSize, label: "Medium — same muscle", detail: "Different SFR / ROM" },
-                            { size: "large" as SwapSize, label: "Large — same group", detail: "Different sub-bucket" },
-                          ]).map((opt) => (
-                            <DropdownMenuItem
-                              key={opt.size}
-                              onClick={() =>
-                                setSwapStaged((cur) => (cur === opt.size ? null : opt.size))
-                              }
-                              className="flex-col items-start gap-0.5 py-2"
+                      {/* Split button: main click toggles Medium (the default
+                          hypertrophy size); right chevron opens dropdown
+                          to pick a different size or unstage via the
+                          active item. */}
+                      <div
+                        className={`inline-flex rounded-sm border overflow-hidden transition-colors ${
+                          swapStaged
+                            ? "border-purple-400 bg-purple-500/20"
+                            : "border-purple-500/40 hover:bg-purple-500/5"
+                        }`}
+                      >
+                        <button
+                          onClick={() =>
+                            setSwapStaged((cur) => (cur ? null : "medium"))
+                          }
+                          className={`text-xs px-2.5 py-1 inline-flex items-center gap-1 transition-colors ${
+                            swapStaged
+                              ? "text-purple-100 font-semibold"
+                              : "text-purple-300 hover:bg-purple-500/10"
+                          }`}
+                          title={
+                            swapStaged
+                              ? `Swap (${swapStaged}) staged — click to unstage`
+                              : "Stage Medium swap (use ▼ to pick Small or Large)"
+                          }
+                        >
+                          <Shuffle className="w-3.5 h-3.5" />
+                          {swapStaged ? `▸ Swap (${swapStaged})` : "Preview Swap"}
+                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className={`px-1.5 py-1 border-l transition-colors ${
+                                swapStaged
+                                  ? "border-purple-400/40 text-purple-100 hover:bg-purple-500/10"
+                                  : "border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+                              }`}
+                              title="Pick swap size"
                             >
-                              <span className="font-semibold text-foreground">
-                                {swapStaged === opt.size ? "▸ " : ""}{opt.label}
-                              </span>
-                              <span className="text-[11px] text-muted-foreground leading-snug">
-                                {opt.detail}
-                              </span>
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-72">
+                            {([
+                              { size: "small" as SwapSize, label: "Small — same lane", detail: "Equipment / angle variant" },
+                              { size: "medium" as SwapSize, label: "Medium — same muscle", detail: "Different SFR / ROM" },
+                              { size: "large" as SwapSize, label: "Large — same group", detail: "Different sub-bucket" },
+                            ]).map((opt) => (
+                              <DropdownMenuItem
+                                key={opt.size}
+                                onClick={() =>
+                                  setSwapStaged((cur) => (cur === opt.size ? null : opt.size))
+                                }
+                                className="flex-col items-start gap-0.5 py-2"
+                              >
+                                <span className="font-semibold text-foreground">
+                                  {swapStaged === opt.size ? "▸ " : ""}{opt.label}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground leading-snug">
+                                  {opt.detail}
+                                </span>
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                       {/* Revert last apply — shown when previousSnapshot
                           exists AND no new preview is staged. One-step
                           undo of the most recent Confirm Apply. */}
