@@ -67,8 +67,130 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import {
+  isCalfExercise,
+  isRectusAbsExercise,
+  type FinisherCatalogPick,
+  type FinisherKind,
+} from "@/lib/finisher";
+import { generateId, getProgrammingParameters } from "@/lib/data";
+import FinisherPickerModal from "./FinisherPickerModal";
 import DayExerciseEditor from "./DayExerciseEditor";
 import PostSplitRater from "./PostSplitRater";
+
+/**
+ * Calves + Abs finisher dropdowns. Two selects side-by-side; each
+ * shows "Off" plus 3..N day options where N is the split's daysPerWeek.
+ * When the user selects a value, the parent's onChange handler decides
+ * whether to apply directly (routine has matching exercise) or open
+ * the modal picker.
+ */
+function FinisherPanel({
+  routine,
+  splitDaysPerWeek,
+  calvesFrequency,
+  absFrequency,
+  onChange,
+}: {
+  routine: RoutineItem[];
+  splitDaysPerWeek: number;
+  calvesFrequency: number | null;
+  absFrequency: number | null;
+  onChange: (kind: FinisherKind, freq: number | null) => void;
+}) {
+  const calfPicks = routine.filter((r) => isCalfExercise(r.exercise));
+  const absPicks = routine.filter((r) => isRectusAbsExercise(r.exercise));
+  // Frequency options: Off, 3, 4, ..., capped at split.daysPerWeek.
+  const dayOptions: number[] = [];
+  for (let n = 3; n <= splitDaysPerWeek; n++) dayOptions.push(n);
+
+  return (
+    <div className="p-3 bg-amber-500/[0.04] border-2 border-amber-500/30 rounded-sm space-y-2.5">
+      <div>
+        <h5 className="font-heading font-bold text-sm text-foreground leading-tight">
+          Calves + Abs Finishers
+        </h5>
+        <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+          Calves and abs (rectus) grow best with higher frequency. Pick a per-week day count to make them a daily finisher.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <FinisherRow
+          kind="calves"
+          label="Calves"
+          frequency={calvesFrequency}
+          dayOptions={dayOptions}
+          existingPicks={calfPicks}
+          onChange={onChange}
+        />
+        <FinisherRow
+          kind="abs"
+          label="Abs (rectus)"
+          frequency={absFrequency}
+          dayOptions={dayOptions}
+          existingPicks={absPicks}
+          onChange={onChange}
+        />
+      </div>
+    </div>
+  );
+}
+
+function FinisherRow({
+  kind,
+  label,
+  frequency,
+  dayOptions,
+  existingPicks,
+  onChange,
+}: {
+  kind: FinisherKind;
+  label: string;
+  frequency: number | null;
+  dayOptions: number[];
+  existingPicks: RoutineItem[];
+  onChange: (kind: FinisherKind, freq: number | null) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <label className="text-xs font-semibold text-foreground">{label}:</label>
+        <Select
+          value={frequency === null ? "off" : String(frequency)}
+          onValueChange={(v) => onChange(kind, v === "off" ? null : Number(v))}
+        >
+          <SelectTrigger className="h-7 text-xs w-28">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="off" className="text-xs">Off</SelectItem>
+            {dayOptions.map((n) => (
+              <SelectItem key={n} value={String(n)} className="text-xs">
+                {n} days
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {frequency !== null && existingPicks.length > 0 && (
+        <div className="text-[10px] text-lime/90 leading-snug">
+          ✓ Using:{" "}
+          <span className="font-semibold">
+            {existingPicks.map((p) => p.exercise).join(", ")}
+          </span>
+          {existingPicks.length > 1 && (
+            <span className="text-muted-foreground"> (rotated across days)</span>
+          )}
+        </div>
+      )}
+      {frequency !== null && existingPicks.length === 0 && (
+        <div className="text-[10px] text-yellow-300/90 leading-snug">
+          No {kind} exercise in your routine — picker will open
+        </div>
+      )}
+    </div>
+  );
+}
 
 function PresetCard({
   preset,
@@ -292,6 +414,7 @@ export default function SplitBuilder() {
     setSplit,
     clearSplit,
     updateRoutineItem,
+    addRoutineItem,
     lifestyle,
     experience,
     sessionWarmups,
@@ -308,6 +431,12 @@ export default function SplitBuilder() {
   } = useWorkout();
   const [open, setOpen] = useState(false);
   const [activeWeek, setActiveWeek] = useState<1 | 2>(1);
+
+  // Finisher state — drives the calves + abs dropdowns + modal picker.
+  // pendingFinisher tracks "user changed the dropdown but we're waiting
+  // for them to pick an exercise from the modal first."
+  const [finisherPickerKind, setFinisherPickerKind] = useState<FinisherKind | null>(null);
+  const [pendingFinisherFreq, setPendingFinisherFreq] = useState<number | null>(null);
 
   const warmupMutation = trpc.sessionWarmups.generate.useMutation({
     onSuccess: (data: { days: Array<{ dayName: string; warmups: SessionWarmup[] }> }) => {
@@ -373,8 +502,18 @@ export default function SplitBuilder() {
       return;
     }
     const preset = SPLIT_PRESETS[id];
-    const allocation = allocatePoolToSplit(routine, preset, { experience, favoriteIds: favorites });
-    setSplit({ splitId: id, dayAssignments: allocation.byDay });
+    const allocation = allocatePoolToSplit(routine, preset, {
+      experience,
+      favoriteIds: favorites,
+      calvesFrequency: split.calvesFrequency,
+      absFrequency: split.absFrequency,
+    });
+    setSplit({
+      splitId: id,
+      dayAssignments: allocation.byDay,
+      calvesFrequency: split.calvesFrequency,
+      absFrequency: split.absFrequency,
+    });
     // setSplit flips the plan-modified flag; auto-allocate is the canonical
     // "fresh" state, so flip back. This runs after setSplit's state update.
     markAutoPlanFresh();
@@ -384,10 +523,102 @@ export default function SplitBuilder() {
 
   const handleReallocate = () => {
     if (!activePreset) return;
-    const allocation = allocatePoolToSplit(routine, activePreset, { experience, favoriteIds: favorites });
-    setSplit({ splitId: activePreset.id, dayAssignments: allocation.byDay });
+    const allocation = allocatePoolToSplit(routine, activePreset, {
+      experience,
+      favoriteIds: favorites,
+      calvesFrequency: split.calvesFrequency,
+      absFrequency: split.absFrequency,
+    });
+    setSplit({
+      splitId: activePreset.id,
+      dayAssignments: allocation.byDay,
+      calvesFrequency: split.calvesFrequency,
+      absFrequency: split.absFrequency,
+    });
     markAutoPlanFresh();
     toast.success("Re-allocated using Opti-split");
+  };
+
+  /**
+   * Apply a finisher frequency change. If the routine has no matching
+   * exercise (calf / rectus-abs), open the modal picker; otherwise
+   * re-allocate immediately with the new frequency.
+   */
+  const handleFinisherFreqChange = (kind: FinisherKind, freq: number | null) => {
+    if (!activePreset) {
+      toast.info("Pick a split first, then set finishers.");
+      return;
+    }
+    // If turning OFF (null), apply immediately — no picker needed.
+    if (freq === null) {
+      reallocateWithFinishers(routine, {
+        calvesFrequency: kind === "calves" ? null : split.calvesFrequency,
+        absFrequency: kind === "abs" ? null : split.absFrequency,
+      });
+      return;
+    }
+    // Check if routine has at least one matching exercise.
+    const predicate = kind === "calves" ? isCalfExercise : isRectusAbsExercise;
+    const hasOne = routine.some((r) => predicate(r.exercise));
+    if (hasOne) {
+      // Apply immediately, using existing exercises as the finisher.
+      reallocateWithFinishers(routine, {
+        calvesFrequency: kind === "calves" ? freq : split.calvesFrequency,
+        absFrequency: kind === "abs" ? freq : split.absFrequency,
+      });
+    } else {
+      // Open the picker; pendingFinisherFreq holds the target frequency
+      // until the user picks an exercise.
+      setFinisherPickerKind(kind);
+      setPendingFinisherFreq(freq);
+    }
+  };
+
+  /** Build a RoutineItem from a catalog pick and run the allocation. */
+  const handleFinisherPick = (pick: FinisherCatalogPick) => {
+    if (!activePreset || finisherPickerKind === null || pendingFinisherFreq === null) return;
+    const newItem: RoutineItem = {
+      id: generateId(),
+      exercise: pick.name,
+      jointFunction: pick.jointFunction,
+      category: pick.category,
+      parameters: getProgrammingParameters(pick.category),
+      sets: [],
+      difficulty: pick.difficulty,
+      targetedMuscles: pick.targetedMuscles,
+      stretchLevel: pick.stretchLevel,
+      stability: pick.stability,
+    };
+    const nextRoutine = [...routine, newItem];
+    addRoutineItem(newItem);
+    reallocateWithFinishers(nextRoutine, {
+      calvesFrequency: finisherPickerKind === "calves" ? pendingFinisherFreq : split.calvesFrequency,
+      absFrequency: finisherPickerKind === "abs" ? pendingFinisherFreq : split.absFrequency,
+    });
+    setFinisherPickerKind(null);
+    setPendingFinisherFreq(null);
+    toast.success(`Added ${pick.name} to your routine as the ${finisherPickerKind} finisher`);
+  };
+
+  /** Re-run allocator with new finisher overrides + persist the result. */
+  const reallocateWithFinishers = (
+    routineToUse: RoutineItem[],
+    overrides: { calvesFrequency: number | null; absFrequency: number | null },
+  ) => {
+    if (!activePreset) return;
+    const allocation = allocatePoolToSplit(routineToUse, activePreset, {
+      experience,
+      favoriteIds: favorites,
+      calvesFrequency: overrides.calvesFrequency,
+      absFrequency: overrides.absFrequency,
+    });
+    setSplit({
+      splitId: activePreset.id,
+      dayAssignments: allocation.byDay,
+      calvesFrequency: overrides.calvesFrequency,
+      absFrequency: overrides.absFrequency,
+    });
+    markAutoPlanFresh();
   };
 
   const handleMoveExercise = (exerciseId: string, fromDayId: string, toDayId: string) => {
@@ -721,6 +952,17 @@ export default function SplitBuilder() {
             </div>
             )}
 
+            {/* Finishers — calves + abs frequency dropdowns */}
+            {!isViewingWeek2 && (
+              <FinisherPanel
+                routine={routine}
+                splitDaysPerWeek={activePreset.daysPerWeek}
+                calvesFrequency={split.calvesFrequency}
+                absFrequency={split.absFrequency}
+                onChange={handleFinisherFreqChange}
+              />
+            )}
+
             {/* Mesocycle expand control + Week 1 / Week 2 tabs */}
             <div className="flex items-center justify-between gap-3 flex-wrap p-3 bg-purple-500/[0.04] border-2 border-purple-500/25 rounded-sm">
               <div className="flex-1 min-w-0">
@@ -906,6 +1148,18 @@ export default function SplitBuilder() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Empty-state picker shown when user enables a finisher without
+          having a matching exercise in the routine yet. */}
+      <FinisherPickerModal
+        open={finisherPickerKind !== null}
+        kind={finisherPickerKind}
+        onPick={handleFinisherPick}
+        onCancel={() => {
+          setFinisherPickerKind(null);
+          setPendingFinisherFreq(null);
+        }}
+      />
     </motion.div>
   );
 }

@@ -29,6 +29,7 @@ import type { RoutineItem } from "@/contexts/WorkoutContext";
 import type { JointAction } from "@/lib/data";
 import { getExperience, type ExperienceId, type ExperienceProfile } from "@/lib/experience";
 import { sortDayExercises } from "./dayOrdering";
+import { applyFinisherToAllocation } from "./finisher";
 
 // ============================================================
 // MUSCLE-GROUP TAG SYSTEM
@@ -555,6 +556,11 @@ export interface AllocationOptions {
   experience?: ExperienceId | null;
   /** Exercise IDs the user marked as favorite (priority for repetition). */
   favoriteIds?: string[];
+  /** Calves finisher frequency — days/wk to train calves regardless of
+   * mass-weighted volume math. null = off (use default). */
+  calvesFrequency?: number | null;
+  /** Abs finisher frequency (rectus abdominis only). null = off. */
+  absFrequency?: number | null;
 }
 
 /**
@@ -672,8 +678,42 @@ export function allocatePoolToSplit(
     };
   }
 
+  // Phase 4: apply finisher overrides for calves + abs, if the user
+  // set explicit frequencies. The applyFinisherToAllocation helper
+  // strips existing instances of finisher-eligible exercises and
+  // redistributes them across the requested day count. After the
+  // override, re-run the per-day sort so the finisher items land in
+  // their correct (tail-end) position.
+  let finished = byDay;
+  if (options.calvesFrequency != null) {
+    finished = applyFinisherToAllocation(finished, pool, split, "calves", options.calvesFrequency);
+  }
+  if (options.absFrequency != null) {
+    finished = applyFinisherToAllocation(finished, pool, split, "abs", options.absFrequency);
+  }
+  if (finished !== byDay) {
+    for (const day of split.days) {
+      finished[day.id] = sortDayExercises(finished[day.id] ?? [], ctx.itemsById);
+    }
+    // Refresh dayStats for affected days.
+    for (const day of split.days) {
+      const ids = finished[day.id] ?? [];
+      const items = ids.map((id) => ctx.itemsById.get(id)).filter(Boolean) as RoutineItem[];
+      const total = items.length;
+      const compoundsCount = items.filter((i) => i.category === "systemic").length;
+      dayStats[day.id] = {
+        total,
+        compounds: compoundsCount,
+        isolations: total - compoundsCount,
+        compoundPct: total > 0 ? compoundsCount / total : 0,
+        targetCompoundPctMin: COMPOUND_PCT_GOOD_MIN,
+        targetCompoundPctMax: COMPOUND_PCT_GOOD_MAX,
+      };
+    }
+  }
+
   return {
-    byDay,
+    byDay: finished,
     unassigned,
     dayStats,
     weeklyVolume: ctx.volumeByMuscle,

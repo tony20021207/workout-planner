@@ -96,11 +96,20 @@ export interface SplitState {
   splitId: SplitId | null;
   /** dayId -> ordered exerciseId[] from the routine. */
   dayAssignments: Record<string, string[]>;
+  /** Calves finisher frequency — days per week the user wants calves
+   * trained as a daily finisher. null = off (use default mass-weighted
+   * volume math). Capped at the split's daysPerWeek when applied. */
+  calvesFrequency: number | null;
+  /** Abs finisher frequency (rectus abdominis only — obliques tracked
+   * separately as a minor bonus). null = off. */
+  absFrequency: number | null;
 }
 
 const DEFAULT_SPLIT: SplitState = {
   splitId: null,
   dayAssignments: {},
+  calvesFrequency: null,
+  absFrequency: null,
 };
 
 /**
@@ -286,7 +295,15 @@ function loadSplitFromStorage(): SplitState {
     const stored = sessionStorage.getItem(SPLIT_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (parsed?.dayAssignments) return parsed;
+      if (parsed?.dayAssignments) {
+        // Backfill new optional fields for older session storage.
+        return {
+          splitId: parsed.splitId ?? null,
+          dayAssignments: parsed.dayAssignments,
+          calvesFrequency: parsed.calvesFrequency ?? null,
+          absFrequency: parsed.absFrequency ?? null,
+        };
+      }
     }
   } catch {
     // ignore
