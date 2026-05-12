@@ -28,6 +28,7 @@
 import type { RoutineItem } from "@/contexts/WorkoutContext";
 import type { JointAction } from "@/lib/data";
 import { getExperience, type ExperienceId, type ExperienceProfile } from "@/lib/experience";
+import { sortDayExercises } from "./dayOrdering";
 
 // ============================================================
 // MUSCLE-GROUP TAG SYSTEM
@@ -528,29 +529,9 @@ function findMostUnderservedMuscle(
   return worst;
 }
 
-/**
- * Score for "warmup-priming suitability". Higher = belongs earlier in
- * the day. Compound machines/cables get the top slot.
- */
-function primingScore(item: RoutineItem): number {
-  let score = 0;
-  if (item.category === "systemic") score += 100;
-  const name = item.exercise.toLowerCase();
-  if (name.includes("machine") || name.includes("smith") || name.includes("cable")) {
-    score += 30;
-  }
-  if (item.category === "regional" && (name.includes("cable fly") || name.includes("lat prayer") || name.includes("face pull"))) {
-    score += 20;
-  }
-  if (name.includes("crunch") || name.includes("calf") || name.includes("woodchop") || name.includes("pallof") || name.includes("side bend")) {
-    score -= 20;
-  }
-  return score;
-}
-
-function orderDayItems(items: RoutineItem[]): RoutineItem[] {
-  return [...items].sort((a, b) => primingScore(b) - primingScore(a));
-}
+// Per-day ordering lives in dayOrdering.ts now — sortDayExercises uses
+// catalog tags (mass weight + SFR + stability + stretch level) instead
+// of the old name-pattern primingScore heuristic.
 
 export interface AllocationResult {
   byDay: Record<string, string[]>;
@@ -669,15 +650,16 @@ export function allocatePoolToSplit(
     }
   }
 
-  // Phase 3: order each day priming-first.
+  // Phase 3: order each day priming-first via sortDayExercises (catalog-
+  // tag based: compound→heavy-hinge→mass→SFR→stability→stretch).
   const byDay: Record<string, string[]> = {};
   const dayStats: AllocationResult["dayStats"] = {};
   for (const day of split.days) {
-    const items = ctx.byDay[day.id]
+    const orderedIds = sortDayExercises(ctx.byDay[day.id], ctx.itemsById);
+    const ordered = orderedIds
       .map((id) => ctx.itemsById.get(id))
       .filter(Boolean) as RoutineItem[];
-    const ordered = orderDayItems(items);
-    byDay[day.id] = ordered.map((i) => i.id);
+    byDay[day.id] = orderedIds;
     const total = ordered.length;
     const compoundsCount = ordered.filter((i) => i.category === "systemic").length;
     dayStats[day.id] = {
