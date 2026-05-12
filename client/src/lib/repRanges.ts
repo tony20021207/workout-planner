@@ -7,7 +7,7 @@
  *   - 5-8   (Low):       strength-flavored, near-failure on stable picks.
  *   - 8-12  (Med-Low):   heavy hypertrophy, compound-default.
  *   - 12-15 (Med-High):  pump hypertrophy, isolation-default.
- *   - 15-30 (High):      endurance / small-mass / slow-twitch.
+ *   - 15-20 (High):      endurance / small-mass / slow-twitch.
  *
  * Pre-Set lets the user apply one bucket to a scope (mesocycle / day /
  * single exercise). Opti-fill picks per-exercise via the matrix:
@@ -77,9 +77,9 @@ export const REP_RANGES: RepRange[] = [
     id: "high",
     label: "High",
     minReps: 15,
-    maxReps: 30,
-    defaultReps: 20,
-    shortLabel: "15–30",
+    maxReps: 20,
+    defaultReps: 18,
+    shortLabel: "15–20",
     defaultSets: 2,
     description:
       "Higher reps, lighter loads. Same growth potential as the lower tiers when pushed to failure. Lower joint stress, higher cardio and time cost. Reserved for slow-twitch / small-mass muscles where more reps materially improve stimulus: calves (soleus), abs / obliques, rotator cuff, forearms.",
