@@ -74,6 +74,7 @@ import {
   isRectusAbsExercise,
   finisherSetsPerSession,
   normalizeFinisherSets,
+  applyFinisherToAllocation,
   type FinisherCatalogPick,
   type FinisherKind,
 } from "@/lib/finisher";
@@ -638,6 +639,38 @@ export default function SplitBuilder() {
       }
     }
 
+    // ---- Layer 2.5: Week-2 finisher rotation offset ----
+    // When the user has 2 finisher exercises rotating across days
+    // and the frequency doesn't divide evenly, week 1 favors one
+    // exercise (e.g. A B A B A, A gets 3 / B gets 2). Week 2's
+    // pass re-runs the finisher distribution with rotationOffset=1
+    // so the rotation begins on the other exercise (B A B A B,
+    // B gets 3 / A gets 2). Mesocycle totals balance.
+    // No-op when finisher mode is off or only 1 picked.
+    if (activePreset && (split.calvesFrequency != null || split.absFrequency != null)) {
+      const fullPool: RoutineItem[] = [...routine, ...week2Routine];
+      if (split.calvesFrequency != null) {
+        dayAssignments = applyFinisherToAllocation(
+          dayAssignments,
+          fullPool,
+          activePreset,
+          "calves",
+          split.calvesFrequency,
+          1, // week 2 offset
+        );
+      }
+      if (split.absFrequency != null) {
+        dayAssignments = applyFinisherToAllocation(
+          dayAssignments,
+          fullPool,
+          activePreset,
+          "abs",
+          split.absFrequency,
+          1, // week 2 offset
+        );
+      }
+    }
+
     // ---- Layer 3: Load/Deload ----
     let loaded = 0,
       deloaded = 0,
@@ -798,10 +831,17 @@ export default function SplitBuilder() {
     }
   };
 
-  /** Build a RoutineItem from a catalog pick and run the allocation. */
-  const handleFinisherPick = (pick: FinisherCatalogPick) => {
+  /**
+   * Build RoutineItems from 1-2 catalog picks and run the allocation.
+   * Modal now submits an ARRAY of picks (multi-pick + max-2 cap) so
+   * users can add a rotation of exercises in one shot instead of
+   * opening the picker twice.
+   */
+  const handleFinisherPicks = (picks: FinisherCatalogPick[]) => {
     if (!activePreset || finisherPickerKind === null || pendingFinisherFreq === null) return;
-    const newItem: RoutineItem = {
+    if (picks.length === 0) return;
+
+    const newItems: RoutineItem[] = picks.map((pick) => ({
       id: generateId(),
       exercise: pick.name,
       jointFunction: pick.jointFunction,
@@ -812,16 +852,23 @@ export default function SplitBuilder() {
       targetedMuscles: pick.targetedMuscles,
       stretchLevel: pick.stretchLevel,
       stability: pick.stability,
-    };
-    const nextRoutine = [...routine, newItem];
-    addRoutineItem(newItem);
+    }));
+    const nextRoutine = [...routine, ...newItems];
+    // addRoutineItem already blocks identity duplicates, so each call
+    // is safe even if the picker offered something already in the
+    // routine. Stick to the local nextRoutine for the immediate
+    // re-allocation pass.
+    for (const item of newItems) addRoutineItem(item);
     reallocateWithFinishers(nextRoutine, {
       calvesFrequency: finisherPickerKind === "calves" ? pendingFinisherFreq : split.calvesFrequency,
       absFrequency: finisherPickerKind === "abs" ? pendingFinisherFreq : split.absFrequency,
     });
     setFinisherPickerKind(null);
     setPendingFinisherFreq(null);
-    toast.success(`Added ${pick.name} to your routine as the ${finisherPickerKind} finisher`);
+    const names = picks.map((p) => p.name).join(" + ");
+    toast.success(
+      `Added ${names} to your routine as the ${finisherPickerKind} finisher${picks.length > 1 ? " (rotating)" : ""}`,
+    );
   };
 
   /**
@@ -1556,7 +1603,7 @@ export default function SplitBuilder() {
       <FinisherPickerModal
         open={finisherPickerKind !== null}
         kind={finisherPickerKind}
-        onPick={handleFinisherPick}
+        onSubmit={handleFinisherPicks}
         onCancel={() => {
           setFinisherPickerKind(null);
           setPendingFinisherFreq(null);

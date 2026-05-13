@@ -148,6 +148,15 @@ export function applyFinisherToAllocation(
   split: SplitPreset,
   kind: FinisherKind,
   frequency: number | null,
+  /**
+   * Starting offset for the exercise-rotation index. Default 0 (week 1).
+   * Week 2's mesocycle pass passes 1 so the rotation begins on the
+   * other exercise when an uneven distribution would otherwise leave
+   * total volume unbalanced across the meso. Example: 2 exercises (A,
+   * B) with frequency 5/wk gives week 1 = A B A B A (A=3, B=2). Week 2
+   * with offset=1 gives B A B A B (A=2, B=3). Mesocycle total: 5/5.
+   */
+  rotationOffset: number = 0,
 ): Record<string, string[]> {
   // Deep-clone input so we never mutate.
   const next: Record<string, string[]> = {};
@@ -178,11 +187,12 @@ export function applyFinisherToAllocation(
   }
 
   // Distribute N slots across N eligible days. Rotate through the
-  // available finisher exercises so each one gets ~equal time when
-  // the user has 2+ in their routine.
+  // available finisher exercises (shifted by rotationOffset) so when
+  // the user has 2+ picks, week 2's rotation starts on the other
+  // exercise — total weekly volume balances over the mesocycle.
   const orderedDays = pickEvenlySpacedDays(eligibleDays, N);
   orderedDays.forEach((day, i) => {
-    const ex = finisherItems[i % finisherItems.length];
+    const ex = finisherItems[(i + rotationOffset) % finisherItems.length];
     next[day.id] = [...next[day.id], ex.id];
   });
 

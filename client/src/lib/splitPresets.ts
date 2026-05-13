@@ -561,6 +561,13 @@ export interface AllocationOptions {
   calvesFrequency?: number | null;
   /** Abs finisher frequency (rectus abdominis only). null = off. */
   absFrequency?: number | null;
+  /**
+   * Mesocycle week index (0 = week 1, 1 = week 2). When the user has
+   * 2+ finisher exercises rotating across days, week 2's offset is
+   * used so the rotation starts on the other exercise and total
+   * weekly volume balances across the meso. Default 0 (week 1).
+   */
+  weekIndex?: number;
 }
 
 /**
@@ -685,11 +692,15 @@ export function allocatePoolToSplit(
   // override, re-run the per-day sort so the finisher items land in
   // their correct (tail-end) position.
   let finished = byDay;
+  // rotationOffset is the week index: week 2 starts the finisher
+  // rotation on the other exercise (when 2+ are picked) so the meso's
+  // total volume per finisher exercise comes out balanced.
+  const rotationOffset = options.weekIndex ?? 0;
   if (options.calvesFrequency != null) {
-    finished = applyFinisherToAllocation(finished, pool, split, "calves", options.calvesFrequency);
+    finished = applyFinisherToAllocation(finished, pool, split, "calves", options.calvesFrequency, rotationOffset);
   }
   if (options.absFrequency != null) {
-    finished = applyFinisherToAllocation(finished, pool, split, "abs", options.absFrequency);
+    finished = applyFinisherToAllocation(finished, pool, split, "abs", options.absFrequency, rotationOffset);
   }
   if (finished !== byDay) {
     for (const day of split.days) {
