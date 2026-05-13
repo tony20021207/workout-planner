@@ -72,6 +72,8 @@ import {
 import {
   isCalfExercise,
   isRectusAbsExercise,
+  finisherSetsPerSession,
+  normalizeFinisherSets,
   type FinisherCatalogPick,
   type FinisherKind,
 } from "@/lib/finisher";
@@ -822,12 +824,45 @@ export default function SplitBuilder() {
     toast.success(`Added ${pick.name} to your routine as the ${finisherPickerKind} finisher`);
   };
 
-  /** Re-run allocator with new finisher overrides + persist the result. */
+  /**
+   * Re-run allocator with new finisher overrides + persist the result.
+   *
+   * When a finisher kind is active (calvesFrequency or absFrequency != null),
+   * the matching routine items get their `sets[]` normalized to the
+   * MAV-targeting per-day count: ceil(MAV / frequency). This discounts
+   * the original auto-allocated set count and replaces it with a
+   * finisher-appropriate value so total weekly volume = MAV. Without
+   * this step, a calf exercise configured for 3 sets and a frequency
+   * of 6 days would total 18 sets/wk — well past MAV even for an
+   * experienced lifter.
+   *
+   * When finisher mode flips OFF (null), the existing sets[] is left
+   * alone. The user's explicit edits are preserved.
+   */
   const reallocateWithFinishers = (
     routineToUse: RoutineItem[],
     overrides: { calvesFrequency: number | null; absFrequency: number | null },
   ) => {
     if (!activePreset) return;
+
+    // Step 1 — normalize finisher exercises' sets[] BEFORE the allocator
+    // runs, so the allocation sees the corrected weekly volume figures.
+    if (expProfile) {
+      for (const kind of ["calves", "abs"] as const) {
+        const freq = kind === "calves" ? overrides.calvesFrequency : overrides.absFrequency;
+        if (freq == null || freq <= 0) continue;
+        const target = finisherSetsPerSession(expProfile, kind, freq);
+        const predicate = kind === "calves" ? isCalfExercise : isRectusAbsExercise;
+        for (const item of routineToUse) {
+          if (!predicate(item.exercise)) continue;
+          if (item.sets.length === target) continue;
+          updateRoutineItem(item.id, {
+            sets: normalizeFinisherSets(item.sets, target),
+          });
+        }
+      }
+    }
+
     const allocation = allocatePoolToSplit(routineToUse, activePreset, {
       experience,
       favoriteIds: favorites,
