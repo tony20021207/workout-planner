@@ -537,13 +537,31 @@ function RecommendationRow({
             )}
           </div>
 
-          {/* Arrow + tag + per-pair criterion delta */}
+          {/* Arrow + action chip + per-pair criterion delta. The chip is
+              CLICKABLE on actionable rows (swap/remove/add) — it shortcuts
+              the accept-checkbox toggle so the user can click the visible
+              "ADD" / "SWAP" / "REMOVE" tag itself, not just the small
+              checkbox on the left. Keep rows show a non-interactive chip
+              because the Lock icon already conveys "no action available". */}
           <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">
             <div className="flex items-center gap-2">
               <ArrowRight className="w-4 h-4 text-muted-foreground" />
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-semibold uppercase tracking-wider ${tagStyle}`}>
-                {tagLabel}
-              </span>
+              {isKeep ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-semibold uppercase tracking-wider ${tagStyle}`}>
+                  {tagLabel}
+                </span>
+              ) : (
+                <button
+                  onClick={onToggle}
+                  className={`text-[10px] px-2 py-0.5 rounded-sm border font-semibold uppercase tracking-wider cursor-pointer transition-all ${tagStyle} ${
+                    accepted ? "ring-2 ring-lime/40 shadow-sm" : "hover:brightness-125 hover:scale-105"
+                  }`}
+                  title={accepted ? "Click to skip this change" : "Click to accept this change"}
+                >
+                  {tagLabel}
+                  {accepted && <CheckCircle2 className="w-2.5 h-2.5 inline-block ml-1" strokeWidth={3} />}
+                </button>
+              )}
             </div>
             {criterionDelta && (
               <span
@@ -1185,20 +1203,28 @@ Tue - Pull
                   >
                     Select all
                   </Button>
+                  {/* Apply button — bumped to size=default for prominence
+                      and shows the accepted count so the user can tell at
+                      a glance what's about to happen. The previous size=sm
+                      version sat too close in weight to the other action
+                      buttons; this is the headline action of the panel. */}
                   <Button
-                    size="sm"
+                    size="default"
                     onClick={handleApplyRecommendations}
-                    className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold"
+                    disabled={acceptedPairs.size === 0}
+                    className="bg-lime text-lime-foreground hover:bg-lime/80 font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                     title={
-                      projectedScore
-                        ? `Apply checked recommendations. Projected new score: ${Math.round(projectedScore.total)}/100`
-                        : "Apply every checked recommendation to your routine"
+                      acceptedPairs.size === 0
+                        ? "Tick at least one change to enable Apply"
+                        : projectedScore
+                          ? `Apply ${acceptedPairs.size} change${acceptedPairs.size === 1 ? "" : "s"}. Projected new score: ${Math.round(projectedScore.total)}/100`
+                          : `Apply ${acceptedPairs.size} checked change${acceptedPairs.size === 1 ? "" : "s"}`
                     }
                   >
-                    <Replace className="w-4 h-4 mr-1" />
-                    Apply
-                    {projectedScore && projectedScore.total !== result.score && (
-                      <span className="ml-1 text-[10px] opacity-80">
+                    <Replace className="w-4 h-4 mr-1.5" />
+                    Apply{acceptedPairs.size > 0 ? ` ${acceptedPairs.size}` : ""}
+                    {projectedScore && projectedScore.total !== result.score && acceptedPairs.size > 0 && (
+                      <span className="ml-2 text-[11px] opacity-90 font-semibold">
                         → {Math.round(projectedScore.total)}
                       </span>
                     )}
