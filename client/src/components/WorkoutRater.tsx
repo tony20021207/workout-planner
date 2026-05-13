@@ -943,6 +943,32 @@ Tue - Pull
         </Tabs>
       )}
 
+      {/* Pre-rate context pickers — surfaced BEFORE the first rating so
+          experience modulation (SFR/Stability penalty + Compound/Iso band)
+          + lifestyle warmup logic actually take effect on the initial
+          score, instead of defaulting to FID and forcing a re-rate.
+          The same pickers re-appear in the result panel below for
+          tune-and-rerate workflows. */}
+      {!result && (
+        <div className="p-4 bg-card rounded-sm border-2 border-purple-500/30 space-y-5">
+          <div>
+            <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-purple-300 mb-1">
+              Tell us about you
+            </h4>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              These shape the score before the LLM ever sees it — experience
+              modulates SFR/Stability/Compound-Iso penalties; lifestyle drives
+              warmup picks; availability sets the split scope.
+            </p>
+          </div>
+          <LifestylePicker />
+          <div className="border-t border-border" />
+          <AvailabilityPicker />
+          <div className="border-t border-border" />
+          <ExperiencePicker />
+        </div>
+      )}
+
       {/* Submit button */}
       {!result && (
         <Button
