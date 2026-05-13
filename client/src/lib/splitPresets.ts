@@ -426,11 +426,46 @@ function computeWeeklyVolumeTargets(experience: ExperienceProfile): Record<Muscl
   return out;
 }
 
-/** Sets earned per single exercise instance based on category + experience. */
-function setsPerInstance(item: RoutineItem, exp: ExperienceProfile): number {
-  return item.category === "systemic"
-    ? exp.setsPerExercise.compound
-    : exp.setsPerExercise.isolation;
+/**
+ * Sets earned per single exercise instance.
+ *
+ * Baseline = experience profile's per-category setsPerExercise (2/3/4
+ * for beg/FID/exp on compounds; same on isolations).
+ *
+ * Dynamic scale-up for low-frequency splits. The default baseline
+ * assumes a 6-day split where each muscle can be hit 2-3 times across
+ * the week with 2-3 sets per session. On a 4- or 3-day split the same
+ * muscle only gets trained 1-2 times/week, so 3 sets per instance
+ * leaves total weekly volume well below MEV-MAV. Without scaling, the
+ * allocator either under-volumes the muscle or tries to duplicate the
+ * same exercise on the same day (now blocked by name+id guard, so it
+ * just under-volumes).
+ *
+ * Scale factor = max(1, 6 / daysPerWeek). Result is clamped to the
+ * sessionCapPerMover so we don't push the user past junk-volume.
+ *
+ *   6 days/wk → ×1.00 → baseline (3 sets FID)
+ *   5 days/wk → ×1.20 → 4 sets
+ *   4 days/wk → ×1.50 → 5 sets (capped at 6 for FID)
+ *   3 days/wk → ×2.00 → 6 sets (capped at 6)
+ *   2 days/wk → ×3.00 → 9 sets (capped at 6)
+ *
+ * The cap ensures session quality stays high — better to under-volume
+ * one muscle slightly than to wreck recovery with 9-set chest sessions.
+ */
+function setsPerInstance(
+  item: RoutineItem,
+  exp: ExperienceProfile,
+  split?: SplitPreset,
+): number {
+  const baseline =
+    item.category === "systemic"
+      ? exp.setsPerExercise.compound
+      : exp.setsPerExercise.isolation;
+  if (!split) return baseline;
+  const factor = Math.max(1, 6 / split.daysPerWeek);
+  const scaled = Math.ceil(baseline * factor);
+  return Math.min(scaled, exp.sessionCapPerMover);
 }
 
 interface AllocationContext {
@@ -464,9 +499,24 @@ function pickBestDay(
   // deadlift / good morning / jefferson curl to Leg days only).
   const requiredTags = itemTags.filter((t) => ROUTING_ONLY_TAGS.has(t));
 
+  // Pre-compute exercise names already on each day. If the user happens
+  // to have two RoutineItems with the same exercise name + equipment +
+  // angle (legitimate variants, or stale duplicates we couldn't dedupe),
+  // the original id-only guard (line below) would let both land on the
+  // same day. The name-level guard catches that case: even with two
+  // distinct ids that resolve to the same exercise name, only one
+  // placement per day. Result: cleaner cards, no perceived duplication.
+  const itemName = item.exercise;
   const candidates = split.days.filter((d) => {
     if (ctx.byDay[d.id].length >= PER_DAY_EXERCISE_CAP) return false;
-    if (ctx.byDay[d.id].includes(item.id)) return false; // already on this day; pick a different day for repetition
+    if (ctx.byDay[d.id].includes(item.id)) return false; // same id already here
+    // Also reject if another RoutineItem with the same exercise name is
+    // already on this day.
+    const sameNameAlreadyHere = ctx.byDay[d.id].some((otherId) => {
+      const other = ctx.itemsById.get(otherId);
+      return other?.exercise === itemName;
+    });
+    if (sameNameAlreadyHere) return false;
     // Must overlap on at least one muscle tag.
     if (!d.tags.some((t) => itemTags.includes(t))) return false;
     // If exercise has any routing-only tags, day must carry them too.
@@ -590,7 +640,7 @@ export function allocatePoolToSplit(
     volumeByMuscle: {} as Record<MuscleTag, number>,
     itemsById: new Map(pool.map((p) => [p.id, p])),
     tagsById: new Map(pool.map((p) => [p.id, getMuscleTagsForItem(p)])),
-    setsById: new Map(pool.map((p) => [p.id, setsPerInstance(p, exp)])),
+    setsById: new Map(pool.map((p) => [p.id, setsPerInstance(p, exp, split)])),
   };
   for (const day of split.days) ctx.byDay[day.id] = [];
   for (const tag of Object.keys(MUSCLE_MASS_WEIGHT) as MuscleTag[]) ctx.volumeByMuscle[tag] = 0;

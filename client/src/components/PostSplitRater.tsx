@@ -143,8 +143,39 @@ export default function PostSplitRater() {
     });
   };
 
-  if (!activePreset || !hasAssignments || !hasSetData) {
+  // Render-gate logic. Previously this returned null silently, which
+  // made the Rate button feel "missing" — users finished applying their
+  // split + Opti-fill, expected to see a Rate button, saw nothing, and
+  // assumed the feature was broken. Now we render an explicit hint
+  // panel telling them what's still required.
+  if (!activePreset) {
+    // No preset selected at all — nothing to rate yet.
     return null;
+  }
+  if (!hasAssignments) {
+    return (
+      <div className="border-2 border-dashed border-border bg-secondary/20 rounded-sm p-4 text-center">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Assign your routine to split days using <strong className="text-foreground">Opti-split</strong> or by dragging exercises onto days. The Rate button will appear here once the week has exercises.
+        </p>
+      </div>
+    );
+  }
+  if (!hasSetData) {
+    const missingCount = routine.filter((r) => r.sets.length === 0).length;
+    return (
+      <div className="border-2 border-yellow-500/30 bg-yellow-500/5 rounded-sm p-4 flex items-start gap-3">
+        <AlertTriangle className="w-5 h-5 text-yellow-300 shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <h4 className="font-heading font-bold text-sm text-foreground mb-1">
+            Fill in sets/reps before rating
+          </h4>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <strong className="text-foreground">{missingCount}</strong> exercise{missingCount === 1 ? "" : "s"} {missingCount === 1 ? "has" : "have"} no sets configured yet. Use <strong className="text-foreground">Opti-fill</strong> (recommended) or <strong className="text-foreground">Pre-Set</strong> above to assign sets/reps across the week, then the Rate button will appear here.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   // Note: We previously suppressed the Rate button when `autoPlanUntouched`
