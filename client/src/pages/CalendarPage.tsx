@@ -128,7 +128,17 @@ export default function CalendarPage() {
     enabled: isAuthenticated,
   });
 
-  const createWorkout = trpc.workout.create.useMutation();
+  // workout.create has no auto-invalidation by default, which caused a
+  // stale-cache bug: scheduling a workout would create it on the server,
+  // the calendar entry would render via calendarQuery.refetch(), but
+  // workoutsQuery still didn't know about the new workout. Clicking the
+  // entry to open the detail modal would fail (getWorkoutByEntry returned
+  // null → "Workout content unavailable" toast) until the user did a
+  // hard page refresh. Refetching the workout list on every create fixes
+  // it — the detail modal lookup succeeds immediately.
+  const createWorkout = trpc.workout.create.useMutation({
+    onSuccess: () => workoutsQuery.refetch(),
+  });
   const addEntry = trpc.calendar.addEntry.useMutation({
     onSuccess: () => calendarQuery.refetch(),
   });
@@ -929,13 +939,23 @@ export default function CalendarPage() {
                 </p>
               )}
             </div>
+            {/* Wired-up Bulk Schedule entry point. Opens the single-day
+                picker with today as the suggested anchor date — once the
+                user picks which split day starts the mesocycle, the
+                existing "Schedule more?" flow takes over and enters
+                bulkMode. Previously this button was a stub that just
+                toasted "coming next", which made the feature undiscoverable
+                even though the underlying code path worked. */}
             <Button
               size="sm"
               disabled={!hasSavedSplit}
               onClick={() => {
-                toast.info("Bulk Schedule coming next — for now click any day on the calendar");
+                const today = new Date().toISOString().split("T")[0];
+                setPickerDate(today);
+                toast.info("Pick which split day starts your mesocycle. After scheduling, accept the prompt to bulk-fill the rest.");
               }}
               className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold shrink-0"
+              title="Schedule a whole mesocycle in one go"
             >
               <Layers className="w-4 h-4 mr-1.5" />
               Bulk Schedule
