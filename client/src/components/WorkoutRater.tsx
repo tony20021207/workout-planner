@@ -187,17 +187,40 @@ function buildProjectedRoutine(
   pairs: RecommendationPair[],
   accepted: Set<number>,
 ): RoutineItem[] {
+  // Build TWO lookup maps so a swap/keep/remove pair can find its
+  // target even when the LLM's currentIndex is missing or zero. Falls
+  // back to matching by exercise name (pair.current) so we don't
+  // silently skip the change. This was the "swap does nothing"
+  // failure mode: the LLM occasionally returned currentIndex: 0 for
+  // a swap, the index map never matched, and the routine came out
+  // unchanged with no error.
   const pairByCurrentIdx = new Map<number, { pair: RecommendationPair; pairIdx: number }>();
+  const pairByCurrentName = new Map<string, { pair: RecommendationPair; pairIdx: number }>();
   pairs.forEach((p, pairIdx) => {
     if (p.currentIndex > 0) pairByCurrentIdx.set(p.currentIndex, { pair: p, pairIdx });
+    if (p.current && (p.action === "swap" || p.action === "keep" || p.action === "remove")) {
+      pairByCurrentName.set(p.current, { pair: p, pairIdx });
+    }
   });
   const out: RoutineItem[] = [];
+  // Track which pair indices we've already consumed via the index path
+  // so the name-fallback doesn't apply the same change twice.
+  const consumedPairIdx = new Set<number>();
   routine.forEach((item, i) => {
-    const found = pairByCurrentIdx.get(i + 1);
+    // Try index lookup first (the LLM is supposed to return 1-based
+    // currentIndex). Fall back to matching by the item's exercise
+    // name — handles the case where currentIndex came back zero or
+    // off-by-one, which historically caused swaps to silently no-op.
+    let found = pairByCurrentIdx.get(i + 1);
+    if (!found) {
+      const nameFound = pairByCurrentName.get(item.exercise);
+      if (nameFound && !consumedPairIdx.has(nameFound.pairIdx)) found = nameFound;
+    }
     if (!found) {
       out.push(item);
       return;
     }
+    consumedPairIdx.add(found.pairIdx);
     const { pair, pairIdx } = found;
     const isAccepted = accepted.has(pairIdx);
     if (!isAccepted || pair.action === "keep") {
@@ -905,6 +928,21 @@ export default function WorkoutRater() {
     }
 
     const nextRoutine = buildProjectedRoutine(routine, pairs, acceptedPairs);
+    // Detect silent no-op: compare exercise-name signatures before/after.
+    // If the lengths and ordered names match exactly, buildProjectedRoutine
+    // didn't actually apply anything — usually means the LLM returned
+    // pairs the projection couldn't match (currentIndex 0 + a name that
+    // doesn't appear in the routine). Surfaces what historically read
+    // as "swap doesn't do anything" — apply succeeded silently with
+    // zero changes.
+    const sig = (r: RoutineItem[]) =>
+      r.map((it) => `${it.exercise}|${it.equipment ?? ""}|${it.angle ?? ""}`).join(">");
+    if (sig(nextRoutine) === sig(routine)) {
+      toast.error(
+        "Recommendations didn't take — the rater's swap targets couldn't be matched against your routine. Try Re-rate; if it keeps happening, report the routine to the dev.",
+      );
+      return;
+    }
     replaceRoutine(nextRoutine);
     markAutoPlanFresh();
     const parts: string[] = [];
