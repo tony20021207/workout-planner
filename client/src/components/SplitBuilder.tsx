@@ -84,7 +84,8 @@ import { rebalanceForWeek2 } from "@/lib/rebalance";
 import { generateId, getProgrammingParameters } from "@/lib/data";
 import FinisherPickerModal from "./FinisherPickerModal";
 import DayExerciseEditor from "./DayExerciseEditor";
-import PostSplitRater from "./PostSplitRater";
+// PostSplitRater mount removed — kept file on disk for easy re-enable.
+// import PostSplitRater from "./PostSplitRater";
 
 /**
  * Calves + Abs finisher dropdowns. Two selects side-by-side; each
@@ -1145,12 +1146,13 @@ export default function SplitBuilder() {
         />
       </div>
 
-      {/* Post-split rater — only renders once a split is picked + assigned.
-          Operates on Week 1 (split.dayAssignments). Week 2 rating comes
-          later once load/deload + variant swap engine populate it. */}
-      {activePreset && !isViewingWeek2 && (
-        <PostSplitRater />
-      )}
+      {/* Post-split rater removed from the UI for now. The pool-stage
+          rater on Home covers exercise selection; the post-split rater
+          was scoring sets/reps/volume distribution which the volume-tier
+          system now drives directly. PostSplitRater.tsx is kept on disk
+          so we can re-enable cleanly if we want second-stage rating
+          back later — just restore the mount below. */}
+      {/* {activePreset && !isViewingWeek2 && <PostSplitRater />} */}
 
       {/* Day grid */}
       <AnimatePresence>
