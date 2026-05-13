@@ -939,23 +939,25 @@ export default function CalendarPage() {
                 </p>
               )}
             </div>
-            {/* Wired-up Bulk Schedule entry point. Opens the single-day
-                picker with today as the suggested anchor date — once the
-                user picks which split day starts the mesocycle, the
-                existing "Schedule more?" flow takes over and enters
-                bulkMode. Previously this button was a stub that just
-                toasted "coming next", which made the feature undiscoverable
-                even though the underlying code path worked. */}
+            {/* Direct Bulk Schedule entry. Clicking enters bulkMode
+                immediately — today as the anchor day, first split-day
+                as the anchor option. User can change the anchor later
+                via the Bulk Mode UI or by aborting + restarting. No
+                more requiring a single-day schedule first. */}
             <Button
               size="sm"
-              disabled={!hasSavedSplit}
+              disabled={!hasSavedSplit || pickerOptions.length === 0 || bulkMode}
               onClick={() => {
+                if (pickerOptions.length === 0) return;
                 const today = new Date().toISOString().split("T")[0];
-                setPickerDate(today);
-                toast.info("Pick which split day starts your mesocycle. After scheduling, accept the prompt to bulk-fill the rest.");
+                const firstOption = pickerOptions[0];
+                enterBulkMode(today, firstOption);
+                toast.info(
+                  `Bulk Schedule started — anchored at today (${firstOption.dayName}). Click days within the highlighted window to pick the rest, or change the anchor by exiting and clicking a different day.`,
+                );
               }}
               className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold shrink-0"
-              title="Schedule a whole mesocycle in one go"
+              title={bulkMode ? "Already in Bulk Schedule mode" : "Schedule a whole mesocycle in one go"}
             >
               <Layers className="w-4 h-4 mr-1.5" />
               Bulk Schedule

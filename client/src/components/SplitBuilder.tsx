@@ -931,6 +931,16 @@ export default function SplitBuilder() {
     next[fromDayId] = (next[fromDayId] ?? []).filter((id) => id !== exerciseId);
     next[toDayId] = [...(next[toDayId] ?? []), exerciseId];
     if (isViewingWeek2) {
+      // Manual move on Week 2 wins over the staged rebalance projection.
+      // Without this guard, toggling Rebalance on would clobber the move
+      // back to its rebalance-projected day, ignoring user intent.
+      // Auto-untoggle the rebalance stage and commit the move directly
+      // to the persisted Week 2 day assignments. The user can re-stage
+      // Rebalance later if they want to; their manual move stays.
+      if (rebalanceStaged) {
+        setRebalanceStaged(false);
+        toast.info("Rebalance preview cleared — your manual move wins.");
+      }
       setWeek2DayAssignments(next);
     } else {
       setSplit({ ...split, dayAssignments: next });
