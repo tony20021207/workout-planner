@@ -1073,44 +1073,85 @@ export default function SplitBuilder() {
               </p>
             </div>
 
-            {/* Mesocycle-wide rep-range — only relevant on Week 1 (Week 2
-                set overrides come from the load/deload phase in P9.3.3). */}
+            {/* Mesocycle-wide rep-range — Pre-Set vs Opti-fill chooser.
+                Pre-Set stamps every exercise with one rep range the user
+                picks. Opti-fill assigns a range per exercise based on
+                biomechanical profile (CNS-heavy compounds, slow-twitch
+                small-mass, multi-joint, single-joint). Week 1 only — Week
+                2's set overrides come from the load/deload phase. */}
             {routine.length > 0 && !isViewingWeek2 && (
-              <div className="p-3 bg-secondary/40 border-2 border-border rounded-sm space-y-2">
+              <div className="p-4 bg-secondary/40 border-2 border-border rounded-sm space-y-3">
                 <div>
                   <h5 className="font-heading font-bold text-sm text-foreground leading-tight">
                     Rep-Range for {mesocycle.enabled ? "Week 1" : "the Mesocycle"}
                   </h5>
-                  <p className="text-[11px] text-muted-foreground leading-snug">
-                    Pre-Set stamps every exercise to one rep range. Opti-fill picks a different range per exercise (calves &amp; abs high reps, deadlifts low reps, everything else medium).
+                  <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                    How do you want sets/reps assigned across the week?
                   </p>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    Apply to all:
-                  </span>
-                  <Select
-                    onValueChange={(v) => {
-                      if (v === "smart-fill") handleAutoBucket();
-                      else handleApplyRangeAll(v as RepRangeId);
-                    }}
-                  >
-                    <SelectTrigger className="h-8 text-xs w-[260px]">
-                      <SelectValue placeholder="Pick a rep range for the whole week..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {REP_RANGES.map((r) => (
-                        <SelectItem key={r.id} value={r.id} className="text-xs">
-                          <span className="font-semibold">{r.shortLabel}</span>{" "}
-                          <span className="text-muted-foreground">— {r.label} (Pre-Set)</span>
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="smart-fill" className="text-xs text-purple-300">
-                        <Wand2 className="w-3 h-3 inline mr-1" />
-                        Opti-fill — pick per exercise
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                {/* Opti-fill — highlighted recommended option */}
+                <button
+                  onClick={handleAutoBucket}
+                  className="w-full text-left p-3 bg-purple-500/10 border-2 border-purple-500/40 rounded-sm hover:bg-purple-500/15 hover:border-purple-500/60 transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Wand2 className="w-4 h-4 text-purple-300" />
+                    <span className="font-heading font-bold text-sm text-purple-200">
+                      Opti-fill
+                    </span>
+                    <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-purple-500/30 text-purple-100 border border-purple-400/40 font-semibold">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Refreshing. Each exercise gets a rep range matched to its biomechanical profile:
+                  </p>
+                  <ul className="text-[11px] text-muted-foreground leading-relaxed mt-1.5 ml-3 space-y-0.5 list-disc">
+                    <li>
+                      <span className="text-foreground">CNS-heavy compound lifts</span> (deadlifts) → Low (5–8). Higher reps multiply spinal + erector fatigue.
+                    </li>
+                    <li>
+                      <span className="text-foreground">Slow-twitch / small-mass muscles</span> (calves, abs, rotator cuff, forearms) → High (15–20). Type-I-dominant fibers respond to sustained tension.
+                    </li>
+                    <li>
+                      <span className="text-foreground">Multi-joint compounds</span> (presses, rows, squats, lunges) → Med-Low (8–12). Heavy-hypertrophy zone.
+                    </li>
+                    <li>
+                      <span className="text-foreground">Single-joint isolation</span> (curls, extensions, raises, leg curls) → Med-High (12–15). Pump-hypertrophy zone.
+                    </li>
+                  </ul>
+                  <p className="text-[10px] text-muted-foreground/80 mt-1.5 italic">
+                    Set counts auto-tuned to your experience profile.
+                  </p>
+                </button>
+
+                {/* Pre-Set — secondary, manual */}
+                <div className="p-3 bg-card border-2 border-border rounded-sm">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="font-heading font-bold text-sm text-foreground">
+                      Pre-Set
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">— manual</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed mb-2">
+                    Same rep range across every exercise. You pick which one. Boring.
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {REP_RANGES.map((r) => (
+                      <button
+                        key={r.id}
+                        onClick={() => handleApplyRangeAll(r.id)}
+                        className="px-2.5 py-1 text-xs bg-secondary/60 hover:bg-secondary border border-border hover:border-foreground/40 rounded-sm transition-colors text-foreground"
+                        title={`Apply ${r.label} (${r.shortLabel} reps) to every exercise`}
+                      >
+                        <span className="font-semibold tabular-nums">{r.shortLabel}</span>
+                        <span className="text-muted-foreground ml-1.5 hidden sm:inline">
+                          {r.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

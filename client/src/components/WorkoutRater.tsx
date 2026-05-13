@@ -30,7 +30,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { trpc } from "@/lib/trpc";
 import LifestylePicker from "./LifestylePicker";
-import AvailabilityPicker from "./AvailabilityPicker";
 import ExperiencePicker from "./ExperiencePicker";
 import { toast } from "sonner";
 import {
@@ -945,10 +944,14 @@ Tue - Pull
 
       {/* Pre-rate context pickers — surfaced BEFORE the first rating so
           experience modulation (SFR/Stability penalty + Compound/Iso band)
-          + lifestyle warmup logic actually take effect on the initial
-          score, instead of defaulting to FID and forcing a re-rate.
-          The same pickers re-appear in the result panel below for
-          tune-and-rerate workflows. */}
+          + lifestyle warmup logic take effect on the initial score, not
+          forcing a re-rate. Availability is NOT here: it doesn't influence
+          the rating (confirmed by code audit — server/rating.ts and
+          client/lib/poolScore.ts never read it) and lives on the SplitBuilder
+          where it actually drives which presets are eligible. After the
+          first rating these pickers do NOT re-render — the user makes
+          changes to their routine and re-rates, no need to re-ask the
+          same context every time. */}
       {!result && (
         <div className="p-4 bg-card rounded-sm border-2 border-purple-500/30 space-y-5">
           <div>
@@ -957,13 +960,11 @@ Tue - Pull
             </h4>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
               These shape the score before the LLM ever sees it — experience
-              modulates SFR/Stability/Compound-Iso penalties; lifestyle drives
-              warmup picks; availability sets the split scope.
+              modulates SFR/Stability/Compound-Iso penalties; lifestyle
+              drives warmup picks. Set once; we won't ask again.
             </p>
           </div>
           <LifestylePicker />
-          <div className="border-t border-border" />
-          <AvailabilityPicker />
           <div className="border-t border-border" />
           <ExperiencePicker />
         </div>
@@ -1125,14 +1126,13 @@ Tue - Pull
               </div>
             )}
 
-            {/* Lifestyle + availability + experience pickers — shown only after a rating exists. */}
-            <div className="p-4 bg-card rounded-sm border-2 border-purple-500/30 space-y-5">
-              <LifestylePicker />
-              <div className="border-t border-border" />
-              <AvailabilityPicker />
-              <div className="border-t border-border" />
-              <ExperiencePicker />
-            </div>
+            {/* Note: Lifestyle / Availability / Experience pickers used to
+                re-render here in the post-rate panel. They've been removed —
+                lifestyle + experience are captured ONCE in the pre-rate
+                strip before the first rating; availability lives on the
+                SplitBuilder where it actually drives preset eligibility.
+                The post-rate UX is focused: read the rating, optionally
+                accept recommendations, continue to split. */}
 
             {/* Optimized Routine — pair-based diff view */}
             <div className="space-y-3">

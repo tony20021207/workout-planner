@@ -103,7 +103,7 @@ function BreakdownRow({ label, score, max, notes }: { label: string; score: numb
 }
 
 export default function PostSplitRater() {
-  const { routine, split, lifestyle, experience, autoPlanUntouched, favorites } = useWorkout();
+  const { routine, split, lifestyle, experience, favorites } = useWorkout();
   const [result, setResult] = useState<PostSplitRatingResult | null>(null);
 
   const activePreset = useMemo(() => {
@@ -147,35 +147,11 @@ export default function PostSplitRater() {
     return null;
   }
 
-  // When the plan came purely from auto-allocate + auto-recommend with no
-  // user edits, we tell the user it already meets the rubric and hide the
-  // Rate button. Any manual edit flips autoPlanUntouched to false.
-  const planIsPerfect = autoPlanUntouched && !result;
-
-  if (planIsPerfect) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="border-2 border-lime/40 bg-lime/5 rounded-sm p-5 space-y-3"
-      >
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-lime/20 rounded-sm shrink-0">
-            <CheckCircle2 className="w-5 h-5 text-lime" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-heading text-lg font-bold text-foreground">
-              Plan meets the rubric
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-              You used Opti-split and Opti-fill without editing — the result already satisfies the Hypertrophy Matrix criteria for your experience level. Make any change (move an exercise, edit sets / reps, swap a pick) and the post-split rating button will reappear so you can re-score.
-            </p>
-          </div>
-          <RatingRubric />
-        </div>
-      </motion.div>
-    );
-  }
+  // Note: We previously suppressed the Rate button when `autoPlanUntouched`
+  // was true ("Plan meets the rubric" green panel). That branch was removed
+  // because hiding the rate path implied the auto-fill was always optimal
+  // for the user's specific routine, which isn't true. Always show Rate;
+  // the user decides when to score.
 
   return (
     <motion.div

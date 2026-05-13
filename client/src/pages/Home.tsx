@@ -4,10 +4,18 @@
  * Dark slate base (#0F172A), electric lime (#84CC16) accents, diagonal cuts, bold typography
  */
 import { motion } from "framer-motion";
-import { Dumbbell, LogIn, User, Calendar, Hammer, ClipboardEdit } from "lucide-react";
+import { Dumbbell, LogIn, User, Calendar, Hammer, ClipboardEdit, LogOut, UserCog } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import MuscleGroupSelector from "@/components/MuscleGroupSelector";
 import RoutineTable from "@/components/RoutineTable";
 import SplitBuilder from "@/components/SplitBuilder";
@@ -20,6 +28,19 @@ const ABSTRACT_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663485353368/jf
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
   const { routine } = useWorkout();
+  const [, setLocation] = useLocation();
+
+  // Switch account = sign out, then navigate to /login so a different
+  // Google/email credential pair can sign in immediately.
+  // Log out = sign out and stay put; the auth state flip will re-render
+  // the nav into the "Sign In" CTA.
+  const handleSwitchAccount = async () => {
+    await logout();
+    setLocation("/login");
+  };
+  const handleLogout = async () => {
+    await logout();
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -44,9 +65,38 @@ export default function Home() {
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground hidden sm:block">{user?.name || user?.email}</span>
-                <Button variant="ghost" size="sm" onClick={() => logout()} className="text-muted-foreground hover:text-lime">
-                  <User className="w-4 h-4" />
-                </Button>
+                {/* Profile menu — clicking the user icon used to sign you out
+                    instantly (no confirmation). Now opens a dropdown so the
+                    only-one-click-from-data-loss problem is fixed. */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-lime"
+                      title="Account"
+                    >
+                      <User className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[200px]">
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      Signed in as
+                    </DropdownMenuLabel>
+                    <DropdownMenuLabel className="-mt-1 text-xs font-normal text-foreground truncate">
+                      {user?.email || user?.name || "User"}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={handleSwitchAccount} className="cursor-pointer">
+                      <UserCog className="w-3.5 h-3.5 mr-2" />
+                      Switch account
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={handleLogout} className="cursor-pointer text-red-300 focus:text-red-200">
+                      <LogOut className="w-3.5 h-3.5 mr-2" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <Link href="/login">
