@@ -118,14 +118,13 @@ export default function VolumePicker() {
           </p>
           <ul className="space-y-0.5 list-disc pl-4">
             <li>
+              Weekly volume target:{" "}
               <span className="text-foreground font-semibold">
-                {selected.setsPerExercise.compound} sets
-              </span>{" "}
-              per compound,{" "}
-              <span className="text-foreground font-semibold">
-                {selected.setsPerExercise.isolation} sets
-              </span>{" "}
-              per isolation.
+                ~{selected.weeklyVolumePerMajor} sets/wk per major mover
+              </span>
+              . Sets per exercise per day are derived from this target
+              ÷ how many exercises target the muscle ÷ how many days
+              train it.
             </li>
             <li>
               RIR target:{" "}
@@ -133,20 +132,6 @@ export default function VolumePicker() {
               compound /{" "}
               <span className="text-foreground font-semibold">{selected.rir.isolation} RIR</span>{" "}
               isolation.
-            </li>
-            <li>
-              Per-session cap:{" "}
-              <span className="text-foreground font-semibold">
-                ≤ {selected.sessionCapPerMover} sets per joint-action mover
-              </span>
-              .
-            </li>
-            <li>
-              Weekly volume target:{" "}
-              <span className="text-foreground font-semibold">
-                ~{selected.weeklyVolumePerMajor} sets/wk per major mover
-              </span>
-              .
             </li>
           </ul>
         </div>

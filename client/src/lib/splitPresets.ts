@@ -428,45 +428,77 @@ function computeWeeklyVolumeTargets(experience: ExperienceProfile): Record<Muscl
 }
 
 /**
- * Sets earned per single exercise instance.
+ * Sets earned per single exercise instance — muscle-aware formula.
  *
- * Baseline = experience profile's per-category setsPerExercise (2/3/4
- * for beg/FID/exp on compounds; same on isolations).
+ *   sets/instance = ceil(weeklyTarget / exercisesForMuscle / daysForMuscle)
  *
- * Dynamic scale-up for low-frequency splits. The default baseline
- * assumes a 6-day split where each muscle can be hit 2-3 times across
- * the week with 2-3 sets per session. On a 4- or 3-day split the same
- * muscle only gets trained 1-2 times/week, so 3 sets per instance
- * leaves total weekly volume well below MEV-MAV. Without scaling, the
- * allocator either under-volumes the muscle or tries to duplicate the
- * same exercise on the same day (now blocked by name+id guard, so it
- * just under-volumes).
+ * Where:
+ *   weeklyTarget        = volume target for the bottleneck muscle this
+ *                         exercise drives (volumePerMajor × mass weight)
+ *   exercisesForMuscle  = how many exercises in the routine target that
+ *                         muscle (so co-targeting exercises split the work)
+ *   daysForMuscle       = how many split days train that muscle (so a
+ *                         2-day chest split divides the weekly target
+ *                         by 2 days, not by 6)
  *
- * Scale factor = max(1, 6 / daysPerWeek). Result is clamped to the
- * sessionCapPerMover so we don't push the user past junk-volume.
+ * Worked example — 2 chest exercises on UL4 (2 upper days), per
+ * volume tier:
+ *   Low  (target 10): ceil(10/2/2) = 3 sets → week 1 total 12, deload
+ *                     week 2 to ~8, meso avg 10 = on target
+ *   Med  (target 15): ceil(15/2/2) = 4 sets → week 1 total 16
+ *   High (target 20): ceil(20/2/2) = 5 sets → week 1 total 20 = on target
  *
- *   6 days/wk → ×1.00 → baseline (3 sets FID)
- *   5 days/wk → ×1.20 → 4 sets
- *   4 days/wk → ×1.50 → 5 sets (capped at 6 for FID)
- *   3 days/wk → ×2.00 → 6 sets (capped at 6)
- *   2 days/wk → ×3.00 → 9 sets (capped at 6)
+ * Per-session overshoot vs sessionCap is accepted by design — the cap
+ * is a soft heuristic, and Week 2's load/deload pass brings the
+ * mesocycle average back in line.
  *
- * The cap ensures session quality stays high — better to under-volume
- * one muscle slightly than to wreck recovery with 9-set chest sessions.
+ * When the exercise hits multiple muscles, the BOTTLENECK muscle (the
+ * one requiring the most sets/instance) wins — that way we hit the
+ * tightest muscle's target. Falls back to the experience baseline
+ * (2/3/4) if no muscle target applies, e.g. for an exercise with no
+ * recognized tags.
  */
 function setsPerInstance(
   item: RoutineItem,
   exp: ExperienceProfile,
-  split?: SplitPreset,
+  ctx?: {
+    split: SplitPreset;
+    pool: RoutineItem[];
+    targets: Record<MuscleTag, number>;
+    tagsById: Map<string, MuscleTag[]>;
+  },
 ): number {
-  const baseline =
-    item.category === "systemic"
-      ? exp.setsPerExercise.compound
-      : exp.setsPerExercise.isolation;
-  if (!split) return baseline;
-  const factor = Math.max(1, 6 / split.daysPerWeek);
-  const scaled = Math.ceil(baseline * factor);
-  return Math.min(scaled, exp.sessionCapPerMover);
+  // Fallback baseline when no muscle context applies (no tags, or
+  // unrecognized item). Derived from the volume tier's weekly target so
+  // it scales appropriately: low→2, med→3, high→4. Matches the old
+  // static setsPerExercise field we just removed.
+  const baseline = Math.max(1, Math.round(exp.weeklyVolumePerMajor / 5));
+  if (!ctx) return baseline;
+
+  const itemTags = ctx.tagsById.get(item.id) ?? [];
+  if (itemTags.length === 0) return baseline;
+
+  // For each muscle the exercise hits, compute the per-instance sets
+  // count needed to land its weekly volume target. Take the MAX so
+  // we hit the bottleneck muscle exactly (others overshoot slightly).
+  let bestCount = baseline;
+  for (const tag of itemTags) {
+    const target = ctx.targets[tag];
+    if (!target || target <= 0) continue;
+    // How many exercises in the whole pool target this muscle?
+    const exercisesForMuscle = ctx.pool.filter((p) =>
+      (ctx.tagsById.get(p.id) ?? []).includes(tag),
+    ).length;
+    if (exercisesForMuscle === 0) continue;
+    // How many split days are eligible to train this muscle?
+    const daysForMuscle = ctx.split.days.filter((d) =>
+      (d.tags as readonly string[]).includes(tag),
+    ).length;
+    if (daysForMuscle === 0) continue;
+    const need = Math.ceil(target / exercisesForMuscle / daysForMuscle);
+    if (need > bestCount) bestCount = need;
+  }
+  return bestCount;
 }
 
 interface AllocationContext {
@@ -640,13 +672,17 @@ export function allocatePoolToSplit(
   const favoriteSet = new Set(options.favoriteIds ?? []);
   const targets = computeWeeklyVolumeTargets(exp);
 
-  // Build context.
+  // Build context. setsPerInstance needs the pool + targets + tag map
+  // to compute the muscle-aware sets count, so we build tagsById
+  // first and pass the ctx-bundle into setsPerInstance().
+  const tagsById = new Map(pool.map((p) => [p.id, getMuscleTagsForItem(p)]));
+  const setsCtx = { split, pool, targets, tagsById };
   const ctx: AllocationContext = {
     byDay: {},
     volumeByMuscle: {} as Record<MuscleTag, number>,
     itemsById: new Map(pool.map((p) => [p.id, p])),
-    tagsById: new Map(pool.map((p) => [p.id, getMuscleTagsForItem(p)])),
-    setsById: new Map(pool.map((p) => [p.id, setsPerInstance(p, exp, split)])),
+    tagsById,
+    setsById: new Map(pool.map((p) => [p.id, setsPerInstance(p, exp, setsCtx)])),
   };
   for (const day of split.days) ctx.byDay[day.id] = [];
   for (const tag of Object.keys(MUSCLE_MASS_WEIGHT) as MuscleTag[]) ctx.volumeByMuscle[tag] = 0;

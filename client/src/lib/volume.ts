@@ -21,14 +21,10 @@ export interface VolumeProfile {
   id: VolumeId;
   name: string;
   blurb: string;
-  /** Weekly working sets per major mover (within MEV-MAV band). */
+  /** Weekly working sets per major mover — the SOURCE OF TRUTH that
+   *  drives the allocator's sets/instance math. Per-muscle target is
+   *  this × MUSCLE_MASS_WEIGHT[muscle]. */
   weeklyVolumePerMajor: number;
-  /** Default sets per exercise instance (compound + isolation). */
-  setsPerExercise: { compound: number; isolation: number };
-  /** Total weekly working-sets budget across the entire pool. */
-  weeklyTotalSetsCap: number;
-  /** Per-session cap for any single joint-action prime mover. */
-  sessionCapPerMover: number;
   /** RIR self-report target per exercise type. */
   rir: { compound: string; isolation: string };
   /** Which experience level naturally fits this volume. UI shows it as
@@ -41,11 +37,8 @@ export const VOLUME_PROFILES: VolumeProfile[] = [
   {
     id: "low",
     name: "Low Volume",
-    blurb: "10 sets/wk per major. 2 sets per exercise, higher RIR, lots of room left in the tank.",
+    blurb: "10 sets/wk per major. Higher RIR. Room left in the tank.",
     weeklyVolumePerMajor: 10,
-    setsPerExercise: { compound: 2, isolation: 2 },
-    weeklyTotalSetsCap: 50,
-    sessionCapPerMover: 4,
     rir: { compound: "3+", isolation: "1-2" } as const,
     recommendedFor: "beginner",
     description:
@@ -56,11 +49,8 @@ export const VOLUME_PROFILES: VolumeProfile[] = [
   {
     id: "med",
     name: "Medium Volume",
-    blurb: "15 sets/wk per major. 3 sets per exercise, RIR 1–2 compounds / 0 isolation.",
+    blurb: "15 sets/wk per major. RIR 1–2 compounds / 0 isolation.",
     weeklyVolumePerMajor: 15,
-    setsPerExercise: { compound: 3, isolation: 3 },
-    weeklyTotalSetsCap: 80,
-    sessionCapPerMover: 6,
     rir: { compound: "1-2", isolation: "0" } as const,
     recommendedFor: "foot-in-door",
     description:
@@ -70,15 +60,12 @@ export const VOLUME_PROFILES: VolumeProfile[] = [
   {
     id: "high",
     name: "High Volume",
-    blurb: "20 sets/wk per major. 4 sets per exercise pushed close to failure (1–3 RIR comp / 0 RIR iso).",
+    blurb: "20 sets/wk per major. Pushed close to failure (1–3 RIR comp / 0 RIR iso).",
     weeklyVolumePerMajor: 20,
-    setsPerExercise: { compound: 4, isolation: 4 },
-    weeklyTotalSetsCap: 110,
-    sessionCapPerMover: 8,
     rir: { compound: "1-2", isolation: "0" } as const,
     recommendedFor: "experienced",
     description:
-      "Upper-edge MAV. Sets per exercise pushed to failure (1–3 RIR compound, 0 RIR isolation). " +
+      "Upper-edge MAV. Pushed to failure (1–3 RIR compound, 0 RIR isolation). " +
       "Maximizes weekly stimulus; recovery becomes the rate-limiter. Built for experienced lifters " +
       "who have the technique and recovery capacity to absorb it.",
   },

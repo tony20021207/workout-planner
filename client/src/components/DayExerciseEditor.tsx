@@ -170,7 +170,12 @@ export default function DayExerciseEditor({
   // When sets[] is empty (the default after add), seed with split-aware
   // defaults so the user starts from a reasonable place.
   const customReps = item.sets[0]?.reps ?? 12;
-  const customSetsCount = item.sets.length || expProfile.setsPerExercise.compound;
+  // Fallback default for set count when the user hasn't applied a
+  // Pre-Set or Opti-fill yet. Derived from the volume tier (low→2,
+  // med→3, high→4) — same formula setRecommender + the allocator
+  // fallback use, now that the static setsPerExercise field is gone.
+  const defaultSetCount = Math.max(1, Math.round(expProfile.weeklyVolumePerMajor / 5));
+  const customSetsCount = item.sets.length || defaultSetCount;
   const customWeight = item.sets[0]?.weight ?? 0;
 
   const updateCustomReps = (reps: number) => {
