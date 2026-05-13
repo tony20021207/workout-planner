@@ -22,12 +22,20 @@
 import { categories, type Exercise, type EquipmentOption, type AngleOption } from "./data";
 
 /**
- * Build a YouTube search URL for an exercise, optionally narrowing by
- * equipment + angle. Used as the universal fallback when no curated
- * URL exists.
+ * Build a YouTube search URL biased toward Jeff Nippard and Mike Israetel
+ * content. Both creators publish form-and-science-focused demo videos
+ * with thousands of hours of detailed mechanics breakdown, so for an
+ * uncurated exercise the search will surface their videos first when
+ * available, with general results as the fallback within the search
+ * page itself.
+ *
+ * Internal use only. Their names appear in the search query, not in
+ * any marketing surface — keeps right-of-publicity clean.
  */
 function youtubeSearchUrl(parts: string[]): string {
-  const q = parts.filter((s) => s && s.trim().length > 0).join(" ") + " demonstration";
+  const q =
+    parts.filter((s) => s && s.trim().length > 0).join(" ") +
+    " Jeff Nippard OR Mike Israetel demonstration";
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
 }
 
