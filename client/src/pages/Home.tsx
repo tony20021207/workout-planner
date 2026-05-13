@@ -5,7 +5,7 @@
  */
 import { motion } from "framer-motion";
 import { useEffect } from "react";
-import { Dumbbell, LogIn, User, Calendar, Hammer, ClipboardEdit, LogOut, UserCog } from "lucide-react";
+import { Dumbbell, LogIn, User, Calendar, Hammer, ClipboardEdit, LogOut, UserCog, ChevronDown } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import MuscleGroupSelector from "@/components/MuscleGroupSelector";
 import RoutineTable from "@/components/RoutineTable";
 import SplitBuilder from "@/components/SplitBuilder";
@@ -172,70 +177,116 @@ export default function Home() {
               <span className="text-lime">Opti-split</span>, <span className="text-lime">Opti-fill</span>,{" "}
               <span className="text-lime">OptiMass</span>.
             </h1>
-            <p className="text-lg text-muted-foreground max-w-xl leading-relaxed mb-4">
-              Five steps from blank slate to a calibrated mesocycle. Each step does a specific job — no junk steps.
+            <p className="text-base text-muted-foreground max-w-xl leading-snug mb-6">
+              Five steps. Each does one job.
             </p>
-            {/* Compact flow + reasoning. Each bullet = what you do +
-                why it matters. Keeps the hero short while giving a new
-                visitor a real map of the product. */}
-            <ul className="space-y-1.5 max-w-xl text-sm text-muted-foreground leading-snug">
-              <li>
-                <span className="text-foreground font-semibold">1. Pick</span> exercises — coverage of the major joint actions matters more than picking the trendiest machine.
-              </li>
-              <li>
-                <span className="text-foreground font-semibold">2. Rate</span> the selection 0–100 vs. the Hypertrophy Matrix — surfaces blind spots (missing scapular depressors, too much CNS load) before you build the week.
-              </li>
-              <li>
-                <span className="text-foreground font-semibold">3. Split</span> across training days via Opti-split — distributes volume per major mover so each muscle lands inside its MEV–MAV band.
-              </li>
-              <li>
-                <span className="text-foreground font-semibold">4. Fill</span> sets and reps via Opti-fill — each exercise gets a rep range matched to its biomechanical profile (deadlifts low, calves & abs high, compounds med-low, isolation med-high).
-              </li>
-              <li>
-                <span className="text-foreground font-semibold">5. Track</span> — schedule the mesocycle on the calendar, check in daily, log actual reps and weight. Progression data, not guesswork.
-              </li>
-            </ul>
+            {/* Action-verb-first flow.
+                  Each step: HUGE verb (action) + ONE short noun (target).
+                  Detail explanation lives inside a Collapsible behind a
+                  downward triangle — keeps the hero clean for the user
+                  who already knows what each step is, exposes the why
+                  for the user who wants to learn. */}
+            <div className="space-y-3 max-w-2xl">
+              {[
+                {
+                  num: 1,
+                  verb: "Pick",
+                  target: "exercises",
+                  why: "Coverage of the major joint actions matters more than picking the trendiest machine. The catalog rates each pick on stretch, stability, and stimulus-to-fatigue.",
+                },
+                {
+                  num: 2,
+                  verb: "Rate",
+                  target: "the selection",
+                  why: "Scored 0–100 vs. the Hypertrophy Matrix. Surfaces blind spots (missing scapular depressors, too much CNS load, no deep-stretch picks) before you commit to a week.",
+                },
+                {
+                  num: 3,
+                  verb: "Split",
+                  target: "across training days",
+                  why: "Opti-split distributes volume per major mover so each muscle lands inside its MEV–MAV band. Compounds get prime slots; isolation crowds in around them.",
+                },
+                {
+                  num: 4,
+                  verb: "Fill",
+                  target: "sets and reps",
+                  why: "Opti-fill matches a rep range to each exercise's biomechanical profile — deadlifts low (5–8), calves & abs high (15–20), compounds med-low (8–12), isolation med-high (12–15). Set counts derive from your volume tier.",
+                },
+                {
+                  num: 5,
+                  verb: "Track",
+                  target: "progress",
+                  why: "Schedule the mesocycle on the calendar. Check in daily — log actual reps and weight per set. The Stats page (coming) reads that log for real progression data, not guesswork.",
+                },
+              ].map((step) => (
+                <Collapsible key={step.num}>
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-xs text-muted-foreground font-mono tabular-nums shrink-0">
+                      {step.num}.
+                    </span>
+                    <span className="font-heading text-3xl md:text-4xl font-bold text-lime leading-none">
+                      {step.verb}
+                    </span>
+                    <span className="text-base text-foreground font-medium">
+                      {step.target}
+                    </span>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        className="ml-1 p-1 rounded-sm hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all data-[state=open]:rotate-180"
+                        title="Why this step?"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </CollapsibleTrigger>
+                  </div>
+                  <CollapsibleContent>
+                    <p className="text-xs text-muted-foreground leading-snug pl-7 pt-1.5 max-w-xl">
+                      {step.why}
+                    </p>
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+            </div>
 
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+            {/* CTA buttons. The titles are the action — make them huge.
+                Subtitles are supporting context — make them tiny. The
+                whole button is the click target. */}
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
               <button
                 onClick={() => {
                   document.getElementById("builder")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="group p-5 bg-lime hover:bg-lime/90 text-lime-foreground rounded-sm border-2 border-lime transition-all text-left"
+                className="group p-6 bg-lime hover:bg-lime/90 text-lime-foreground rounded-sm border-2 border-lime transition-all text-left"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3 mb-2">
                   <div className="p-2 bg-lime-foreground/10 rounded-sm shrink-0">
-                    <Hammer className="w-6 h-6" />
+                    <Hammer className="w-7 h-7" />
                   </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-lg leading-tight">
-                      Build one now
-                    </h3>
-                    <p className="text-sm opacity-80 mt-0.5 leading-snug">
-                      Pick exercises, get Opti-split + Opti-fill tuned for your experience and volume tier.
-                    </p>
-                  </div>
+                  <h3 className="font-heading font-extrabold text-3xl md:text-4xl leading-none">
+                    Build one now
+                  </h3>
                 </div>
+                <p className="text-[11px] opacity-75 leading-snug">
+                  Pick exercises → Opti-split + Opti-fill tuned for your tier.
+                </p>
               </button>
               <button
                 onClick={() => {
                   document.getElementById("rate")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="group p-5 bg-purple-600 hover:bg-purple-700 text-white rounded-sm border-2 border-purple-600 transition-all text-left"
+                className="group p-6 bg-purple-600 hover:bg-purple-700 text-white rounded-sm border-2 border-purple-600 transition-all text-left"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3 mb-2">
                   <div className="p-2 bg-white/10 rounded-sm shrink-0">
-                    <ClipboardEdit className="w-6 h-6" />
+                    <ClipboardEdit className="w-7 h-7" />
                   </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-lg leading-tight">
-                      Rate what I have
-                    </h3>
-                    <p className="text-sm opacity-80 mt-0.5 leading-snug">
-                      Paste a routine, upload a screenshot, or import text — get a Hypertrophy Matrix score.
-                    </p>
-                  </div>
+                  <h3 className="font-heading font-extrabold text-3xl md:text-4xl leading-none">
+                    Rate what I have
+                  </h3>
                 </div>
+                <p className="text-[11px] opacity-75 leading-snug">
+                  Paste, upload, or import — get a Hypertrophy Matrix score.
+                </p>
               </button>
             </div>
           </motion.div>
