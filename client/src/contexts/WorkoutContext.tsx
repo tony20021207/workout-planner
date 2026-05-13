@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { toast } from "sonner";
 import {
   type CategoryType,
   type Difficulty,
@@ -13,6 +14,34 @@ import { type ExperienceId, getExperience } from "@/lib/experience";
 import { rebalanceForWeek2 } from "@/lib/rebalance";
 import { computeWeek2LoadDeload } from "@/lib/loadDeload";
 import { swapAllNonFavoritesWeek2, type SwapSize } from "@/lib/variantSwap";
+
+/**
+ * Identity key for duplicate detection. Two routine items are "the same"
+ * only when their exercise NAME, equipment, and angle all match —
+ * "Cable Lateral Raise (Behind the Back)" is a different RoutineItem
+ * from "Cable Lateral Raise (Side)" even though the exercise name is
+ * identical. Used by addToRoutine / addRoutineItem to block dupes, and
+ * by the load-time defensive sweep to clean any pre-existing dupes.
+ */
+function routineItemIdentity(r: {
+  exercise: string;
+  equipment?: string;
+  angle?: string;
+}): string {
+  return `${r.exercise}|${r.equipment ?? ""}|${r.angle ?? ""}`;
+}
+
+function dedupeRoutine(routine: RoutineItem[]): RoutineItem[] {
+  const seen = new Set<string>();
+  const out: RoutineItem[] = [];
+  for (const item of routine) {
+    const key = routineItemIdentity(item);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
 
 export interface SetDetail {
   reps: number;
@@ -293,7 +322,13 @@ function loadRoutineFromStorage(): RoutineItem[] {
   try {
     const stored = sessionStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      // Defensive dedupe on hydrate — strips any pre-existing duplicate
+      // items (same exercise + equipment + angle) that may have been
+      // saved before duplicate prevention was added at the add-time
+      // boundary. Keeps the first occurrence; later occurrences are
+      // dropped along with whatever sets[] they had.
+      const parsed = JSON.parse(stored) as RoutineItem[];
+      return dedupeRoutine(parsed);
     }
   } catch {
     // ignore parse errors
@@ -927,12 +962,32 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       stretchLevel: params.stretchLevel,
       stability: params.stability,
     };
-    setRoutine((prev) => [...prev, newItem]);
+    // Block duplicates at the source. Two items count as duplicates
+    // when exercise + equipment + angle match — so "Cable Lateral
+    // Raise (Behind the Back)" still adds cleanly alongside the
+    // standard side-loaded variant. Past behavior allowed the same
+    // exercise to be added repeatedly, producing 2× placements on
+    // the same day (e.g. Cable Crunches twice on one day).
+    const newKey = routineItemIdentity(newItem);
+    setRoutine((prev) => {
+      if (prev.some((r) => routineItemIdentity(r) === newKey)) {
+        toast.info(`${params.exercise} is already in your routine`);
+        return prev;
+      }
+      return [...prev, newItem];
+    });
     flipPlanModified();
   }, []);
 
   const addRoutineItem = useCallback((item: RoutineItem) => {
-    setRoutine((prev) => [...prev, item]);
+    const key = routineItemIdentity(item);
+    setRoutine((prev) => {
+      if (prev.some((r) => routineItemIdentity(r) === key)) {
+        toast.info(`${item.exercise} is already in your routine`);
+        return prev;
+      }
+      return [...prev, item];
+    });
     flipPlanModified();
   }, []);
 
