@@ -18,6 +18,7 @@ import {
   GripVertical,
   Sparkles,
   Star,
+  PlayCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useWorkout, MAX_FAVORITES, type RoutineItem } from "@/contexts/WorkoutContext";
+import { videoUrlForRoutineItem } from "@/lib/exerciseVideo";
 import { toast } from "sonner";
 import {
   REP_RANGES,
@@ -43,7 +45,7 @@ import {
   type RepRangeId,
 } from "@/lib/repRanges";
 import { computeMatrixSets } from "@/lib/splitPresets";
-import { getExperience } from "@/lib/experience";
+import { resolveProfile } from "@/lib/experience";
 
 function NumberInput({
   value,
@@ -123,7 +125,7 @@ export default function DayExerciseEditor({
   movedFromDayName,
   swappedFromExerciseName,
 }: DayExerciseEditorProps) {
-  const { updateRoutineItem, routine, split, experience, favorites, toggleFavorite, isFavorite } = useWorkout();
+  const { updateRoutineItem, routine, split, experience, volume, favorites, toggleFavorite, isFavorite } = useWorkout();
   const [expanded, setExpanded] = useState(false);
   const [customMode, setCustomMode] = useState(false);
   const starred = isFavorite(item.id);
@@ -136,7 +138,7 @@ export default function DayExerciseEditor({
     toggleFavorite(item.id);
   };
 
-  const expProfile = getExperience(experience) ?? getExperience("foot-in-door")!;
+  const expProfile = resolveProfile(experience, volume);
 
   // Which rep-range bucket the current sets fall into. Default to
   // med-low (8–12) for unconfigured items — the heavy-hypertrophy
@@ -170,7 +172,12 @@ export default function DayExerciseEditor({
   // When sets[] is empty (the default after add), seed with split-aware
   // defaults so the user starts from a reasonable place.
   const customReps = item.sets[0]?.reps ?? 12;
-  const customSetsCount = item.sets.length || expProfile.setsPerExercise.compound;
+  // Fallback default for set count when the user hasn't applied a
+  // Pre-Set or Opti-fill yet. Derived from the volume tier (low→2,
+  // med→3, high→4) — same formula setRecommender + the allocator
+  // fallback use, now that the static setsPerExercise field is gone.
+  const defaultSetCount = Math.max(1, Math.round(expProfile.weeklyVolumePerMajor / 5));
+  const customSetsCount = item.sets.length || defaultSetCount;
   const customWeight = item.sets[0]?.weight ?? 0;
 
   const updateCustomReps = (reps: number) => {
@@ -206,7 +213,23 @@ export default function DayExerciseEditor({
         </span>
         <GripVertical className="w-3 h-3 text-muted-foreground/50 mt-1 shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-semibold text-foreground truncate">{item.exercise}</div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="text-xs font-semibold text-foreground truncate">{item.exercise}</div>
+            {/* Watch demo link — IP-safe outbound link to a public
+                platform (YouTube curated or fallback search). Tiny so it
+                doesn't crowd the row, but always present. */}
+            <a
+              href={videoUrlForRoutineItem(item)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0 p-0.5 rounded-sm text-muted-foreground/60 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              title="Watch a demo of this exercise (opens in a new tab)"
+              aria-label={`Watch demo of ${item.exercise}`}
+            >
+              <PlayCircle className="w-3.5 h-3.5" />
+            </a>
+          </div>
           <div className="text-[10px] text-muted-foreground truncate">
             {item.targetedMuscles.join(", ")}
           </div>

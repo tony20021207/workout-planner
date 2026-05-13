@@ -40,6 +40,9 @@ export interface EquipmentOption {
   id: string;
   name: string;
   tagOverrides?: TagOverrides;
+  /** Override the exercise's base videoUrl when THIS equipment changes the
+   *  form meaningfully. Falls back to the exercise's base if absent. */
+  videoUrl?: string;
 }
 
 export interface AngleOption {
@@ -47,6 +50,10 @@ export interface AngleOption {
   name: string;
   description: string;
   tagOverrides?: TagOverrides;
+  /** Override the exercise's base videoUrl when THIS angle changes the
+   *  form / emphasis meaningfully (e.g. behind-the-back vs side cable
+   *  lateral raise). Falls back to the exercise's base if absent. */
+  videoUrl?: string;
 }
 
 /**
@@ -115,6 +122,17 @@ export interface Exercise {
   angles?: AngleOption[];
   /** Coach reasoning from the Nippard / Israetel compendium. */
   coachNotes?: string;
+  /**
+   * URL to a public-platform demonstration video (YouTube / Instagram /
+   * TikTok). Linked from the planner + check-in UI as 'Watch demo'.
+   *
+   * Falls back to a YouTube search auto-link if absent — so every
+   * exercise gets SOMETHING clickable without forcing exhaustive
+   * curation. Equipment.videoUrl + Angle.videoUrl can override this
+   * per-variant when the form is meaningfully different (e.g.
+   * behind-the-back vs side cable lateral raise).
+   */
+  videoUrl?: string;
 }
 
 export interface Subcategory {

@@ -4,10 +4,24 @@
  * Dark slate base (#0F172A), electric lime (#84CC16) accents, diagonal cuts, bold typography
  */
 import { motion } from "framer-motion";
-import { Dumbbell, LogIn, User, Calendar, Hammer, ClipboardEdit } from "lucide-react";
+import { useEffect } from "react";
+import { Dumbbell, LogIn, User, Calendar, Hammer, ClipboardEdit, LogOut, UserCog, ChevronDown } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import MuscleGroupSelector from "@/components/MuscleGroupSelector";
 import RoutineTable from "@/components/RoutineTable";
 import SplitBuilder from "@/components/SplitBuilder";
@@ -20,6 +34,45 @@ const ABSTRACT_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663485353368/jf
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
   const { routine } = useWorkout();
+  const [location, setLocation] = useLocation();
+
+  // When the user lands on /planner (Planner tab in the bottom nav),
+  // jump straight to the weekly microcycle / split builder section
+  // instead of dumping them at the top of Home. Uses the #split anchor
+  // that already exists on the SplitBuilder <section>. With the new
+  // tab-persistent router, Home stays mounted across nav, so this
+  // re-scrolls every time /planner becomes the active route.
+  useEffect(() => {
+    if (location === "/planner") {
+      // Defer to next frame so any layout shift from the route change
+      // has settled before we measure scroll position.
+      requestAnimationFrame(() => {
+        document.getElementById("split")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+    if (location === "/") {
+      // Snap back to the top when the Home tab is re-selected. Without
+      // this the user might be left mid-scroll from their last visit.
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    }
+  }, [location]);
+
+  // Switch account = sign out, then navigate to /login so a different
+  // Google/email credential pair can sign in immediately.
+  // Log out = sign out and stay put; the auth state flip will re-render
+  // the nav into the "Sign In" CTA.
+  const handleSwitchAccount = async () => {
+    await logout();
+    setLocation("/login");
+  };
+  const handleLogout = async () => {
+    await logout();
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -44,9 +97,38 @@ export default function Home() {
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground hidden sm:block">{user?.name || user?.email}</span>
-                <Button variant="ghost" size="sm" onClick={() => logout()} className="text-muted-foreground hover:text-lime">
-                  <User className="w-4 h-4" />
-                </Button>
+                {/* Profile menu — clicking the user icon used to sign you out
+                    instantly (no confirmation). Now opens a dropdown so the
+                    only-one-click-from-data-loss problem is fixed. */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-lime"
+                      title="Account"
+                    >
+                      <User className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[200px]">
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      Signed in as
+                    </DropdownMenuLabel>
+                    <DropdownMenuLabel className="-mt-1 text-xs font-normal text-foreground truncate">
+                      {user?.email || user?.name || "User"}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={handleSwitchAccount} className="cursor-pointer">
+                      <UserCog className="w-3.5 h-3.5 mr-2" />
+                      Switch account
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={handleLogout} className="cursor-pointer text-red-300 focus:text-red-200">
+                      <LogOut className="w-3.5 h-3.5 mr-2" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <Link href="/login">
@@ -88,58 +170,123 @@ export default function Home() {
                 <Dumbbell className="w-6 h-6 text-lime-foreground" />
               </div>
               <span className="text-lime font-heading font-semibold text-sm uppercase tracking-wider">
-                Kinesiology-Based Programming
+                Workout Programming for Optimal Hypertrophy
               </span>
             </div>
             <h1 className="font-heading text-4xl md:text-6xl font-bold text-foreground leading-tight mb-4">
               <span className="text-lime">Opti-split</span>, <span className="text-lime">Opti-fill</span>,{" "}
               <span className="text-lime">OptiMass</span>.
             </h1>
-            <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
-              Pick the exercises you want this week. Rate the selection out of 100 against the
-              Hypertrophy Matrix, fix the gaps it flags, then split into days.
+            <p className="text-base text-muted-foreground max-w-xl leading-snug mb-6">
+              Five steps. Each does one job.
             </p>
+            {/* Action-verb-first flow.
+                  Each step: HUGE verb (action) + ONE short noun (target).
+                  Detail explanation lives inside a Collapsible behind a
+                  downward triangle — keeps the hero clean for the user
+                  who already knows what each step is, exposes the why
+                  for the user who wants to learn. */}
+            <div className="space-y-3 max-w-2xl">
+              {[
+                {
+                  num: 1,
+                  verb: "Pick",
+                  target: "exercises",
+                  why: "Coverage of the major joint actions matters more than picking the trendiest machine. The catalog rates each pick on stretch, stability, and stimulus-to-fatigue.",
+                },
+                {
+                  num: 2,
+                  verb: "Rate",
+                  target: "the selection",
+                  why: "Scored 0–100 vs. the Hypertrophy Matrix. Surfaces blind spots (missing scapular depressors, too much CNS load, no deep-stretch picks) before you commit to a week.",
+                },
+                {
+                  num: 3,
+                  verb: "Split",
+                  target: "across training days",
+                  why: "Opti-split distributes volume per major mover so each muscle lands inside its MEV–MAV band. Compounds get prime slots; isolation crowds in around them.",
+                },
+                {
+                  num: 4,
+                  verb: "Fill",
+                  target: "sets and reps",
+                  why: "Opti-fill matches a rep range to each exercise's biomechanical profile — deadlifts low (5–8), calves & abs high (15–20), compounds med-low (8–12), isolation med-high (12–15). Set counts derive from your volume tier.",
+                },
+                {
+                  num: 5,
+                  verb: "Track",
+                  target: "progress",
+                  why: "Schedule the mesocycle on the calendar. Check in daily — log actual reps and weight per set. The Stats page (coming) reads that log for real progression data, not guesswork.",
+                },
+              ].map((step) => (
+                <Collapsible key={step.num}>
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-xs text-muted-foreground font-mono tabular-nums shrink-0">
+                      {step.num}.
+                    </span>
+                    <span className="font-heading text-3xl md:text-4xl font-bold text-lime leading-none">
+                      {step.verb}
+                    </span>
+                    <span className="text-base text-foreground font-medium">
+                      {step.target}
+                    </span>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        className="ml-1 p-1 rounded-sm hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-all data-[state=open]:rotate-180"
+                        title="Why this step?"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </CollapsibleTrigger>
+                  </div>
+                  <CollapsibleContent>
+                    <p className="text-xs text-muted-foreground leading-snug pl-7 pt-1.5 max-w-xl">
+                      {step.why}
+                    </p>
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+            </div>
 
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+            {/* CTA buttons. The titles are the action — make them huge.
+                Subtitles are supporting context — make them tiny. The
+                whole button is the click target. */}
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
               <button
                 onClick={() => {
                   document.getElementById("builder")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="group p-5 bg-lime hover:bg-lime/90 text-lime-foreground rounded-sm border-2 border-lime transition-all text-left"
+                className="group p-6 bg-lime hover:bg-lime/90 text-lime-foreground rounded-sm border-2 border-lime transition-all text-left"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3 mb-2">
                   <div className="p-2 bg-lime-foreground/10 rounded-sm shrink-0">
-                    <Hammer className="w-6 h-6" />
+                    <Hammer className="w-7 h-7" />
                   </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-lg leading-tight">
-                      Build one now
-                    </h3>
-                    <p className="text-sm opacity-80 mt-0.5 leading-snug">
-                      Step through the kinesiology builder, get Opti-split + Opti-fill tuned for your level.
-                    </p>
-                  </div>
+                  <h3 className="font-heading font-extrabold text-3xl md:text-4xl leading-none">
+                    Build one now
+                  </h3>
                 </div>
+                <p className="text-[11px] opacity-75 leading-snug">
+                  Pick exercises → Opti-split + Opti-fill tuned for your tier.
+                </p>
               </button>
               <button
                 onClick={() => {
                   document.getElementById("rate")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="group p-5 bg-purple-600 hover:bg-purple-700 text-white rounded-sm border-2 border-purple-600 transition-all text-left"
+                className="group p-6 bg-purple-600 hover:bg-purple-700 text-white rounded-sm border-2 border-purple-600 transition-all text-left"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3 mb-2">
                   <div className="p-2 bg-white/10 rounded-sm shrink-0">
-                    <ClipboardEdit className="w-6 h-6" />
+                    <ClipboardEdit className="w-7 h-7" />
                   </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-lg leading-tight">
-                      Rate what I have
-                    </h3>
-                    <p className="text-sm opacity-80 mt-0.5 leading-snug">
-                      Paste a routine, upload a screenshot, or import text — get a Hypertrophy Matrix score.
-                    </p>
-                  </div>
+                  <h3 className="font-heading font-extrabold text-3xl md:text-4xl leading-none">
+                    Rate what I have
+                  </h3>
                 </div>
+                <p className="text-[11px] opacity-75 leading-snug">
+                  Paste, upload, or import — get a Hypertrophy Matrix score.
+                </p>
               </button>
             </div>
           </motion.div>

@@ -30,8 +30,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { trpc } from "@/lib/trpc";
 import LifestylePicker from "./LifestylePicker";
-import AvailabilityPicker from "./AvailabilityPicker";
 import ExperiencePicker from "./ExperiencePicker";
+import VolumePicker from "./VolumePicker";
 import { toast } from "sonner";
 import {
   type RatingResult,
@@ -42,6 +42,7 @@ import {
 import { type RoutineItem } from "@/contexts/WorkoutContext";
 import { scorePool, type PoolScore } from "@/lib/poolScore";
 import { RatingRubric } from "./RatingRubric";
+import SwapTargetPicker, { type SwapOverridePick } from "./SwapTargetPicker";
 
 type SourceMode = "routine" | "text" | "image";
 
@@ -152,22 +153,75 @@ function countActionable(pairs: RecommendationPair[]): number {
  *
  * Pairs not in `accepted` are treated as no-ops.
  */
+/**
+ * Apply per-pair user overrides on top of the rating engine's
+ * suggestions. When the user clicks the recommended-side exercise
+ * on a swap/add row and picks something else via SwapTargetPicker,
+ * we record the override here and merge it back into the pair so
+ * the rest of the pipeline (projection + apply) just consumes a
+ * modified pair without needing to know overrides exist.
+ *
+ * Override only applies to actionable pairs (swap / add); keep
+ * and remove rows are pass-through.
+ */
+function applyOverridesToPairs(
+  pairs: RecommendationPair[],
+  overrides: Map<number, SwapOverridePick>,
+): RecommendationPair[] {
+  if (overrides.size === 0) return pairs;
+  return pairs.map((p, idx) => {
+    const o = overrides.get(idx);
+    if (!o) return p;
+    if (p.action !== "swap" && p.action !== "add") return p;
+    return {
+      ...p,
+      recommended: o.exercise,
+      category: o.category,
+      targetedMuscles: o.targetedMuscles,
+      rationale: `Manual override — replaces auto-suggested ${p.recommended}. ${p.rationale ?? ""}`.trim(),
+    };
+  });
+}
+
 function buildProjectedRoutine(
   routine: RoutineItem[],
   pairs: RecommendationPair[],
   accepted: Set<number>,
 ): RoutineItem[] {
+  // Build TWO lookup maps so a swap/keep/remove pair can find its
+  // target even when the LLM's currentIndex is missing or zero. Falls
+  // back to matching by exercise name (pair.current) so we don't
+  // silently skip the change. This was the "swap does nothing"
+  // failure mode: the LLM occasionally returned currentIndex: 0 for
+  // a swap, the index map never matched, and the routine came out
+  // unchanged with no error.
   const pairByCurrentIdx = new Map<number, { pair: RecommendationPair; pairIdx: number }>();
+  const pairByCurrentName = new Map<string, { pair: RecommendationPair; pairIdx: number }>();
   pairs.forEach((p, pairIdx) => {
     if (p.currentIndex > 0) pairByCurrentIdx.set(p.currentIndex, { pair: p, pairIdx });
+    if (p.current && (p.action === "swap" || p.action === "keep" || p.action === "remove")) {
+      pairByCurrentName.set(p.current, { pair: p, pairIdx });
+    }
   });
   const out: RoutineItem[] = [];
+  // Track which pair indices we've already consumed via the index path
+  // so the name-fallback doesn't apply the same change twice.
+  const consumedPairIdx = new Set<number>();
   routine.forEach((item, i) => {
-    const found = pairByCurrentIdx.get(i + 1);
+    // Try index lookup first (the LLM is supposed to return 1-based
+    // currentIndex). Fall back to matching by the item's exercise
+    // name — handles the case where currentIndex came back zero or
+    // off-by-one, which historically caused swaps to silently no-op.
+    let found = pairByCurrentIdx.get(i + 1);
+    if (!found) {
+      const nameFound = pairByCurrentName.get(item.exercise);
+      if (nameFound && !consumedPairIdx.has(nameFound.pairIdx)) found = nameFound;
+    }
     if (!found) {
       out.push(item);
       return;
     }
+    consumedPairIdx.add(found.pairIdx);
     const { pair, pairIdx } = found;
     const isAccepted = accepted.has(pairIdx);
     if (!isAccepted || pair.action === "keep") {
@@ -453,6 +507,13 @@ interface RecommendationRowProps {
    * Surfaces inline next to the action tag so the user understands
    * what each swap actually does for the score. Null when noise-only. */
   criterionDelta: { name: string; delta: number } | null;
+  /** Fires when the user clicks the recommended-side exercise name on
+   * a swap or add row — opens the SwapTargetPicker so they can
+   * override the auto-suggestion with their own pick. Null on
+   * keep/remove rows where overriding is meaningless. */
+  onClickRecommendedToOverride?: () => void;
+  /** True if the row already carries an override (visual cue). */
+  hasOverride?: boolean;
 }
 
 function RecommendationRow({
@@ -462,6 +523,8 @@ function RecommendationRow({
   accepted,
   onToggle,
   criterionDelta,
+  onClickRecommendedToOverride,
+  hasOverride,
 }: RecommendationRowProps) {
   const isKeep = pair.action === "keep";
   const isRemove = pair.action === "remove";
@@ -538,13 +601,31 @@ function RecommendationRow({
             )}
           </div>
 
-          {/* Arrow + tag + per-pair criterion delta */}
+          {/* Arrow + action chip + per-pair criterion delta. The chip is
+              CLICKABLE on actionable rows (swap/remove/add) — it shortcuts
+              the accept-checkbox toggle so the user can click the visible
+              "ADD" / "SWAP" / "REMOVE" tag itself, not just the small
+              checkbox on the left. Keep rows show a non-interactive chip
+              because the Lock icon already conveys "no action available". */}
           <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">
             <div className="flex items-center gap-2">
               <ArrowRight className="w-4 h-4 text-muted-foreground" />
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-semibold uppercase tracking-wider ${tagStyle}`}>
-                {tagLabel}
-              </span>
+              {isKeep ? (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-sm border font-semibold uppercase tracking-wider ${tagStyle}`}>
+                  {tagLabel}
+                </span>
+              ) : (
+                <button
+                  onClick={onToggle}
+                  className={`text-[10px] px-2 py-0.5 rounded-sm border font-semibold uppercase tracking-wider cursor-pointer transition-all ${tagStyle} ${
+                    accepted ? "ring-2 ring-lime/40 shadow-sm" : "hover:brightness-125 hover:scale-105"
+                  }`}
+                  title={accepted ? "Click to skip this change" : "Click to accept this change"}
+                >
+                  {tagLabel}
+                  {accepted && <CheckCircle2 className="w-2.5 h-2.5 inline-block ml-1" strokeWidth={3} />}
+                </button>
+              )}
             </div>
             {criterionDelta && (
               <span
@@ -559,10 +640,38 @@ function RecommendationRow({
             )}
           </div>
 
-          {/* Recommended side */}
+          {/* Recommended side — clickable on swap/add rows to override
+              the auto-suggested target with the user's own pick via
+              SwapTargetPicker. Keep / remove rows render the name
+              non-interactively. */}
           <div className="min-w-0 space-y-0.5">
             {isRemove ? (
               <div className="text-sm text-muted-foreground italic">— (drop)</div>
+            ) : onClickRecommendedToOverride ? (
+              <button
+                onClick={onClickRecommendedToOverride}
+                className={`block w-full text-left group/recsel ${
+                  hasOverride ? "ring-1 ring-purple-400/40 rounded-sm p-1 -m-1 bg-purple-500/5" : ""
+                }`}
+                title="Click to pick a different exercise for this swap"
+              >
+                <div className="text-sm font-semibold text-foreground truncate group-hover/recsel:text-purple-200 group-hover/recsel:underline decoration-purple-400/60 decoration-dotted underline-offset-2">
+                  {pair.recommended}
+                  {hasOverride && (
+                    <span className="ml-1.5 text-[9px] uppercase tracking-wider text-purple-300">
+                      override
+                    </span>
+                  )}
+                </div>
+                {recommendedMuscles.length > 0 && (
+                  <div className="text-[10px] text-muted-foreground leading-snug">
+                    {recommendedMuscles.join(", ")}
+                  </div>
+                )}
+                <div className="text-[9px] text-muted-foreground/70 mt-0.5 opacity-0 group-hover/recsel:opacity-100 transition-opacity">
+                  click to override
+                </div>
+              </button>
             ) : (
               <>
                 <div className="text-sm font-semibold text-foreground truncate" title={pair.recommended}>
@@ -593,6 +702,19 @@ export default function WorkoutRater() {
   // Indices into result.recommendations.pairs that the user has accepted.
   // Defaults to every non-"keep" pair on a fresh rating. Toggled per row.
   const [acceptedPairs, setAcceptedPairs] = useState<Set<number>>(new Set());
+  // Per-pair manual overrides: when the user picks their own swap
+  // target via SwapTargetPicker, the chosen exercise replaces the
+  // rating engine's auto-suggestion for that specific pair index.
+  // Reset whenever a new result lands (different recommendations,
+  // old overrides no longer apply).
+  const [swapOverrides, setSwapOverrides] = useState<Map<number, SwapOverridePick>>(
+    new Map(),
+  );
+  // Picker state — null when closed.
+  const [pickerPairIdx, setPickerPairIdx] = useState<number | null>(null);
+  useEffect(() => {
+    if (result === null) setSwapOverrides(new Map());
+  }, [result]);
   // Local deterministic score computed at mutate-time. Stashed here so
   // onSuccess can merge it into the LLM response (replacing any LLM-
   // emitted numbers with the deterministic values).
@@ -635,11 +757,19 @@ export default function WorkoutRater() {
    * Only meaningful for source=routine (text / image have no local
    * routine state).
    */
+  // Pairs with user manual overrides folded in. Downstream code
+  // (projection memo, criterion deltas, apply handler) all consume
+  // these and stay unaware of the override mechanism.
+  const effectivePairs = useMemo(() => {
+    if (!result) return [];
+    return applyOverridesToPairs(result.recommendations.pairs, swapOverrides);
+  }, [result, swapOverrides]);
+
   const projectedScore = useMemo(() => {
     if (!result || mode !== "routine") return null;
-    const projected = buildProjectedRoutine(routine, result.recommendations.pairs, acceptedPairs);
+    const projected = buildProjectedRoutine(routine, effectivePairs, acceptedPairs);
     return scorePool(projected, favorites, experience);
-  }, [result, routine, acceptedPairs, favorites, experience, mode]);
+  }, [result, routine, effectivePairs, acceptedPairs, favorites, experience, mode]);
 
   /**
    * Per-pair criterion deltas — for each pair, simulates "what if only
@@ -649,10 +779,10 @@ export default function WorkoutRater() {
   const perPairCriterionDelta = useMemo(() => {
     if (!result || mode !== "routine") return [];
     const baseline = scorePool(routine, favorites, experience);
-    return result.recommendations.pairs.map((pair, idx) => {
+    return effectivePairs.map((pair, idx) => {
       if (pair.action === "keep") return null;
       const justThis = new Set([idx]);
-      const projected = buildProjectedRoutine(routine, result.recommendations.pairs, justThis);
+      const projected = buildProjectedRoutine(routine, effectivePairs, justThis);
       const scored = scorePool(projected, favorites, experience);
       // Criterion-by-criterion delta. Pick the one with the biggest |Δ|.
       const candidates: Array<{ name: string; delta: number }> = [
@@ -669,7 +799,7 @@ export default function WorkoutRater() {
       }
       return best;
     });
-  }, [result, routine, favorites, experience, mode]);
+  }, [result, routine, effectivePairs, favorites, experience, mode]);
 
   const handleRate = () => {
     const lifestyleArg = lifestyle ?? undefined;
@@ -781,7 +911,8 @@ export default function WorkoutRater() {
    */
   const handleApplyRecommendations = () => {
     if (!result) return;
-    const pairs = result.recommendations.pairs;
+    // Use the override-merged pairs so user-picked swap targets win.
+    const pairs = effectivePairs;
     // Tally action counts BEFORE mutating, for the toast summary.
     let appliedSwaps = 0;
     let appliedRemoves = 0;
@@ -798,6 +929,21 @@ export default function WorkoutRater() {
     }
 
     const nextRoutine = buildProjectedRoutine(routine, pairs, acceptedPairs);
+    // Detect silent no-op: compare exercise-name signatures before/after.
+    // If the lengths and ordered names match exactly, buildProjectedRoutine
+    // didn't actually apply anything — usually means the LLM returned
+    // pairs the projection couldn't match (currentIndex 0 + a name that
+    // doesn't appear in the routine). Surfaces what historically read
+    // as "swap doesn't do anything" — apply succeeded silently with
+    // zero changes.
+    const sig = (r: RoutineItem[]) =>
+      r.map((it) => `${it.exercise}|${it.equipment ?? ""}|${it.angle ?? ""}`).join(">");
+    if (sig(nextRoutine) === sig(routine)) {
+      toast.error(
+        "Recommendations didn't take — the rater's swap targets couldn't be matched against your routine. Try Re-rate; if it keeps happening, report the routine to the dev.",
+      );
+      return;
+    }
     replaceRoutine(nextRoutine);
     markAutoPlanFresh();
     const parts: string[] = [];
@@ -812,6 +958,8 @@ export default function WorkoutRater() {
   const reset = () => {
     setResult(null);
     setAcceptedPairs(new Set());
+    setSwapOverrides(new Map());
+    setPickerPairIdx(null);
     setPastedText("");
     setImageDataUrl(null);
     setImageName(null);
@@ -945,10 +1093,14 @@ Tue - Pull
 
       {/* Pre-rate context pickers — surfaced BEFORE the first rating so
           experience modulation (SFR/Stability penalty + Compound/Iso band)
-          + lifestyle warmup logic actually take effect on the initial
-          score, instead of defaulting to FID and forcing a re-rate.
-          The same pickers re-appear in the result panel below for
-          tune-and-rerate workflows. */}
+          + lifestyle warmup logic take effect on the initial score, not
+          forcing a re-rate. Availability is NOT here: it doesn't influence
+          the rating (confirmed by code audit — server/rating.ts and
+          client/lib/poolScore.ts never read it) and lives on the SplitBuilder
+          where it actually drives which presets are eligible. After the
+          first rating these pickers do NOT re-render — the user makes
+          changes to their routine and re-rates, no need to re-ask the
+          same context every time. */}
       {!result && (
         <div className="p-4 bg-card rounded-sm border-2 border-purple-500/30 space-y-5">
           <div>
@@ -956,16 +1108,14 @@ Tue - Pull
               Tell us about you
             </h4>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              These shape the score before the LLM ever sees it — experience
-              modulates SFR/Stability/Compound-Iso penalties; lifestyle drives
-              warmup picks; availability sets the split scope.
+              These shape the score before the LLM ever sees it. <span className="text-foreground font-semibold">Experience</span> modulates SFR / Stability / Compound-Iso penalties. <span className="text-foreground font-semibold">Volume</span> sets your weekly load target and defaults to whatever most lifters at your experience level run — override only if you want more or less. <span className="text-foreground font-semibold">Lifestyle</span> drives warmup picks. Set once; we won't ask again.
             </p>
           </div>
           <LifestylePicker />
           <div className="border-t border-border" />
-          <AvailabilityPicker />
-          <div className="border-t border-border" />
           <ExperiencePicker />
+          <div className="border-t border-border" />
+          <VolumePicker />
         </div>
       )}
 
@@ -1125,14 +1275,13 @@ Tue - Pull
               </div>
             )}
 
-            {/* Lifestyle + availability + experience pickers — shown only after a rating exists. */}
-            <div className="p-4 bg-card rounded-sm border-2 border-purple-500/30 space-y-5">
-              <LifestylePicker />
-              <div className="border-t border-border" />
-              <AvailabilityPicker />
-              <div className="border-t border-border" />
-              <ExperiencePicker />
-            </div>
+            {/* Note: Lifestyle / Availability / Experience pickers used to
+                re-render here in the post-rate panel. They've been removed —
+                lifestyle + experience are captured ONCE in the pre-rate
+                strip before the first rating; availability lives on the
+                SplitBuilder where it actually drives preset eligibility.
+                The post-rate UX is focused: read the rating, optionally
+                accept recommendations, continue to split. */}
 
             {/* Optimized Routine — pair-based diff view */}
             <div className="space-y-3">
@@ -1185,20 +1334,28 @@ Tue - Pull
                   >
                     Select all
                   </Button>
+                  {/* Apply button — bumped to size=default for prominence
+                      and shows the accepted count so the user can tell at
+                      a glance what's about to happen. The previous size=sm
+                      version sat too close in weight to the other action
+                      buttons; this is the headline action of the panel. */}
                   <Button
-                    size="sm"
+                    size="default"
                     onClick={handleApplyRecommendations}
-                    className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold"
+                    disabled={acceptedPairs.size === 0}
+                    className="bg-lime text-lime-foreground hover:bg-lime/80 font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                     title={
-                      projectedScore
-                        ? `Apply checked recommendations. Projected new score: ${Math.round(projectedScore.total)}/100`
-                        : "Apply every checked recommendation to your routine"
+                      acceptedPairs.size === 0
+                        ? "Tick at least one change to enable Apply"
+                        : projectedScore
+                          ? `Apply ${acceptedPairs.size} change${acceptedPairs.size === 1 ? "" : "s"}. Projected new score: ${Math.round(projectedScore.total)}/100`
+                          : `Apply ${acceptedPairs.size} checked change${acceptedPairs.size === 1 ? "" : "s"}`
                     }
                   >
-                    <Replace className="w-4 h-4 mr-1" />
-                    Apply
-                    {projectedScore && projectedScore.total !== result.score && (
-                      <span className="ml-1 text-[10px] opacity-80">
+                    <Replace className="w-4 h-4 mr-1.5" />
+                    Apply{acceptedPairs.size > 0 ? ` ${acceptedPairs.size}` : ""}
+                    {projectedScore && projectedScore.total !== result.score && acceptedPairs.size > 0 && (
+                      <span className="ml-2 text-[11px] opacity-90 font-semibold">
                         → {Math.round(projectedScore.total)}
                       </span>
                     )}
@@ -1223,13 +1380,16 @@ Tue - Pull
                 </div>
               </div>
 
-              {/* Diff rows */}
+              {/* Diff rows — iterate effectivePairs (auto-suggestions
+                  with any user overrides folded in) so the row display
+                  and the projection/apply pipeline see the same data. */}
               <div className="border-2 border-border rounded-sm overflow-hidden">
-                {result.recommendations.pairs.map((pair, idx) => {
+                {effectivePairs.map((pair, idx) => {
                   // For keep / swap / remove, current item is routine[currentIndex - 1].
                   // For 'add' pairs (currentIndex = 0), there's no current item.
                   const currentItem =
                     pair.currentIndex > 0 ? routine[pair.currentIndex - 1] : undefined;
+                  const isOverridable = pair.action === "swap" || pair.action === "add";
                   return (
                     <RecommendationRow
                       key={idx}
@@ -1239,6 +1399,10 @@ Tue - Pull
                       accepted={acceptedPairs.has(idx)}
                       onToggle={() => togglePair(idx)}
                       criterionDelta={perPairCriterionDelta[idx] ?? null}
+                      onClickRecommendedToOverride={
+                        isOverridable ? () => setPickerPairIdx(idx) : undefined
+                      }
+                      hasOverride={swapOverrides.has(idx)}
                     />
                   );
                 })}
@@ -1260,6 +1424,35 @@ Tue - Pull
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Swap-target override picker — mounted at component root so it
+          escapes the AnimatePresence overflow region. Closes on pick or
+          cancel. */}
+      {result && pickerPairIdx !== null && (() => {
+        const pair = effectivePairs[pickerPairIdx];
+        if (!pair) return null;
+        const originalPair = result.recommendations.pairs[pickerPairIdx];
+        const primaryMuscle = pair.targetedMuscles?.[0];
+        return (
+          <SwapTargetPicker
+            open={true}
+            originalCurrentName={pair.current || ""}
+            category={pair.category}
+            primaryMuscleHint={primaryMuscle}
+            currentSuggestion={originalPair?.recommended ?? pair.recommended}
+            onSelect={(pick) => {
+              setSwapOverrides((prev) => {
+                const next = new Map(prev);
+                next.set(pickerPairIdx, pick);
+                return next;
+              });
+              setPickerPairIdx(null);
+              toast.success(`Override: will use ${pick.exercise} instead`);
+            }}
+            onCancel={() => setPickerPairIdx(null)}
+          />
+        );
+      })()}
     </motion.div>
   );
 }

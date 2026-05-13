@@ -27,7 +27,8 @@
  */
 import type { RoutineItem } from "@/contexts/WorkoutContext";
 import type { JointAction } from "@/lib/data";
-import { getExperience, type ExperienceId, type ExperienceProfile } from "@/lib/experience";
+import { resolveProfile, type ExperienceId, type ExperienceProfile } from "@/lib/experience";
+import { type VolumeId } from "@/lib/volume";
 import { sortDayExercises } from "./dayOrdering";
 import { applyFinisherToAllocation } from "./finisher";
 
@@ -426,11 +427,78 @@ function computeWeeklyVolumeTargets(experience: ExperienceProfile): Record<Muscl
   return out;
 }
 
-/** Sets earned per single exercise instance based on category + experience. */
-function setsPerInstance(item: RoutineItem, exp: ExperienceProfile): number {
-  return item.category === "systemic"
-    ? exp.setsPerExercise.compound
-    : exp.setsPerExercise.isolation;
+/**
+ * Sets earned per single exercise instance — muscle-aware formula.
+ *
+ *   sets/instance = ceil(weeklyTarget / exercisesForMuscle / daysForMuscle)
+ *
+ * Where:
+ *   weeklyTarget        = volume target for the bottleneck muscle this
+ *                         exercise drives (volumePerMajor × mass weight)
+ *   exercisesForMuscle  = how many exercises in the routine target that
+ *                         muscle (so co-targeting exercises split the work)
+ *   daysForMuscle       = how many split days train that muscle (so a
+ *                         2-day chest split divides the weekly target
+ *                         by 2 days, not by 6)
+ *
+ * Worked example — 2 chest exercises on UL4 (2 upper days), per
+ * volume tier:
+ *   Low  (target 10): ceil(10/2/2) = 3 sets → week 1 total 12, deload
+ *                     week 2 to ~8, meso avg 10 = on target
+ *   Med  (target 15): ceil(15/2/2) = 4 sets → week 1 total 16
+ *   High (target 20): ceil(20/2/2) = 5 sets → week 1 total 20 = on target
+ *
+ * Per-session overshoot vs sessionCap is accepted by design — the cap
+ * is a soft heuristic, and Week 2's load/deload pass brings the
+ * mesocycle average back in line.
+ *
+ * When the exercise hits multiple muscles, the BOTTLENECK muscle (the
+ * one requiring the most sets/instance) wins — that way we hit the
+ * tightest muscle's target. Falls back to the experience baseline
+ * (2/3/4) if no muscle target applies, e.g. for an exercise with no
+ * recognized tags.
+ */
+function setsPerInstance(
+  item: RoutineItem,
+  exp: ExperienceProfile,
+  ctx?: {
+    split: SplitPreset;
+    pool: RoutineItem[];
+    targets: Record<MuscleTag, number>;
+    tagsById: Map<string, MuscleTag[]>;
+  },
+): number {
+  // Fallback baseline when no muscle context applies (no tags, or
+  // unrecognized item). Derived from the volume tier's weekly target so
+  // it scales appropriately: low→2, med→3, high→4. Matches the old
+  // static setsPerExercise field we just removed.
+  const baseline = Math.max(1, Math.round(exp.weeklyVolumePerMajor / 5));
+  if (!ctx) return baseline;
+
+  const itemTags = ctx.tagsById.get(item.id) ?? [];
+  if (itemTags.length === 0) return baseline;
+
+  // For each muscle the exercise hits, compute the per-instance sets
+  // count needed to land its weekly volume target. Take the MAX so
+  // we hit the bottleneck muscle exactly (others overshoot slightly).
+  let bestCount = baseline;
+  for (const tag of itemTags) {
+    const target = ctx.targets[tag];
+    if (!target || target <= 0) continue;
+    // How many exercises in the whole pool target this muscle?
+    const exercisesForMuscle = ctx.pool.filter((p) =>
+      (ctx.tagsById.get(p.id) ?? []).includes(tag),
+    ).length;
+    if (exercisesForMuscle === 0) continue;
+    // How many split days are eligible to train this muscle?
+    const daysForMuscle = ctx.split.days.filter((d) =>
+      (d.tags as readonly string[]).includes(tag),
+    ).length;
+    if (daysForMuscle === 0) continue;
+    const need = Math.ceil(target / exercisesForMuscle / daysForMuscle);
+    if (need > bestCount) bestCount = need;
+  }
+  return bestCount;
 }
 
 interface AllocationContext {
@@ -464,9 +532,24 @@ function pickBestDay(
   // deadlift / good morning / jefferson curl to Leg days only).
   const requiredTags = itemTags.filter((t) => ROUTING_ONLY_TAGS.has(t));
 
+  // Pre-compute exercise names already on each day. If the user happens
+  // to have two RoutineItems with the same exercise name + equipment +
+  // angle (legitimate variants, or stale duplicates we couldn't dedupe),
+  // the original id-only guard (line below) would let both land on the
+  // same day. The name-level guard catches that case: even with two
+  // distinct ids that resolve to the same exercise name, only one
+  // placement per day. Result: cleaner cards, no perceived duplication.
+  const itemName = item.exercise;
   const candidates = split.days.filter((d) => {
     if (ctx.byDay[d.id].length >= PER_DAY_EXERCISE_CAP) return false;
-    if (ctx.byDay[d.id].includes(item.id)) return false; // already on this day; pick a different day for repetition
+    if (ctx.byDay[d.id].includes(item.id)) return false; // same id already here
+    // Also reject if another RoutineItem with the same exercise name is
+    // already on this day.
+    const sameNameAlreadyHere = ctx.byDay[d.id].some((otherId) => {
+      const other = ctx.itemsById.get(otherId);
+      return other?.exercise === itemName;
+    });
+    if (sameNameAlreadyHere) return false;
     // Must overlap on at least one muscle tag.
     if (!d.tags.some((t) => itemTags.includes(t))) return false;
     // If exercise has any routing-only tags, day must carry them too.
@@ -552,8 +635,13 @@ export interface AllocationResult {
 }
 
 export interface AllocationOptions {
-  /** User experience level — drives sets per exercise + weekly volume target. */
+  /** User experience level — drives technique-side modulators (SFR/Stability
+   * penalty, Compound/Iso band, coaching tone). NOT volume; see `volume`. */
   experience?: ExperienceId | null;
+  /** User volume tier — drives weekly volume targets, sets per exercise,
+   * session caps, RIR targets. null = use the default for the experience
+   * tier (low for beginner, med for FID, high for experienced). */
+  volume?: VolumeId | null;
   /** Exercise IDs the user marked as favorite (priority for repetition). */
   favoriteIds?: string[];
   /** Calves finisher frequency — days/wk to train calves regardless of
@@ -561,6 +649,13 @@ export interface AllocationOptions {
   calvesFrequency?: number | null;
   /** Abs finisher frequency (rectus abdominis only). null = off. */
   absFrequency?: number | null;
+  /**
+   * Mesocycle week index (0 = week 1, 1 = week 2). When the user has
+   * 2+ finisher exercises rotating across days, week 2's offset is
+   * used so the rotation starts on the other exercise and total
+   * weekly volume balances across the meso. Default 0 (week 1).
+   */
+  weekIndex?: number;
 }
 
 /**
@@ -573,17 +668,21 @@ export function allocatePoolToSplit(
   split: SplitPreset,
   options: AllocationOptions = {},
 ): AllocationResult {
-  const exp = getExperience(options.experience) ?? getExperience("foot-in-door")!;
+  const exp = resolveProfile(options.experience, options.volume);
   const favoriteSet = new Set(options.favoriteIds ?? []);
   const targets = computeWeeklyVolumeTargets(exp);
 
-  // Build context.
+  // Build context. setsPerInstance needs the pool + targets + tag map
+  // to compute the muscle-aware sets count, so we build tagsById
+  // first and pass the ctx-bundle into setsPerInstance().
+  const tagsById = new Map(pool.map((p) => [p.id, getMuscleTagsForItem(p)]));
+  const setsCtx = { split, pool, targets, tagsById };
   const ctx: AllocationContext = {
     byDay: {},
     volumeByMuscle: {} as Record<MuscleTag, number>,
     itemsById: new Map(pool.map((p) => [p.id, p])),
-    tagsById: new Map(pool.map((p) => [p.id, getMuscleTagsForItem(p)])),
-    setsById: new Map(pool.map((p) => [p.id, setsPerInstance(p, exp)])),
+    tagsById,
+    setsById: new Map(pool.map((p) => [p.id, setsPerInstance(p, exp, setsCtx)])),
   };
   for (const day of split.days) ctx.byDay[day.id] = [];
   for (const tag of Object.keys(MUSCLE_MASS_WEIGHT) as MuscleTag[]) ctx.volumeByMuscle[tag] = 0;
@@ -685,11 +784,15 @@ export function allocatePoolToSplit(
   // override, re-run the per-day sort so the finisher items land in
   // their correct (tail-end) position.
   let finished = byDay;
+  // rotationOffset is the week index: week 2 starts the finisher
+  // rotation on the other exercise (when 2+ are picked) so the meso's
+  // total volume per finisher exercise comes out balanced.
+  const rotationOffset = options.weekIndex ?? 0;
   if (options.calvesFrequency != null) {
-    finished = applyFinisherToAllocation(finished, pool, split, "calves", options.calvesFrequency);
+    finished = applyFinisherToAllocation(finished, pool, split, "calves", options.calvesFrequency, rotationOffset);
   }
   if (options.absFrequency != null) {
-    finished = applyFinisherToAllocation(finished, pool, split, "abs", options.absFrequency);
+    finished = applyFinisherToAllocation(finished, pool, split, "abs", options.absFrequency, rotationOffset);
   }
   if (finished !== byDay) {
     for (const day of split.days) {

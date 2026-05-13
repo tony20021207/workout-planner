@@ -28,8 +28,8 @@
  * just calls it across the whole week.
  */
 import { categories, type Difficulty, type StretchLevel, type StimulusLevel } from "./data";
-import type { RoutineItem } from "@/contexts/WorkoutContext";
-import type { SplitPreset } from "./splitPresets";
+import type { RoutineItem, SetDetail } from "@/contexts/WorkoutContext";
+import { MUSCLE_MASS_WEIGHT, type SplitPreset } from "./splitPresets";
 import type { ExperienceProfile } from "./experience";
 
 // ============================================================
@@ -148,6 +148,15 @@ export function applyFinisherToAllocation(
   split: SplitPreset,
   kind: FinisherKind,
   frequency: number | null,
+  /**
+   * Starting offset for the exercise-rotation index. Default 0 (week 1).
+   * Week 2's mesocycle pass passes 1 so the rotation begins on the
+   * other exercise when an uneven distribution would otherwise leave
+   * total volume unbalanced across the meso. Example: 2 exercises (A,
+   * B) with frequency 5/wk gives week 1 = A B A B A (A=3, B=2). Week 2
+   * with offset=1 gives B A B A B (A=2, B=3). Mesocycle total: 5/5.
+   */
+  rotationOffset: number = 0,
 ): Record<string, string[]> {
   // Deep-clone input so we never mutate.
   const next: Record<string, string[]> = {};
@@ -178,11 +187,12 @@ export function applyFinisherToAllocation(
   }
 
   // Distribute N slots across N eligible days. Rotate through the
-  // available finisher exercises so each one gets ~equal time when
-  // the user has 2+ in their routine.
+  // available finisher exercises (shifted by rotationOffset) so when
+  // the user has 2+ picks, week 2's rotation starts on the other
+  // exercise — total weekly volume balances over the mesocycle.
   const orderedDays = pickEvenlySpacedDays(eligibleDays, N);
   orderedDays.forEach((day, i) => {
-    const ex = finisherItems[i % finisherItems.length];
+    const ex = finisherItems[(i + rotationOffset) % finisherItems.length];
     next[day.id] = [...next[day.id], ex.id];
   });
 
@@ -206,10 +216,60 @@ function pickEvenlySpacedDays<T>(days: T[], n: number): T[] {
 }
 
 /**
- * Per-day sets count for a finisher exercise — driven entirely by
- * the experience profile's isolation setsPerExercise (2 / 3 / 4).
- * Bypasses the mass-weighted weekly volume math by design.
+ * Per-day set count for a finisher exercise — tuned to land the
+ * weekly volume at the muscle's MAV (Maximum Adaptive Volume) for
+ * the user's experience profile.
+ *
+ * MAV = experience.weeklyVolumePerMajor × mass weight for the muscle.
+ *   - Calves mass weight = 0.6 (smaller mass, less volume needed)
+ *   - Core  mass weight = 0.5 (already trained as stabilizer)
+ *
+ * sets_per_day = max(1, ceil(MAV / frequency))
+ *
+ * Concrete examples (experienced, weeklyVolumePerMajor = 20):
+ *   Calves MAV = 12. Frequency 3 → 4 sets/day → 12/wk (= MAV).
+ *   Calves MAV = 12. Frequency 4 → 3 sets/day → 12/wk (= MAV).
+ *   Calves MAV = 12. Frequency 6 → 2 sets/day → 12/wk (= MAV).
+ *   Abs    MAV = 10. Frequency 5 → 2 sets/day → 10/wk (= MAV).
+ *
+ * Beginner (weeklyVolumePerMajor = 10):
+ *   Calves MAV = 6. Frequency 3 → 2 sets/day → 6/wk.
+ *
+ * This replaces the old isolation-default count (2 / 3 / 4) which
+ * ignored frequency — calves at frequency 6 used to total 24 sets/wk
+ * for experienced lifters, well past MAV.
  */
-export function finisherSetsPerSession(exp: ExperienceProfile): number {
-  return exp.setsPerExercise.isolation;
+export function finisherSetsPerSession(
+  exp: ExperienceProfile,
+  kind: FinisherKind,
+  frequency: number,
+): number {
+  const muscleTag = kind === "calves" ? "calves" : "core";
+  const massWeight = MUSCLE_MASS_WEIGHT[muscleTag] ?? 0.6;
+  const mav = exp.weeklyVolumePerMajor * massWeight;
+  return Math.max(1, Math.ceil(mav / Math.max(1, frequency)));
+}
+
+/**
+ * Normalize a finisher exercise's `sets[]` to the MAV-targeting count.
+ * Preserves rep / weight values from the first existing set when
+ * extending or truncating; if the routine item has no sets yet,
+ * seeds with sensible defaults (15 reps, 0 weight — the High tier
+ * range for slow-twitch muscles).
+ *
+ * Returned array has length = `targetCount`. Caller applies it via
+ * setRoutine / updateRoutineItem.
+ */
+export function normalizeFinisherSets(
+  existing: SetDetail[],
+  targetCount: number,
+): SetDetail[] {
+  const seed: SetDetail = existing[0] ?? { reps: 15, weight: 0 };
+  if (existing.length === targetCount) return existing;
+  if (existing.length > targetCount) return existing.slice(0, targetCount);
+  const out = [...existing];
+  while (out.length < targetCount) {
+    out.push({ reps: seed.reps, weight: seed.weight });
+  }
+  return out;
 }

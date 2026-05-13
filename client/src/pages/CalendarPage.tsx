@@ -128,7 +128,17 @@ export default function CalendarPage() {
     enabled: isAuthenticated,
   });
 
-  const createWorkout = trpc.workout.create.useMutation();
+  // workout.create has no auto-invalidation by default, which caused a
+  // stale-cache bug: scheduling a workout would create it on the server,
+  // the calendar entry would render via calendarQuery.refetch(), but
+  // workoutsQuery still didn't know about the new workout. Clicking the
+  // entry to open the detail modal would fail (getWorkoutByEntry returned
+  // null → "Workout content unavailable" toast) until the user did a
+  // hard page refresh. Refetching the workout list on every create fixes
+  // it — the detail modal lookup succeeds immediately.
+  const createWorkout = trpc.workout.create.useMutation({
+    onSuccess: () => workoutsQuery.refetch(),
+  });
   const addEntry = trpc.calendar.addEntry.useMutation({
     onSuccess: () => calendarQuery.refetch(),
   });
@@ -929,13 +939,25 @@ export default function CalendarPage() {
                 </p>
               )}
             </div>
+            {/* Direct Bulk Schedule entry. Clicking enters bulkMode
+                immediately — today as the anchor day, first split-day
+                as the anchor option. User can change the anchor later
+                via the Bulk Mode UI or by aborting + restarting. No
+                more requiring a single-day schedule first. */}
             <Button
               size="sm"
-              disabled={!hasSavedSplit}
+              disabled={!hasSavedSplit || pickerOptions.length === 0 || bulkMode}
               onClick={() => {
-                toast.info("Bulk Schedule coming next — for now click any day on the calendar");
+                if (pickerOptions.length === 0) return;
+                const today = new Date().toISOString().split("T")[0];
+                const firstOption = pickerOptions[0];
+                enterBulkMode(today, firstOption);
+                toast.info(
+                  `Bulk Schedule started — anchored at today (${firstOption.dayName}). Click days within the highlighted window to pick the rest, or change the anchor by exiting and clicking a different day.`,
+                );
               }}
               className="bg-lime text-lime-foreground hover:bg-lime/80 font-semibold shrink-0"
+              title={bulkMode ? "Already in Bulk Schedule mode" : "Schedule a whole mesocycle in one go"}
             >
               <Layers className="w-4 h-4 mr-1.5" />
               Bulk Schedule
