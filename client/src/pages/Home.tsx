@@ -4,6 +4,7 @@
  * Dark slate base (#0F172A), electric lime (#84CC16) accents, diagonal cuts, bold typography
  */
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 import { Dumbbell, LogIn, User, Calendar, Hammer, ClipboardEdit, LogOut, UserCog } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Link, useLocation } from "wouter";
@@ -28,7 +29,33 @@ const ABSTRACT_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663485353368/jf
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
   const { routine } = useWorkout();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+
+  // When the user lands on /planner (Planner tab in the bottom nav),
+  // jump straight to the weekly microcycle / split builder section
+  // instead of dumping them at the top of Home. Uses the #split anchor
+  // that already exists on the SplitBuilder <section>. With the new
+  // tab-persistent router, Home stays mounted across nav, so this
+  // re-scrolls every time /planner becomes the active route.
+  useEffect(() => {
+    if (location === "/planner") {
+      // Defer to next frame so any layout shift from the route change
+      // has settled before we measure scroll position.
+      requestAnimationFrame(() => {
+        document.getElementById("split")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+    if (location === "/") {
+      // Snap back to the top when the Home tab is re-selected. Without
+      // this the user might be left mid-scroll from their last visit.
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    }
+  }, [location]);
 
   // Switch account = sign out, then navigate to /login so a different
   // Google/email credential pair can sign in immediately.
