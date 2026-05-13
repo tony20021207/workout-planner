@@ -1,0 +1,24 @@
+# Project TODO
+
+- [x] Expand each joint function to 8 exercises
+- [x] Add difficulty ratings (Hard/Medium/Easy) with color coding for each exercise
+- [x] Add equipment/handle variations for cable and barbell exercises
+- [x] Show targeted muscles in small font beneath each exercise name
+- [x] Add customization subtab after selecting exercise (sets, weight, reps with default 3 sets)
+- [x] Auto-recommend warmup exercises with instructions after finalizing workout
+- [x] Implement OAuth login (Google via Manus OAuth)
+- [x] Build calendar system for scheduling and repeating workouts
+- [x] Add per-day workout customization UI (edit exercises, sets, reps, weight for individual days)
+- [x] Add PDF export for one-page workout output
+- [x] BUG: Fix set/rep input so users can type single digit numbers (1-99)
+- [x] BUG: Fix save-to-calendar functionality so workouts save to selected day
+- [x] Add plus/minus buttons for sets with per-set customizable rep and weight fields (default 3 sets)
+- [x] Add copy workout to another day feature (with independent customization)
+- [x] Restructure entire exercise database with new Tier 1/Tier 2 taxonomy
+- [x] Populate exactly 2 exercises per subcategory with equipment and angle toggles
+- [x] Build equipment toggles UI (Dumbbell/Barbell/Cable/Machine)
+- [x] Build angle toggles UI (Flat/15°/30° incline, high-to-low/horizontal angles)
+- [x] Include mechanics descriptions for all exercises
+- [x] BUG: Calendar save workflow - clicking a date after navigating from builder doesn't save the workout
+- [x] BUG: Going back from calendar loses the routine (routine state is cleared on navigation)
+- [x] BUG: Can't access/view a saved workout after clicking on a scheduled calendar date entry
