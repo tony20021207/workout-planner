@@ -129,6 +129,13 @@ export default function CheckInPage() {
   const toggleComplete = trpc.calendar.toggleComplete.useMutation({
     onSuccess: () => calendarQuery.refetch(),
   });
+  // Persists the lifter's actual reps/weight back to the calendar entry's
+  // `customExercises` JSON column — same shape as the source workout, but
+  // with the numbers as performed. Future Stats page reads this to chart
+  // weight progression across completed entries.
+  const updateCustomExercises = trpc.calendar.updateCustomExercises.useMutation({
+    onSuccess: () => calendarQuery.refetch(),
+  });
 
   // Find the entry for this date (any state — completed or not).
   const todaysEntries = useMemo(
@@ -141,12 +148,33 @@ export default function CheckInPage() {
     if (!entry) return null;
     const w = (workoutsQuery.data ?? []).find((w) => w.id === entry.workoutId);
     if (!w) return null;
-    return {
-      id: w.id,
-      name: w.name,
-      exercises: ((w.exercises as unknown[]) ?? []) as CheckInExercise[],
-    };
+    // If the lifter has already logged numbers for this day,
+    // `entry.customExercises` is the source of truth — it stores the
+    // actually-performed reps/weight per set. Falls back to the base
+    // workout template when no log exists yet.
+    const exercises = (entry.customExercises
+      ? (entry.customExercises as unknown[])
+      : (w.exercises as unknown[]) ?? []) as CheckInExercise[];
+    return { id: w.id, name: w.name, exercises };
   }, [entry, workoutsQuery.data]);
+
+  // When opening a day that already has a persisted log, hydrate the
+  // local edit/check state from it so the UI reflects "what you actually
+  // did" rather than the template defaults. Runs once per entry change.
+  useEffect(() => {
+    if (!entry?.customExercises || !workout) return;
+    const seedEdits: Record<string, { reps: number; weight: number }> = {};
+    const seedChecks: SetCheckMap = {};
+    workout.exercises.forEach((ex, exIdx) => {
+      ex.sets.forEach((s, setIdx) => {
+        const key = `${exIdx}-${setIdx}`;
+        seedEdits[key] = { reps: s.reps, weight: s.weight };
+        if (entry.completed) seedChecks[key] = true;
+      });
+    });
+    setSetEdits(seedEdits);
+    setSetChecks(seedChecks);
+  }, [entry?.id, entry?.customExercises, entry?.completed, workout]);
 
   // Find the next scheduled (uncompleted) workout AFTER today for the
   // encouragement panel.
@@ -216,10 +244,30 @@ export default function CheckInPage() {
     };
   };
 
+  /**
+   * Snapshot the actual numbers the lifter performed (applying `setEdits`
+   * over the original template) into `entry.customExercises`, then mark
+   * the entry complete. Persistence is fire-and-forget — UI advances to
+   * the celebratory panel immediately.
+   */
   const handleCompleteWorkout = () => {
-    if (!entry) return;
+    if (!entry || !workout) return;
+    const performedExercises = workout.exercises.map((ex, exIdx) => ({
+      ...ex,
+      sets: ex.sets.map((s, setIdx) => {
+        const edit = setEdits[`${exIdx}-${setIdx}`];
+        return {
+          reps: edit?.reps ?? s.reps,
+          weight: edit?.weight ?? s.weight,
+        };
+      }),
+    }));
+    updateCustomExercises.mutate({
+      id: entry.id,
+      customExercises: performedExercises,
+    });
     if (!entry.completed) {
-      toggleComplete.mutate({ id: entry.id });
+      toggleComplete.mutate({ id: entry.id, completed: 1 });
     }
     setCompleted(true);
     toast.success("Workout complete. Get the recovery.");
@@ -303,9 +351,19 @@ export default function CheckInPage() {
           <>
             <div className="p-4 bg-card border-2 border-border rounded-sm">
               <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
-                <h2 className="font-heading font-bold text-lg text-foreground">
-                  {workout.name}
-                </h2>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="font-heading font-bold text-lg text-foreground">
+                    {workout.name}
+                  </h2>
+                  {entry.completed ? (
+                    <span
+                      className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-lime/15 text-lime border border-lime/30"
+                      title="The numbers shown are what you actually performed on this day."
+                    >
+                      Logged
+                    </span>
+                  ) : null}
+                </div>
                 <span className="text-xs text-muted-foreground">
                   {workout.exercises.length} exercise
                   {workout.exercises.length === 1 ? "" : "s"} ·{" "}
@@ -313,10 +371,9 @@ export default function CheckInPage() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Check each set as you finish. Edit reps and weight inline if you adjusted on
-                the fly. When everything's checked, hit{" "}
-                <span className="font-semibold text-foreground">Mark workout complete</span>{" "}
-                at the bottom.
+                {entry.completed
+                  ? "You've already logged this day — numbers below are what you actually performed. Edit any set and hit Mark workout complete again to update the log."
+                  : "Check each set as you finish. Edit reps and weight inline if you adjusted on the fly. When everything's checked, hit Mark workout complete at the bottom."}
               </p>
             </div>
 

@@ -1454,7 +1454,10 @@ export default function CalendarPage() {
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    toggleComplete.mutate({ id: viewingEntry.entryId });
+                    toggleComplete.mutate({
+                      id: viewingEntry.entryId,
+                      completed: viewingEntry.completed ? 0 : 1,
+                    });
                     setViewingEntry(null);
                   }}
                   className={
