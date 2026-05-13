@@ -210,11 +210,24 @@ export default function DayExerciseEditor({
           <div className="text-[10px] text-muted-foreground truncate">
             {item.targetedMuscles.join(", ")}
           </div>
-          <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
-            {summary}
+          <div className="text-[10px] text-muted-foreground mt-0.5 font-mono flex items-center gap-1.5 flex-wrap">
+            <span>{summary}</span>
             {item.sets.length > 0 && (
               <span className="text-[9px] uppercase tracking-wider text-muted-foreground/60">
-                {" "}· {currentLabel}
+                · {currentLabel}
+              </span>
+            )}
+            {/* Recommended RIR per-exercise: read from experience profile.
+                Compounds get a different target than isolations. The
+                tag is informational — never enforced. */}
+            {expProfile && (
+              <span
+                className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded-sm bg-purple-500/15 text-purple-300 border border-purple-500/30"
+                title={`Recommended RIR target for this exercise type at ${expProfile.name}`}
+              >
+                {item.category === "systemic"
+                  ? `RIR ${expProfile.rir.compound}`
+                  : `RIR ${expProfile.rir.isolation}`}
               </span>
             )}
           </div>

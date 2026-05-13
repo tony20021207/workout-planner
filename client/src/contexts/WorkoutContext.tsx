@@ -19,28 +19,6 @@ export interface SetDetail {
   weight: number;
 }
 
-/**
- * User's self-reported reps-in-reserve at the last rep of a working set,
- * **on the explicit premise that movement quality stays consistent** (no
- * body english, no shortened ROM, no tempo cheating).
- *
- * Nippard's "million-dollar test": if someone offered you $1M to do one
- * more clean rep — same form, same ROM, same tempo — could you?
- *
- * Targets per Nippard / Israetel: compound = 1-2 RIR, isolation = 0 RIR.
- */
-export type RIRChoice = "0" | "1-2" | "3+";
-
-export interface EffortCalibration {
-  compoundRIR: RIRChoice;
-  isolationRIR: RIRChoice;
-}
-
-const DEFAULT_EFFORT: EffortCalibration = {
-  compoundRIR: "1-2",
-  isolationRIR: "0",
-};
-
 export interface RoutineItem {
   id: string;
   exercise: string;
@@ -186,8 +164,6 @@ interface WorkoutContextType {
   replaceRoutine: (items: RoutineItem[]) => void;
   updateRoutineItem: (id: string, updates: Partial<RoutineItem>) => void;
   totalWeeklySets: number;
-  effort: EffortCalibration;
-  setEffort: (effort: EffortCalibration) => void;
   /**
    * Up to MAX_FAVORITES exercise ids the user has marked as favorites.
    * Favorites become signals for two systems:
@@ -304,7 +280,6 @@ interface WorkoutContextType {
 }
 
 const STORAGE_KEY = "kinesiology_routine";
-const EFFORT_STORAGE_KEY = "kinesiology_effort";
 const SPLIT_STORAGE_KEY = "kinesiology_split";
 const LIFESTYLE_STORAGE_KEY = "kinesiology_lifestyle";
 const AVAILABILITY_STORAGE_KEY = "kinesiology_availability";
@@ -331,27 +306,6 @@ function saveRoutineToStorage(routine: RoutineItem[]) {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(routine));
   } catch {
     // ignore storage errors
-  }
-}
-
-function loadEffortFromStorage(): EffortCalibration {
-  try {
-    const stored = sessionStorage.getItem(EFFORT_STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (parsed?.compoundRIR && parsed?.isolationRIR) return parsed;
-    }
-  } catch {
-    // ignore
-  }
-  return DEFAULT_EFFORT;
-}
-
-function saveEffortToStorage(effort: EffortCalibration) {
-  try {
-    sessionStorage.setItem(EFFORT_STORAGE_KEY, JSON.stringify(effort));
-  } catch {
-    // ignore
   }
 }
 
@@ -557,7 +511,6 @@ const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 
 export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [routine, setRoutine] = useState<RoutineItem[]>(() => loadRoutineFromStorage());
-  const [effort, setEffortState] = useState<EffortCalibration>(() => loadEffortFromStorage());
   const [split, setSplitState] = useState<SplitState>(() => loadSplitFromStorage());
   const [lifestyle, setLifestyleState] = useState<LifestyleId | null>(() => loadLifestyleFromStorage());
   const [availableDaysPerWeek, setAvailableDaysPerWeekState] = useState<number | null>(() => loadAvailabilityFromStorage());
@@ -571,11 +524,6 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveRoutineToStorage(routine);
   }, [routine]);
-
-  // Persist effort calibration on every change
-  useEffect(() => {
-    saveEffortToStorage(effort);
-  }, [effort]);
 
   // Persist split state on every change
   useEffect(() => {
@@ -911,10 +859,6 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     setAutoPlanUntouchedState(false);
   }, []);
 
-  const setEffort = useCallback((next: EffortCalibration) => {
-    setEffortState(next);
-  }, []);
-
   const setSplit = useCallback((next: SplitState) => {
     setSplitState(next);
     flipPlanModified();
@@ -1043,8 +987,6 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         replaceRoutine,
         updateRoutineItem,
         totalWeeklySets,
-        effort,
-        setEffort,
         split,
         setSplit,
         clearSplit,

@@ -114,24 +114,24 @@ const SFR_VALUE: Record<string, number> = {
 // level (the other two — Deep Stretch and Major Coverage — are
 // universally good for hypertrophy regardless of training age).
 //
-//   SFR penalty       × 1.25 beginner / × 1.00 FID / × 0.75 experienced
-//   Stability penalty × 1.25 beginner / × 1.00 FID / × 0.75 experienced
+//   SFR penalty       × 1.20 beginner / × 1.10 FID / × 1.00 experienced
+//   Stability penalty × 1.20 beginner / × 1.10 FID / × 1.00 experienced
 //   Compound/Iso band shifted: 15-35% / 20-45% / 25-50%
 //
-// Why: beginners can't absorb CNS-heavy low-SFR low-stability work
-// efficiently — they lack the technique to push to failure on free
-// weights. Experienced lifters can. The compound/iso sweet spot
-// literally moves with experience — more isolation for newer lifters,
-// more compound capacity for veterans.
+// EXPERIENCED IS THE BASELINE (multiplier = 1.00). They have the
+// technique + recovery capacity to handle any pick, so the system
+// applies penalties at face value. FID lifters pay 10% more on top
+// for low-SFR / low-stability picks (still learning to recover);
+// beginners pay 20% more (still building technique to push safely).
 //
 // Stretch + coverage are NOT modulated: lengthened-position loading
 // helps everyone equally, and hitting the major movers matters
 // regardless of experience.
 
 const PENALTY_MULTIPLIER: Record<ExperienceId, number> = {
-  beginner: 1.25,
-  "foot-in-door": 1.0,
-  experienced: 0.75,
+  beginner: 1.20,
+  "foot-in-door": 1.10,
+  experienced: 1.00,
 };
 
 interface CompoundBand {

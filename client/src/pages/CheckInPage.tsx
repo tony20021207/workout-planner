@@ -31,6 +31,8 @@ import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
+import { useWorkout } from "@/contexts/WorkoutContext";
+import { getExperience } from "@/lib/experience";
 
 interface CheckInExercise {
   exercise: string;
@@ -85,6 +87,8 @@ function pickEncouragement(setsCompleted: number): string {
 
 export default function CheckInPage() {
   const { user, isAuthenticated, loading } = useAuth();
+  const { experience } = useWorkout();
+  const expProfile = getExperience(experience);
   const [, setLocation] = useLocation();
 
   // Date can be set via ?date=YYYY-MM-DD; defaults to today.
@@ -328,9 +332,26 @@ export default function CheckInPage() {
                   >
                     <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-heading font-semibold text-base text-foreground">
-                          {ex.exercise}
-                        </h3>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-heading font-semibold text-base text-foreground">
+                            {ex.exercise}
+                          </h3>
+                          {/* Recommended RIR per exercise type — informational
+                              badge sourced from the user's experience profile.
+                              The lifter trains TO this target; the system never
+                              enforces it. */}
+                          {expProfile && (
+                            <span
+                              className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-purple-500/15 text-purple-300 border border-purple-500/30"
+                              title={`Target RIR for ${ex.category === "systemic" ? "compound" : "isolation"} at ${expProfile.name}`}
+                            >
+                              RIR{" "}
+                              {ex.category === "systemic"
+                                ? expProfile.rir.compound
+                                : expProfile.rir.isolation}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-muted-foreground truncate">
                           {ex.targetedMuscles.join(", ")}
                         </p>
