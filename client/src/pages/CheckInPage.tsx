@@ -24,6 +24,7 @@ import {
   Trophy,
   Sparkles,
   Calendar as CalendarIcon,
+  PlayCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -33,6 +34,7 @@ import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { resolveProfile } from "@/lib/experience";
+import { videoUrlForRoutineItem } from "@/lib/exerciseVideo";
 
 interface CheckInExercise {
   exercise: string;
@@ -393,6 +395,19 @@ export default function CheckInPage() {
                           <h3 className="font-heading font-semibold text-base text-foreground">
                             {ex.exercise}
                           </h3>
+                          {/* Watch demo — outbound link to a public-platform
+                              video (curated URL or YouTube search fallback).
+                              IP-safe: we link only, never host or embed. */}
+                          <a
+                            href={videoUrlForRoutineItem(ex)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 rounded-sm text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            title="Watch a demo of this exercise (opens in a new tab)"
+                            aria-label={`Watch demo of ${ex.exercise}`}
+                          >
+                            <PlayCircle className="w-4 h-4" />
+                          </a>
                           {/* Recommended RIR per exercise type — informational
                               badge sourced from the user's experience profile.
                               The lifter trains TO this target; the system never
