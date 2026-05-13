@@ -1131,6 +1131,15 @@ export default function CalendarPage() {
                 const inBulkWindow = bulkMode && bulkWindow.has(dateStr);
                 const isBulkAnchor = bulkMode && dateStr === bulkAnchorDate;
                 const isBulkSelected = bulkSelectedDates.has(dateStr);
+                // Day is "done" when it has scheduled workouts AND every one
+                // is marked complete. Drives the green checkmark badge in
+                // the cell header — scannable at-a-glance month view of
+                // adherence. Suppressed in bulk mode to avoid competing
+                // with the purple selection check.
+                const allEntriesComplete =
+                  !bulkMode &&
+                  entries.length > 0 &&
+                  entries.every((e) => e.completed);
 
                 // Bulk-mode styling: highlight window with soft purple
                 // background; mark anchor with lime; mark selected days
@@ -1181,7 +1190,15 @@ export default function CalendarPage() {
                     <div className="flex items-center justify-between">
                       <div
                         className={`text-xs font-semibold mb-1 ${
-                          isToday ? "text-lime" : isBulkAnchor ? "text-lime" : isBulkSelected ? "text-purple-200" : "text-muted-foreground"
+                          isToday
+                            ? "text-lime"
+                            : isBulkAnchor
+                              ? "text-lime"
+                              : isBulkSelected
+                                ? "text-purple-200"
+                                : allEntriesComplete
+                                  ? "text-green-400"
+                                  : "text-muted-foreground"
                         }`}
                       >
                         {day}
@@ -1193,6 +1210,12 @@ export default function CalendarPage() {
                       )}
                       {isBulkSelected && !isBulkAnchor && (
                         <CheckCircle2 className="w-3 h-3 text-purple-300" />
+                      )}
+                      {allEntriesComplete && (
+                        <CheckCircle2
+                          className="w-3.5 h-3.5 text-green-400"
+                          aria-label="Workout completed"
+                        />
                       )}
                     </div>
                     {/* Projected split-day label for marked dates in bulk
