@@ -76,3 +76,49 @@ export function getExperience(id: ExperienceId | null | undefined): ExperiencePr
   if (!id) return null;
   return EXPERIENCE_PROFILES.find((p) => p.id === id) ?? null;
 }
+
+// Module-level imports for volume — keeps the cycle one-directional
+// (experience pulls volume values; volume only takes ExperienceId as a
+// type). Type-only imports get erased at build time, so even if there
+// were a runtime cycle attempt it'd be safe.
+import { defaultVolumeForExperience, getVolume, type VolumeId } from "./volume";
+
+/**
+ * Effective profile = experience (technique-related fields) merged with
+ * volume profile (volume-related fields). When volume is null, defaults
+ * to the experience's natural volume tier so single-picker users get
+ * the expected behavior.
+ *
+ * Volume-overridden fields:
+ *   - weeklyVolumePerMajor
+ *   - setsPerExercise (compound + isolation)
+ *   - weeklyTotalSetsCap
+ *   - sessionCapPerMover
+ *   - rir (compound + isolation)
+ *
+ * Experience-controlled fields (NOT overridden):
+ *   - id, name, blurb, description
+ *   - reps targets (rep ranges aren't part of the volume picker)
+ *
+ * The technique-side SFR/Stab penalty multiplier and Compound/Iso band
+ * are keyed off ExperienceId directly inside poolScore.ts — they don't
+ * read from this profile object — so this merge is purely the volume
+ * view. A beginner picking high volume still gets the beginner-strict
+ * SFR penalty and tight Compound/Iso band.
+ */
+export function resolveProfile(
+  experienceId: ExperienceId | null | undefined,
+  volumeId: VolumeId | null | undefined,
+): ExperienceProfile {
+  const baseExp = getExperience(experienceId) ?? getExperience("foot-in-door")!;
+  const effectiveVolumeId = volumeId ?? defaultVolumeForExperience(experienceId);
+  const vol = getVolume(effectiveVolumeId) ?? getVolume("med")!;
+  return {
+    ...baseExp,
+    setsPerExercise: vol.setsPerExercise,
+    rir: vol.rir,
+    sessionCapPerMover: vol.sessionCapPerMover,
+    weeklyVolumePerMajor: vol.weeklyVolumePerMajor,
+    weeklyTotalSetsCap: vol.weeklyTotalSetsCap,
+  };
+}

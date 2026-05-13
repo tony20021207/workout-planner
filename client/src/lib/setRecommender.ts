@@ -17,7 +17,8 @@
  * Weight defaults to 0 — user fills in their actual training weight.
  */
 import type { RoutineItem, SetDetail } from "@/contexts/WorkoutContext";
-import { getExperience, type ExperienceId, type ExperienceProfile } from "@/lib/experience";
+import { resolveProfile, type ExperienceId, type ExperienceProfile } from "@/lib/experience";
+import type { VolumeId } from "@/lib/volume";
 
 const CALVES_NAME_PATTERN = /calf|calves|seated calf|standing calf/i;
 const CORE_ISOLATION_PATTERN = /crunch|woodchop|pallof|side bend|v-up|ab wheel/i;
@@ -34,16 +35,20 @@ export interface SetRecommendation {
   rirLabel: string;
 }
 
-/** Default to mid-band (foot-in-the-door) when the user hasn't picked yet. */
-function resolveExperience(id: ExperienceId | null | undefined): ExperienceProfile {
-  return getExperience(id) ?? getExperience("foot-in-door")!;
+/** Default to mid-band (foot-in-the-door + med volume) when nothing picked. */
+function resolveExperience(
+  expId: ExperienceId | null | undefined,
+  volId: VolumeId | null | undefined,
+): ExperienceProfile {
+  return resolveProfile(expId, volId);
 }
 
 export function recommendSetsForItem(
   item: RoutineItem,
   experienceId?: ExperienceId | null,
+  volumeId?: VolumeId | null,
 ): SetRecommendation {
-  const exp = resolveExperience(experienceId);
+  const exp = resolveExperience(experienceId, volumeId);
   const isCompound = item.category === "systemic";
   const isCalves = CALVES_NAME_PATTERN.test(item.exercise);
   const isCore = CORE_ISOLATION_PATTERN.test(item.exercise);
@@ -104,6 +109,10 @@ export function buildSetsFromRecommendation(rec: SetRecommendation): SetDetail[]
  * Apply the auto-recommendation to a routine item, returning a new
  * SetDetail[] without mutating the input.
  */
-export function autoRecommendSets(item: RoutineItem, experienceId?: ExperienceId | null): SetDetail[] {
-  return buildSetsFromRecommendation(recommendSetsForItem(item, experienceId));
+export function autoRecommendSets(
+  item: RoutineItem,
+  experienceId?: ExperienceId | null,
+  volumeId?: VolumeId | null,
+): SetDetail[] {
+  return buildSetsFromRecommendation(recommendSetsForItem(item, experienceId, volumeId));
 }

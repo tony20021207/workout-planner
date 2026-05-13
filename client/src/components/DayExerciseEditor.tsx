@@ -43,7 +43,7 @@ import {
   type RepRangeId,
 } from "@/lib/repRanges";
 import { computeMatrixSets } from "@/lib/splitPresets";
-import { getExperience } from "@/lib/experience";
+import { resolveProfile } from "@/lib/experience";
 
 function NumberInput({
   value,
@@ -123,7 +123,7 @@ export default function DayExerciseEditor({
   movedFromDayName,
   swappedFromExerciseName,
 }: DayExerciseEditorProps) {
-  const { updateRoutineItem, routine, split, experience, favorites, toggleFavorite, isFavorite } = useWorkout();
+  const { updateRoutineItem, routine, split, experience, volume, favorites, toggleFavorite, isFavorite } = useWorkout();
   const [expanded, setExpanded] = useState(false);
   const [customMode, setCustomMode] = useState(false);
   const starred = isFavorite(item.id);
@@ -136,7 +136,7 @@ export default function DayExerciseEditor({
     toggleFavorite(item.id);
   };
 
-  const expProfile = getExperience(experience) ?? getExperience("foot-in-door")!;
+  const expProfile = resolveProfile(experience, volume);
 
   // Which rep-range bucket the current sets fall into. Default to
   // med-low (8–12) for unconfigured items — the heavy-hypertrophy

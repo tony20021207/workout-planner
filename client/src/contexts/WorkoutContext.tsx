@@ -10,7 +10,8 @@ import {
   generateId,
 } from "@/lib/data";
 import { type LifestyleId } from "@/lib/lifestyle";
-import { type ExperienceId, getExperience } from "@/lib/experience";
+import { type ExperienceId, getExperience, resolveProfile } from "@/lib/experience";
+import { type VolumeId } from "@/lib/volume";
 import { rebalanceForWeek2 } from "@/lib/rebalance";
 import { computeWeek2LoadDeload } from "@/lib/loadDeload";
 import { swapAllNonFavoritesWeek2, type SwapSize } from "@/lib/variantSwap";
@@ -221,6 +222,17 @@ interface WorkoutContextType {
   setAvailableDaysPerWeek: (n: number | null) => void;
   experience: ExperienceId | null;
   setExperience: (id: ExperienceId | null) => void;
+  /**
+   * User's chosen training volume tier — independent of experience.
+   * When null, code should treat as "use the default for this experience"
+   * (low / med / high for beginner / FID / experienced respectively).
+   * Volume drives weekly volume per major, sets per exercise, weekly
+   * total cap, session cap, and RIR targets. Experience continues to
+   * drive technique-side modulators (SFR/Stability penalty multiplier,
+   * Compound/Iso band, rating tone).
+   */
+  volume: VolumeId | null;
+  setVolume: (id: VolumeId | null) => void;
   sessionWarmups: SessionWarmupsByDay | null;
   setSessionWarmups: (warmups: SessionWarmupsByDay | null) => void;
   /**
@@ -313,6 +325,7 @@ const SPLIT_STORAGE_KEY = "kinesiology_split";
 const LIFESTYLE_STORAGE_KEY = "kinesiology_lifestyle";
 const AVAILABILITY_STORAGE_KEY = "kinesiology_availability";
 const EXPERIENCE_STORAGE_KEY = "kinesiology_experience";
+const VOLUME_STORAGE_KEY = "kinesiology_volume";
 const WARMUPS_STORAGE_KEY = "kinesiology_session_warmups";
 const AUTO_PLAN_STORAGE_KEY = "kinesiology_auto_plan_untouched";
 const FAVORITES_STORAGE_KEY = "kinesiology_favorites";
@@ -474,6 +487,31 @@ function saveExperienceToStorage(id: ExperienceId | null) {
   }
 }
 
+function loadVolumeFromStorage(): VolumeId | null {
+  try {
+    const stored = sessionStorage.getItem(VOLUME_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed === "low" || parsed === "med" || parsed === "high") return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function saveVolumeToStorage(id: VolumeId | null) {
+  try {
+    if (id) {
+      sessionStorage.setItem(VOLUME_STORAGE_KEY, JSON.stringify(id));
+    } else {
+      sessionStorage.removeItem(VOLUME_STORAGE_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 function loadAutoPlanFromStorage(): boolean {
   try {
     const stored = sessionStorage.getItem(AUTO_PLAN_STORAGE_KEY);
@@ -550,6 +588,10 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   const [lifestyle, setLifestyleState] = useState<LifestyleId | null>(() => loadLifestyleFromStorage());
   const [availableDaysPerWeek, setAvailableDaysPerWeekState] = useState<number | null>(() => loadAvailabilityFromStorage());
   const [experience, setExperienceState] = useState<ExperienceId | null>(() => loadExperienceFromStorage());
+  // Volume tier — independent of experience. null = use the default for
+  // the current experience (low for beginner, med for FID, high for
+  // experienced). Set explicitly to override.
+  const [volume, setVolumeState] = useState<VolumeId | null>(() => loadVolumeFromStorage());
   const [sessionWarmups, setSessionWarmupsState] = useState<SessionWarmupsByDay | null>(() => loadWarmupsFromStorage());
   const [autoPlanUntouched, setAutoPlanUntouchedState] = useState<boolean>(() => loadAutoPlanFromStorage());
   const [favorites, setFavoritesState] = useState<string[]>(() => loadFavoritesFromStorage());
@@ -584,6 +626,10 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveExperienceToStorage(experience);
   }, [experience]);
+
+  useEffect(() => {
+    saveVolumeToStorage(volume);
+  }, [volume]);
 
   // Persist auto-plan flag on every change
   useEffect(() => {
@@ -769,7 +815,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       setRoutine((prevRoutine) => {
         setMesocycleState((prevMeso) => {
           if (!prevMeso.enabled) return prevMeso;
-          const profile = getExperience(experience) ?? getExperience("foot-in-door")!;
+          const profile = resolveProfile(experience, volume);
           const result = computeWeek2LoadDeload(
             prevRoutine,
             prevSplit.dayAssignments,
@@ -884,6 +930,13 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
 
   const setExperience = useCallback((next: ExperienceId | null) => {
     setExperienceState(next);
+    // Reset volume override on experience change so the default volume
+    // tracks the new experience tier. If the user really wants their old
+    // volume preserved, they re-pick it after.
+    setVolumeState(null);
+  }, []);
+  const setVolume = useCallback((next: VolumeId | null) => {
+    setVolumeState(next);
   }, []);
 
   const markAutoPlanFresh = useCallback(() => {
@@ -1052,6 +1105,8 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         setAvailableDaysPerWeek,
         experience,
         setExperience,
+        volume,
+        setVolume,
         sessionWarmups,
         setSessionWarmups,
         autoPlanUntouched,

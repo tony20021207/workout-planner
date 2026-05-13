@@ -31,6 +31,7 @@ import { useWorkout } from "@/contexts/WorkoutContext";
 import { trpc } from "@/lib/trpc";
 import LifestylePicker from "./LifestylePicker";
 import ExperiencePicker from "./ExperiencePicker";
+import VolumePicker from "./VolumePicker";
 import { toast } from "sonner";
 import {
   type RatingResult,
@@ -1107,14 +1108,14 @@ Tue - Pull
               Tell us about you
             </h4>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              These shape the score before the LLM ever sees it — experience
-              modulates SFR/Stability/Compound-Iso penalties; lifestyle
-              drives warmup picks. Set once; we won't ask again.
+              These shape the score before the LLM ever sees it. <span className="text-foreground font-semibold">Experience</span> modulates SFR / Stability / Compound-Iso penalties. <span className="text-foreground font-semibold">Volume</span> sets your weekly load target and defaults to whatever most lifters at your experience level run — override only if you want more or less. <span className="text-foreground font-semibold">Lifestyle</span> drives warmup picks. Set once; we won't ask again.
             </p>
           </div>
           <LifestylePicker />
           <div className="border-t border-border" />
           <ExperiencePicker />
+          <div className="border-t border-border" />
+          <VolumePicker />
         </div>
       )}
 

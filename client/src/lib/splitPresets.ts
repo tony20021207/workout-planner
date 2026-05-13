@@ -27,7 +27,8 @@
  */
 import type { RoutineItem } from "@/contexts/WorkoutContext";
 import type { JointAction } from "@/lib/data";
-import { getExperience, type ExperienceId, type ExperienceProfile } from "@/lib/experience";
+import { resolveProfile, type ExperienceId, type ExperienceProfile } from "@/lib/experience";
+import { type VolumeId } from "@/lib/volume";
 import { sortDayExercises } from "./dayOrdering";
 import { applyFinisherToAllocation } from "./finisher";
 
@@ -602,8 +603,13 @@ export interface AllocationResult {
 }
 
 export interface AllocationOptions {
-  /** User experience level — drives sets per exercise + weekly volume target. */
+  /** User experience level — drives technique-side modulators (SFR/Stability
+   * penalty, Compound/Iso band, coaching tone). NOT volume; see `volume`. */
   experience?: ExperienceId | null;
+  /** User volume tier — drives weekly volume targets, sets per exercise,
+   * session caps, RIR targets. null = use the default for the experience
+   * tier (low for beginner, med for FID, high for experienced). */
+  volume?: VolumeId | null;
   /** Exercise IDs the user marked as favorite (priority for repetition). */
   favoriteIds?: string[];
   /** Calves finisher frequency — days/wk to train calves regardless of
@@ -630,7 +636,7 @@ export function allocatePoolToSplit(
   split: SplitPreset,
   options: AllocationOptions = {},
 ): AllocationResult {
-  const exp = getExperience(options.experience) ?? getExperience("foot-in-door")!;
+  const exp = resolveProfile(options.experience, options.volume);
   const favoriteSet = new Set(options.favoriteIds ?? []);
   const targets = computeWeeklyVolumeTargets(exp);
 

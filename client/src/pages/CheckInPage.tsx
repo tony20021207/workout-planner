@@ -32,7 +32,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
 import { useWorkout } from "@/contexts/WorkoutContext";
-import { getExperience } from "@/lib/experience";
+import { resolveProfile } from "@/lib/experience";
 
 interface CheckInExercise {
   exercise: string;
@@ -87,8 +87,8 @@ function pickEncouragement(setsCompleted: number): string {
 
 export default function CheckInPage() {
   const { user, isAuthenticated, loading } = useAuth();
-  const { experience } = useWorkout();
-  const expProfile = getExperience(experience);
+  const { experience, volume } = useWorkout();
+  const expProfile = resolveProfile(experience, volume);
   const [, setLocation] = useLocation();
 
   // Date can be set via ?date=YYYY-MM-DD; defaults to today.

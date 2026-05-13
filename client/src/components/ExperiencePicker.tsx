@@ -1,9 +1,18 @@
 /**
- * ExperiencePicker — User selects one of three experience levels after
- * rating their pool. The selection drives:
- *   - Auto-recommend (sets / reps / RIR per exercise)
- *   - Auto-allocator session caps + total weekly volume
- *   - Rating prompts (so the LLM judges in light of the lifter's level)
+ * ExperiencePicker — User picks their training experience level.
+ *
+ * Drives TECHNIQUE-related modulators only (since volume was split off
+ * into the separate VolumePicker):
+ *   - SFR + Stability penalty multiplier (1.25× beginner / 1.00× FID / 0.75× experienced)
+ *   - Compound/Iso optimal-share band (15–35% / 20–45% / 25–50%)
+ *   - Coaching tone in the rating prompt
+ *
+ * Volume (sets/wk per major, sets per exercise, RIR, session cap) is
+ * picked separately via VolumePicker. By default the volume tier
+ * tracks the experience tier — beginner → low volume, FID → med,
+ * experienced → high — so most users only set this one and the
+ * volume picker auto-defaults. Setting experience also resets any
+ * explicit volume override so the default tracks correctly.
  */
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { EXPERIENCE_PROFILES, type ExperienceId } from "@/lib/experience";
@@ -13,6 +22,25 @@ const ICON_MAP: Record<ExperienceId, typeof Sprout> = {
   beginner: Sprout,
   "foot-in-door": Activity,
   experienced: Flame,
+};
+
+/** User-facing description of the technique-side effect for each tier. */
+const TECHNIQUE_DESCRIPTION: Record<ExperienceId, string[]> = {
+  beginner: [
+    "Harsher score deductions for low-SFR or unstable picks (1.25× penalty multiplier).",
+    "Tighter compound-vs-isolation balance band — full credit only for 15–35% compound share.",
+    "Coaching tone assumes you're still learning to recover and to push to failure safely.",
+  ],
+  "foot-in-door": [
+    "Baseline score modulators — penalties at face value.",
+    "Standard compound-vs-isolation band — full credit for 20–45% compound share.",
+    "Coaching tone assumes you've trained consistently for 6 months to 2.5 years.",
+  ],
+  experienced: [
+    "Lenient score deductions on technically-loaded picks (0.75× penalty multiplier).",
+    "Wider compound-vs-isolation band — full credit for 25–50% compound share.",
+    "Coaching tone assumes you can recover from suboptimal selection and push hard.",
+  ],
 };
 
 export default function ExperiencePicker() {
@@ -26,9 +54,7 @@ export default function ExperiencePicker() {
           What's your experience level?
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-          Drives Opti-split + Opti-fill: how many sets, reps, RIR per exercise, and
-          weekly volume per major mover. All three levels stay inside the Nippard / Israetel
-          MEV–MAV band — beginners pin to the lower edge, experienced lifters to the upper edge.
+          Drives technique-side rating modulators — how strictly we penalize unstable or low-SFR picks, and how wide the compound-vs-isolation balance band is. Your training volume is a separate choice below; it defaults to the volume tier most lifters at your level run.
         </p>
       </div>
 
@@ -78,41 +104,12 @@ export default function ExperiencePicker() {
       {selected && (
         <div className="p-3 bg-amber-500/5 border border-amber-500/30 rounded-sm text-xs text-muted-foreground leading-relaxed">
           <p className="text-amber-300 font-semibold mb-1.5 text-[11px] uppercase tracking-wider">
-            What changes for {selected.name}
+            How {selected.name} affects scoring
           </p>
           <ul className="space-y-0.5 list-disc pl-4">
-            <li>
-              <span className="text-foreground font-semibold">
-                {selected.setsPerExercise.compound} sets
-              </span>{" "}
-              per compound,{" "}
-              <span className="text-foreground font-semibold">
-                {selected.setsPerExercise.isolation} sets
-              </span>{" "}
-              per isolation.
-            </li>
-            <li>
-              RIR target:{" "}
-              <span className="text-foreground font-semibold">{selected.rir.compound} RIR</span>{" "}
-              compound /{" "}
-              <span className="text-foreground font-semibold">{selected.rir.isolation} RIR</span>{" "}
-              isolation.
-            </li>
-            <li>
-              Per-session cap:{" "}
-              <span className="text-foreground font-semibold">
-                ≤ {selected.sessionCapPerMover} sets per joint-action mover
-              </span>
-              .
-            </li>
-            <li>
-              Weekly volume target:{" "}
-              <span className="text-foreground font-semibold">
-                ~{selected.weeklyVolumePerMajor} sets/wk per major
-              </span>{" "}
-              (
-              <span className="italic">{selected.description.split("Goal:")[0].trim()}</span>).
-            </li>
+            {TECHNIQUE_DESCRIPTION[selected.id].map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
           </ul>
         </div>
       )}

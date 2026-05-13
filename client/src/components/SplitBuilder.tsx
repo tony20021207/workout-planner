@@ -50,7 +50,7 @@ import {
   type SplitId,
   type SplitPreset,
 } from "@/lib/splitPresets";
-import { getExperience } from "@/lib/experience";
+import { resolveProfile } from "@/lib/experience";
 import { trpc } from "@/lib/trpc";
 import { LIFESTYLE_PROFILES } from "@/lib/lifestyle";
 import {
@@ -495,6 +495,7 @@ export default function SplitBuilder() {
     lifestyle,
     availableDaysPerWeek,
     experience,
+    volume,
     sessionWarmups,
     setSessionWarmups,
     markAutoPlanFresh,
@@ -554,7 +555,9 @@ export default function SplitBuilder() {
   const activePreset: SplitPreset | null =
     split.splitId && split.splitId !== "custom" ? SPLIT_PRESETS[split.splitId] : null;
 
-  const expProfile = getExperience(experience) ?? getExperience("foot-in-door")!;
+  // Effective profile = experience (technique-side) + volume (volume-side).
+  // Volume defaults to the experience tier's natural volume when null.
+  const expProfile = resolveProfile(experience, volume);
 
   const isViewingWeek2 = mesocycle.enabled && activeWeek === 2;
 
@@ -759,6 +762,7 @@ export default function SplitBuilder() {
     const preset = SPLIT_PRESETS[id];
     const allocation = allocatePoolToSplit(routine, preset, {
       experience,
+      volume,
       favoriteIds: favorites,
       calvesFrequency: split.calvesFrequency,
       absFrequency: split.absFrequency,
@@ -781,6 +785,7 @@ export default function SplitBuilder() {
     if (!activePreset) return;
     const allocation = allocatePoolToSplit(routine, activePreset, {
       experience,
+      volume,
       favoriteIds: favorites,
       calvesFrequency: split.calvesFrequency,
       absFrequency: split.absFrequency,
@@ -912,6 +917,7 @@ export default function SplitBuilder() {
 
     const allocation = allocatePoolToSplit(routineToUse, activePreset, {
       experience,
+      volume,
       favoriteIds: favorites,
       calvesFrequency: overrides.calvesFrequency,
       absFrequency: overrides.absFrequency,
