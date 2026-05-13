@@ -78,9 +78,12 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white font-[Space_Grotesk]">
-            Kinesiology Workout Builder
+            OptiMass
           </h1>
-          <p className="text-slate-400 mt-2">
+          <p className="text-slate-400 mt-1 text-sm">
+            Workout Programming for Optimal Hypertrophy
+          </p>
+          <p className="text-slate-500 mt-3 text-sm">
             {mode === "login" ? "Sign in to save your workouts" : "Create your account"}
           </p>
         </div>

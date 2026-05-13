@@ -165,17 +165,36 @@ export default function Home() {
                 <Dumbbell className="w-6 h-6 text-lime-foreground" />
               </div>
               <span className="text-lime font-heading font-semibold text-sm uppercase tracking-wider">
-                Kinesiology-Based Programming
+                Workout Programming for Optimal Hypertrophy
               </span>
             </div>
             <h1 className="font-heading text-4xl md:text-6xl font-bold text-foreground leading-tight mb-4">
               <span className="text-lime">Opti-split</span>, <span className="text-lime">Opti-fill</span>,{" "}
               <span className="text-lime">OptiMass</span>.
             </h1>
-            <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
-              Pick the exercises you want this week. Rate the selection out of 100 against the
-              Hypertrophy Matrix, fix the gaps it flags, then split into days.
+            <p className="text-lg text-muted-foreground max-w-xl leading-relaxed mb-4">
+              Five steps from blank slate to a calibrated mesocycle. Each step does a specific job — no junk steps.
             </p>
+            {/* Compact flow + reasoning. Each bullet = what you do +
+                why it matters. Keeps the hero short while giving a new
+                visitor a real map of the product. */}
+            <ul className="space-y-1.5 max-w-xl text-sm text-muted-foreground leading-snug">
+              <li>
+                <span className="text-foreground font-semibold">1. Pick</span> exercises — coverage of the major joint actions matters more than picking the trendiest machine.
+              </li>
+              <li>
+                <span className="text-foreground font-semibold">2. Rate</span> the selection 0–100 vs. the Hypertrophy Matrix — surfaces blind spots (missing scapular depressors, too much CNS load) before you build the week.
+              </li>
+              <li>
+                <span className="text-foreground font-semibold">3. Split</span> across training days via Opti-split — distributes volume per major mover so each muscle lands inside its MEV–MAV band.
+              </li>
+              <li>
+                <span className="text-foreground font-semibold">4. Fill</span> sets and reps via Opti-fill — each exercise gets a rep range matched to its biomechanical profile (deadlifts low, calves & abs high, compounds med-low, isolation med-high).
+              </li>
+              <li>
+                <span className="text-foreground font-semibold">5. Track</span> — schedule the mesocycle on the calendar, check in daily, log actual reps and weight. Progression data, not guesswork.
+              </li>
+            </ul>
 
             <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
               <button
@@ -193,7 +212,7 @@ export default function Home() {
                       Build one now
                     </h3>
                     <p className="text-sm opacity-80 mt-0.5 leading-snug">
-                      Step through the kinesiology builder, get Opti-split + Opti-fill tuned for your level.
+                      Pick exercises, get Opti-split + Opti-fill tuned for your experience and volume tier.
                     </p>
                   </div>
                 </div>
