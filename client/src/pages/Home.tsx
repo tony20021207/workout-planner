@@ -5,7 +5,7 @@
  */
 import { motion } from "framer-motion";
 import { useEffect } from "react";
-import { Dumbbell, LogIn, User, Calendar, Hammer, ClipboardEdit, LogOut, UserCog, ChevronDown } from "lucide-react";
+import { Dumbbell, LogIn, User, Calendar, Hammer, ClipboardEdit, LogOut, UserCog, UserCircle2, ChevronDown } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import MuscleGroupSelector from "@/components/MuscleGroupSelector";
 import RoutineTable from "@/components/RoutineTable";
 import SplitBuilder from "@/components/SplitBuilder";
 import ScheduledEditBanner from "@/components/ScheduledEditBanner";
+import ProfileSetup, { useProfileSetup, ProfileSummary } from "@/components/ProfileSetup";
 import { useWorkout } from "@/contexts/WorkoutContext";
 
 const HERO_IMAGE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663485353368/jfV7S3MNUDuVhtkiCcthXe/hero-gym-dark-KKuMaEkkg3MDJoz7g3KQh4.webp";
@@ -35,6 +36,10 @@ export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
   const { routine } = useWorkout();
   const [location, setLocation] = useLocation();
+  // Profile setup modal — auto-opens once on first authenticated visit
+  // when lifestyle/experience are unset, and can be re-opened from the
+  // account dropdown via "Edit profile" anytime after.
+  const { open: profileOpen, setOpen: setProfileOpen } = useProfileSetup(isAuthenticated);
 
   // When the user lands on /planner (Planner tab in the bottom nav),
   // jump straight to the weekly microcycle / split builder section
@@ -119,6 +124,11 @@ export default function Home() {
                       {user?.email || user?.name || "User"}
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => setProfileOpen(true)} className="cursor-pointer">
+                      <UserCircle2 className="w-3.5 h-3.5 mr-2" />
+                      Edit profile
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={handleSwitchAccount} className="cursor-pointer">
                       <UserCog className="w-3.5 h-3.5 mr-2" />
                       Switch account
@@ -146,6 +156,25 @@ export default function Home() {
           editing a calendar workout (clicked "Edit in Planner" from
           CalendarPage). Provides Save / Save as new / Cancel actions. */}
       <ScheduledEditBanner />
+
+      {/* Profile setup modal + auto-trigger. Opens once on first
+          authenticated visit when lifestyle/experience are unset, and
+          can be re-opened anytime via the account dropdown. The three
+          settings drive Opti-* directly, so we capture them upfront
+          instead of gating behind the rating UI. */}
+      {isAuthenticated && (
+        <ProfileSetup open={profileOpen} onClose={() => setProfileOpen(false)} />
+      )}
+
+      {/* Persistent profile summary banner — visible right under top nav
+          on the home page so the user can always tell which settings
+          their plan is being built with. One click to edit. Only
+          renders authenticated. */}
+      {isAuthenticated && (
+        <div className="container pt-3">
+          <ProfileSummary onEdit={() => setProfileOpen(true)} />
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">

@@ -29,9 +29,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkout } from "@/contexts/WorkoutContext";
 import { trpc } from "@/lib/trpc";
-import LifestylePicker from "./LifestylePicker";
-import ExperiencePicker from "./ExperiencePicker";
-import VolumePicker from "./VolumePicker";
+// Lifestyle / Experience / Volume pickers no longer live here —
+// moved to ProfileSetup at the front of the flow. WorkoutRater
+// reads the persisted values from WorkoutContext via useWorkout().
 import { toast } from "sonner";
 import {
   type RatingResult,
@@ -1091,33 +1091,12 @@ Tue - Pull
         </Tabs>
       )}
 
-      {/* Pre-rate context pickers — surfaced BEFORE the first rating so
-          experience modulation (SFR/Stability penalty + Compound/Iso band)
-          + lifestyle warmup logic take effect on the initial score, not
-          forcing a re-rate. Availability is NOT here: it doesn't influence
-          the rating (confirmed by code audit — server/rating.ts and
-          client/lib/poolScore.ts never read it) and lives on the SplitBuilder
-          where it actually drives which presets are eligible. After the
-          first rating these pickers do NOT re-render — the user makes
-          changes to their routine and re-rates, no need to re-ask the
-          same context every time. */}
-      {!result && (
-        <div className="p-4 bg-card rounded-sm border-2 border-purple-500/30 space-y-5">
-          <div>
-            <h4 className="font-heading font-bold text-xs uppercase tracking-wider text-purple-300 mb-1">
-              Tell us about you
-            </h4>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              These shape the score before the LLM ever sees it. <span className="text-foreground font-semibold">Experience</span> modulates SFR / Stability / Compound-Iso penalties. <span className="text-foreground font-semibold">Volume</span> sets your weekly load target and defaults to whatever most lifters at your experience level run — override only if you want more or less. <span className="text-foreground font-semibold">Lifestyle</span> drives warmup picks. Set once; we won't ask again.
-            </p>
-          </div>
-          <LifestylePicker />
-          <div className="border-t border-border" />
-          <ExperiencePicker />
-          <div className="border-t border-border" />
-          <VolumePicker />
-        </div>
-      )}
+      {/* Lifestyle / Experience / Volume pickers used to live here as
+          a 'Tell us about you' strip. They moved to the ProfileSetup
+          modal at the front of the flow (auto-opens on first visit;
+          re-openable from the account dropdown). The rating engine
+          still uses experience + lifestyle the same way — just reads
+          them from WorkoutContext, which the modal already populated. */}
 
       {/* Submit button */}
       {!result && (
