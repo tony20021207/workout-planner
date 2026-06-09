@@ -33,41 +33,56 @@ free tier was killed in April 2024 — moved the DB to Railway instead.
 
 ---
 
-## Phase 1 — DB extraction (~10 min)
+## Phase 1 — Save the JSON backup (already done)
 
-One Manus prompt — keep it short to minimize tokens:
+Manus's WebDev platform uses a custom DB abstraction — it can't
+produce a raw `mysqldump`. Instead they pulled all data via the
+app's API endpoints and exported as JSON. That file lives at:
 
-> "Give me a mysqldump of the production database, gzip it, and send me
-> a download link."
+  `phase 2/db-export from manus.json`
 
-You'll get a file like `optimass-db-YYYYMMDD.sql.gz`. Keep it on your
-machine.
+Summary of what's inside (June 2026 snapshot):
+  - 3 users (two are duplicate rows of you under different openIds
+    from the Manus-OAuth → Firebase-Auth switch; the third is one
+    family member with a single sign-in)
+  - 7 workouts (test routines you built; no production user data)
+  - 2 calendar entries, both `completed: false` and
+    `customExercises: null` (no Check-in / progression data)
+
+The JSON stays on disk as a historical artifact. We are NOT going
+to import it into Railway MySQL — the data isn't worth the
+import-script effort given how little is there.
 
 ---
 
-## Phase 2 — DB setup + import (~30 min)
+## Phase 2 — Empty Railway MySQL + schema push (~15 min)
 
-The database lives in your Railway project alongside the backend. Both
-share Railway's internal network — fast queries, single dashboard.
+Railway will host the database alongside the backend. Same
+project, same internal network, one dashboard.
 
-1. Railway dashboard → New Project (or open the project you'll use for
-   the backend) → click **"+ New"** → **Database** → **MySQL**.
-2. Railway provisions a MySQL service in ~30 seconds. Click the service
-   → **Variables** tab → copy the value of `MYSQL_URL` (looks like
-   `mysql://root:<pass>@<host>:<port>/railway`). Save in a temp file.
-3. Restore the dump from Phase 1. From your local terminal:
+1. Railway dashboard → New Project (or open the project you'll use
+   for the backend) → click **"+ New"** → **Database** → **MySQL**.
+2. Railway provisions a MySQL service in ~30 seconds. The service
+   creates an empty database called `railway` with auto-injected
+   env vars (`MYSQL_URL`, `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`,
+   `MYSQLPASSWORD`, `MYSQLDATABASE`).
+3. Click the MySQL service → **Variables** tab → copy `MYSQL_URL`
+   (looks like `mysql://root:<pass>@<host>:<port>/railway`).
+4. Create the schema by running Drizzle's migration from your
+   local terminal:
    ```bash
-   # Decompress the dump
-   gunzip optimass-db-YYYYMMDD.sql.gz
-
-   # Restore against the Railway MySQL using the connection string
-   mysql --host=<host> --port=<port> --user=root --password=<pass> railway < optimass-db-YYYYMMDD.sql
+   # In the repo root, on the migrate/off-manus branch
+   export DATABASE_URL="mysql://root:<pass>@<host>:<port>/railway"
+   npm run db:push
    ```
-   (You can grab the per-field values from Railway's MySQL Variables
-   tab — they're shown as `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`,
-   `MYSQLPASSWORD`, `MYSQLDATABASE`.)
-4. Verify in Railway's Data tab — you should see all your tables
-   (`users`, `workouts`, `calendarEntries`, etc.).
+   This runs `drizzle-kit generate && drizzle-kit migrate` against
+   the Railway DB, creating the `users`, `workouts`, and
+   `calendarEntries` tables (defined in `drizzle/schema.ts`).
+5. Verify in Railway's MySQL service → **Data** tab — you should
+   see all three tables, empty.
+
+No data import. You'll sign in fresh on the new deploy in Phase 6
+and rebuild your routine — takes ~5 minutes since you designed it.
 
 ---
 
@@ -142,22 +157,27 @@ Without this, Google sign-in rejects the new origin.
 
 ---
 
-## Phase 6 — Smoke test (~15 min)
+## Phase 6 — Smoke test + rebuild routine (~20 min)
 
 Open `optimass.vercel.app` on desktop + phone:
 
-- [ ] Log in (Firebase Google sign-in)
-- [ ] Profile setup modal opens
-- [ ] Build a routine
+- [ ] Log in (Firebase Google sign-in) — fresh user row gets created
+      on the empty Railway DB
+- [ ] Profile setup modal opens — pick lifestyle / experience / volume
+- [ ] Build your routine (your UL4-style picks from memory)
 - [ ] Rate it (LLM call works → Anthropic API key wired)
 - [ ] Build a split (Opti-split)
 - [ ] Fill sets (Opti-fill)
-- [ ] Save to calendar
-- [ ] Check in — log a set
-- [ ] Reload — Check-in data persists
+- [ ] Save to calendar — pick a date in the next few days
+- [ ] Check in — log a set with actual reps + weight
+- [ ] Reload — Check-in data persists (validates DB writes + reads
+      end-to-end)
 
-If any step fails, copy the browser console error and the Railway log
+If any step fails, copy the browser console error AND the Railway log
 tail and share them. Easy to fix; almost always an env-var typo.
+
+If everything works, you've successfully migrated. Your fresh user
+data lives on Railway MySQL now; the old Manus JSON is just history.
 
 ---
 
@@ -207,19 +227,27 @@ Zero Manus tokens for deploys. Zero prompting. Yours.
 
 ## Rollback if something breaks
 
-Any phase 0–4 can be undone without affecting production — the Manus
-deploy keeps running. Phase 7 (cutover) is the first non-recoverable
-step in the sense that it's "now the canonical URL"; even there, you
-keep both URLs live, so users on the old Manus URL keep using the old
-backend + old DB while you sort out the new setup.
+Every phase is recoverable. The Manus deploy stays running and untouched
+throughout the migration — it's still pointing at the Manus-internal
+DB, has no idea Railway exists, and serves the old URL normally.
 
-The DB cutover (Phase 2) is the one place to be careful — once you start
-writing to PlanetScale, you stop writing to Manus DB. If you find a
-critical bug after that point, the rollback is "redo Phase 2 in reverse"
-(dump PlanetScale, restore to Manus). Annoying but recoverable.
+Two reasons rollback is easier than in a typical migration:
 
-Recommendation: do Phase 6 smoke test thoroughly before announcing the
-new URL to anyone.
+1. **We're starting Railway with an empty DB.** No data to corrupt;
+   no "we lost Tuesday's writes" failure mode. If something breaks,
+   you fix it without touching production users.
+
+2. **No data cutover.** Old Manus URL keeps writing to Manus DB.
+   New Vercel URL writes to Railway DB. They're fully independent
+   until you choose to retire the Manus URL.
+
+Phase 7 (cutover) just means "I'm telling people about the new URL."
+You can do that whenever you've smoke-tested enough. The Manus URL
+stays alive as long as you let it — kill it whenever you stop
+needing the safety net.
+
+Recommendation: do the Phase 6 smoke test thoroughly. Use the new
+URL exclusively for a week. Then kill the Manus deploy.
 
 ---
 
