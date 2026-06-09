@@ -15,8 +15,16 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (typeof window === "undefined") return;
 
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
-
   if (!isUnauthorized) return;
+
+  // Only redirect on Manus deploys (where VITE_OAUTH_PORTAL_URL is set)
+  // — the redirect uses Manus OAuth, which doesn't exist on Railway/
+  // Vercel. On Firebase-Auth-only deploys, the Sign In CTA in the
+  // Home page top nav handles auth via AuthContext; auto-redirecting
+  // would crash with 'Invalid URL' because the OAuth portal URL is
+  // undefined. We just log the unauth and let the UI re-render in
+  // its signed-out state.
+  if (!import.meta.env.VITE_OAUTH_PORTAL_URL) return;
 
   window.location.href = getLoginUrl();
 };
