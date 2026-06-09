@@ -37,10 +37,18 @@ queryClient.getMutationCache().subscribe(event => {
   }
 });
 
+// tRPC base URL.
+//   - Local dev / bundled Manus deploy (frontend + backend same origin):
+//     leave VITE_API_URL unset and we hit the relative '/api/trpc' path.
+//   - Split deploy (Vercel frontend + Railway backend): set
+//     VITE_API_URL='https://your-api.up.railway.app' in Vercel env vars
+//     and we hit '${VITE_API_URL}/api/trpc' with CORS credentials.
+const TRPC_URL = `${import.meta.env.VITE_API_URL ?? ""}/api/trpc`;
+
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: "/api/trpc",
+      url: TRPC_URL,
       transformer: superjson,
       fetch(input, init) {
         return globalThis.fetch(input, {
