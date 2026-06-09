@@ -10,27 +10,26 @@ and zero per-deploy tokens.
 | Item | Monthly |
 |---|---|
 | Vercel (frontend) | $0 (Hobby tier) |
-| Railway (backend) | ~$5 once the included credit runs out |
-| PlanetScale (MySQL) | $0 free tier (sleeps after 7d idle; ~$39 for always-on production) |
+| Railway (backend + MySQL together) | ~$5–10 once included credit runs out |
 | Firebase Auth | $0 |
 | Custom domain (optional) | ~$10/yr |
-| **Total** | **$0–15/mo for hobby; ~$50/mo for production-grade** |
+| **Total** | **$5–10/mo for hobby; ~$20–30/mo if traffic grows** |
+
+PlanetScale was originally in this plan but they killed their free Hobby tier in April 2024 (cheapest now is $15/mo). Replaced with Railway MySQL — same Railway dashboard as the backend, ~$3–5/mo, faster latency since both services share Railway's internal network.
 
 Compared to Manus token cost per deploy, this pays off after a few weeks.
 
 ---
 
-## Phase 0 — Accounts (~20 min, $0)
+## Phase 0 — Accounts (~10 min, $0)
 
 Sign in to each with GitHub so they can read the repo:
 
 - [ ] **Vercel** — vercel.com — Hobby (free)
-- [ ] **Railway** — railway.app — $5 trial credit, ~$5/mo after
-- [ ] **PlanetScale** — planetscale.com — Free tier
+- [ ] **Railway** — railway.app — $5 trial credit, ~$5–10/mo after (hosts BOTH backend + MySQL)
 
-Alternative DB if PlanetScale's sleep behavior bothers you: **Neon**
-(neon.tech) — Postgres, $0 tier with no sleep. But switching engines
-means a Drizzle schema migration. Recommend MySQL on PlanetScale for now.
+That's the full account list. PlanetScale was originally here but their
+free tier was killed in April 2024 — moved the DB to Railway instead.
 
 ---
 
@@ -46,20 +45,29 @@ machine.
 
 ---
 
-## Phase 2 — DB import (~30 min)
+## Phase 2 — DB setup + import (~30 min)
 
-1. PlanetScale dashboard → New database → name `optimass` → region near you.
-2. Copy the connection string from Settings → looks like:
-   `mysql://<user>:<pass>@aws.connect.psdb.cloud/optimass?ssl={"rejectUnauthorized":true}`
-3. Install the PlanetScale CLI (`pscale`) if you haven't:
-   - Mac: `brew install planetscale/tap/pscale`
-   - Windows: download from PlanetScale docs
-4. Authenticate: `pscale auth login`
-5. Import the dump:
+The database lives in your Railway project alongside the backend. Both
+share Railway's internal network — fast queries, single dashboard.
+
+1. Railway dashboard → New Project (or open the project you'll use for
+   the backend) → click **"+ New"** → **Database** → **MySQL**.
+2. Railway provisions a MySQL service in ~30 seconds. Click the service
+   → **Variables** tab → copy the value of `MYSQL_URL` (looks like
+   `mysql://root:<pass>@<host>:<port>/railway`). Save in a temp file.
+3. Restore the dump from Phase 1. From your local terminal:
    ```bash
-   pscale db restore-dump optimass main optimass-db-YYYYMMDD.sql.gz
+   # Decompress the dump
+   gunzip optimass-db-YYYYMMDD.sql.gz
+
+   # Restore against the Railway MySQL using the connection string
+   mysql --host=<host> --port=<port> --user=root --password=<pass> railway < optimass-db-YYYYMMDD.sql
    ```
-6. Paste the connection string into a temporary text file — needed in Phase 3.
+   (You can grab the per-field values from Railway's MySQL Variables
+   tab — they're shown as `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`,
+   `MYSQLPASSWORD`, `MYSQLDATABASE`.)
+4. Verify in Railway's Data tab — you should see all your tables
+   (`users`, `workouts`, `calendarEntries`, etc.).
 
 ---
 
@@ -75,16 +83,18 @@ machine.
 
 1. Railway → New Project → Deploy from GitHub → pick `workout-planner` →
    branch `migrate/off-manus`
-2. Add these env vars in Railway dashboard:
+2. Add these env vars in Railway dashboard. For the MySQL connection,
+   Railway's variable-reference syntax means you don't paste the
+   password directly — you reference the MySQL service:
    ```
-   DATABASE_URL          = (from Phase 2)
+   DATABASE_URL          = ${{MySQL.MYSQL_URL}}   (auto-resolves at runtime)
    FIREBASE_PROJECT_ID   = (existing)
    FIREBASE_CLIENT_EMAIL = (existing)
    FIREBASE_PRIVATE_KEY  = (existing)
    ANTHROPIC_API_KEY     = (existing, for LLM rating prose)
    NODE_ENV              = production
-   PORT                  = ${{PORT}}   (Railway provides this)
    ```
+   (PORT is set automatically by Railway — no need to add it.)
 3. Click Deploy.
 4. Once it builds, Railway gives a URL like `optimass-api.up.railway.app`.
    Copy it — Phase 4 needs it.
